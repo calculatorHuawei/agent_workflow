@@ -1,8 +1,8 @@
 metadata:
   generated_at: '2026-06-08 19:22:20'
-  stage: github-pushed
-  next_stage: token-fill
-  updated_at: '2026-06-08 19:58:00'
+  stage: token-filled
+  next_stage: gateway-start
+  updated_at: '2026-06-08 20:05:00'
   org_name_corrected: true
   previous_org_name: oneplusn-team
   github_push_commit: c886a6117eab4d37a9996b87e855ad21ef5aebae
@@ -26,11 +26,14 @@ agents:
     name: dev-01
     role: developer
     agent_type: hermes
-    github_username: calculatorHuawei-dev-01
+    github_username: littleleafccccc
     github_email: 2690920195+dev01@qq.com
     gateway_port: 8100
     status: active
     onboarded_at: '2026-06-08 19:25:27'
+    token_status: filled
+    token_expires_at: '2026-09-06'
+    token_scopes: 'repo, workflow, delete:packages, write:packages'
     upgrades:
       - module: hindsight
         enabled: true
@@ -41,11 +44,14 @@ agents:
     name: rev-01
     role: reviewer
     agent_type: hermes
-    github_username: calculatorHuawei-rev-01
+    github_username: littleleafbbbbb
     github_email: 2690920195+rev01@qq.com
     gateway_port: 8101
     status: active
     onboarded_at: '2026-06-08 19:25:40'
+    token_status: filled
+    token_expires_at: '2026-09-06'
+    token_scopes: 'admin:org, admin:repo_hook, repo, workflow, delete:packages, write:packages'
     upgrades:
       - module: hindsight
         enabled: true
@@ -56,11 +62,14 @@ agents:
     name: pm-01
     role: project-manager
     agent_type: hermes
-    github_username: calculatorHuawei-pm-01
+    github_username: littleleafaaaaa
     github_email: 2690920195+pm01@qq.com
     gateway_port: 8102
     status: active
     onboarded_at: '2026-06-08 19:25:54'
+    token_status: filled
+    token_expires_at: '2026-09-06'
+    token_scopes: 'admin:org, admin:repo_hook, repo, workflow, delete:packages, write:packages'
     upgrades:
       - module: hindsight
         enabled: true
