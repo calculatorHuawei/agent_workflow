@@ -1,10 +1,11 @@
 metadata:
   generated_at: '2026-06-08 19:22:20'
-  stage: team-ready
-  next_stage: github-push
-  updated_at: '2026-06-08 19:48:00'
+  stage: github-pushed
+  next_stage: token-fill
+  updated_at: '2026-06-08 19:58:00'
   org_name_corrected: true
   previous_org_name: oneplusn-team
+  github_push_commit: c886a6117eab4d37a9996b87e855ad21ef5aebae
 organization:
   name: calculatorHuawei
   url: https://github.com/calculatorHuawei
@@ -12,7 +13,11 @@ repository:
   name: agent_workflow
   url: https://github.com/calculatorHuawei/agent_workflow
   issues_url: https://github.com/calculatorHuawei/agent_workflow/issues
-  status: pending_creation
+  status: created
+  created_at: '2026-06-08'
+  default_branch: main
+  pushed_at: '2026-06-08 19:58:00'
+  commit_sha: c886a6117eab4d37a9996b87e855ad21ef5aebae
 boss:
   github_username: 223556cy
   email: 2690920195@qq.com
