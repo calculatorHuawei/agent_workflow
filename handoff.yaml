@@ -1,11 +1,11 @@
 metadata:
   generated_at: '2026-06-08 19:22:20'
-  stage: token-filled
+  stage: soul-injected
   next_stage: gateway-start
-  updated_at: '2026-06-08 20:05:00'
+  updated_at: '2026-06-08 21:00:00'
   org_name_corrected: true
   previous_org_name: oneplusn-team
-  github_push_commit: c886a6117eab4d37a9996b87e855ad21ef5aebae
+  github_push_commit: 8cb00944f3ae6f4cd64eeebe9eb0b736f43ca828
 organization:
   name: calculatorHuawei
   url: https://github.com/calculatorHuawei
@@ -16,11 +16,19 @@ repository:
   status: created
   created_at: '2026-06-08'
   default_branch: main
-  pushed_at: '2026-06-08 19:58:00'
-  commit_sha: c886a6117eab4d37a9996b87e855ad21ef5aebae
+  pushed_at: '2026-06-08 20:05:00'
+  commit_sha: 8cb00944f3ae6f4cd64eeebe9eb0b736f43ca828
 boss:
   github_username: 223556cy
   email: 2690920195@qq.com
+souls_source:
+  base_path: D:\huawei\ai-native-org-guide\souls\
+  available:
+    - 01-评审大哥-SOUL.md
+    - 02-开发小哥-SOUL.md
+    - 03-测试小哥-SOUL.md
+    - 04-项目总管-SOUL.md
+    - 05-挑战大姐-SOUL.md
 agents:
   dev-01:
     name: dev-01
@@ -34,6 +42,9 @@ agents:
     token_status: filled
     token_expires_at: '2026-09-06'
     token_scopes: 'repo, workflow, delete:packages, write:packages'
+    soul_source: D:\huawei\ai-native-org-guide\souls\02-开发小哥-SOUL.md
+    soul_role: 开发小哥（资深鸿蒙开发工程师）
+    soul_injected_at: '2026-06-08 21:00:00'
     upgrades:
       - module: hindsight
         enabled: true
@@ -52,6 +63,10 @@ agents:
     token_status: filled
     token_expires_at: '2026-09-06'
     token_scopes: 'admin:org, admin:repo_hook, repo, workflow, delete:packages, write:packages'
+    soul_source: D:\huawei\ai-native-org-guide\souls\02-开发小哥-SOUL.md
+    soul_role: 代码审查员（技术型 — 共享开发技术栈 + 审查视角）
+    soul_injected_at: '2026-06-08 21:00:00'
+    soul_note: '本地无纯代码审查员模板，使用 02-开发小哥 的技术栈知识 + 审查视角标注'
     upgrades:
       - module: hindsight
         enabled: true
@@ -70,6 +85,9 @@ agents:
     token_status: filled
     token_expires_at: '2026-09-06'
     token_scopes: 'admin:org, admin:repo_hook, repo, workflow, delete:packages, write:packages'
+    soul_source: D:\huawei\ai-native-org-guide\souls\04-项目总管-SOUL.md
+    soul_role: 项目总管（知识库 + 文档管理 + 规范维护）
+    soul_injected_at: '2026-06-08 21:00:00'
     upgrades:
       - module: hindsight
         enabled: true

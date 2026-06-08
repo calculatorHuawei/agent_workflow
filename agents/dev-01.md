@@ -18,9 +18,10 @@
 
 ## SOUL 来源
 
-- 仓库：[jnMetaCode/agency-agents-zh](https://github.com/jnMetaCode/agency-agents-zh)
-- 文件：`engineering/engineering-senior-developer.md`
-- 技能：前端/后端开发、AI集成、Code Review、架构思维、DevOps、数据库设计
+- 本地源：`D:\huawei\ai-native-org-guide\souls\02-开发小哥-SOUL.md`
+- 角色定位：开发小哥（资深鸿蒙开发工程师）
+- 技能：ArkTS/ArkUI、前端/后端/跨平台、性能优化、代码质量
+- 注入时间：2026-06-08 21:00:00
 
 ## 启动命令
 
@@ -35,6 +36,6 @@ hermes gateway start --port 8100
 - [x] 生成 PAT Token（过期 2026-09-06，权限 `repo, workflow, delete:packages, write:packages`）
 - [x] 替换 `~/.hermes/profiles/dev-01/.env` 中的 `PENDING_USER_TO_FILL`
 - [ ] 加入 `calculatorHuawei` Organization
-- [ ] 注入 SOUL.md（从 agency-agents-zh 仓库）
+- [x] 注入 SOUL.md（来自 `D:\huawei\ai-native-org-guide\souls\02-开发小哥-SOUL.md`）
 - [ ] 配置定时任务（每 30 分钟轮询 Issues）
 - [ ] 启动 Gateway 验证连接

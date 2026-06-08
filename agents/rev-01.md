@@ -18,9 +18,11 @@
 
 ## SOUL 来源
 
-- 仓库：[jnMetaCode/agency-agents-zh](https://github.com/jnMetaCode/agency-agents-zh)
-- 文件：`engineering/engineering-code-reviewer.md`
-- 技能：代码审查、安全漏洞检测、性能优化、设计模式评估、测试覆盖率分析
+- 本地源：`D:\huawei\ai-native-org-guide\souls\02-开发小哥-SOUL.md`（技术型审查视角）
+- 角色定位：代码审查员（技术型 — 共享开发技术栈，转为审查视角）
+- 技能：技术栈知识、代码审查、安全漏洞、性能优化、架构合理性
+- 注入时间：2026-06-08 21:00:00
+- 备注：本地无纯代码审查员模板，使用 02-开发小哥 的技术栈 + 审查视角标注
 
 ## 启动命令
 
@@ -35,6 +37,6 @@ hermes gateway start --port 8101
 - [x] 生成 PAT Token（过期 2026-09-06，含 `admin:org, admin:repo_hook`）
 - [x] 替换 `~/.hermes/profiles/rev-01/.env` 中的 `PENDING_USER_TO_FILL`
 - [ ] 加入 `calculatorHuawei` Organization
-- [ ] 注入 SOUL.md
+- [x] 注入 SOUL.md（来自 `02-开发小哥-SOUL.md` + 审查视角标注）
 - [ ] 配置定时任务
 - [ ] 启动 Gateway 验证连接
