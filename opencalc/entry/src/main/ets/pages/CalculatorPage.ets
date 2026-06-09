@@ -17,6 +17,7 @@ export struct CalculatorPage {
   @State expression: string = ''
   @State result: string = ''
   @State errorMsg: string = ''
+  @State preview: string = ''
   @State scientific: boolean = false
   @State history: HistoryItem[] = []
   @State showHistory: boolean = false
@@ -72,7 +73,23 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; this.preview = ''; ErrorFlags.reset() }
+
+  private updatePreview(): void {
+    if (this.expression.length === 0) { this.preview = ''; return }
+    ErrorFlags.reset()
+    try {
+      const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
+      if (ErrorFlags.syntax_error) { this.preview = ''; return }
+      const raw: number = this.engine.evaluate(clean, !this.radianMode)
+      if (ErrorFlags.division_by_0) { this.preview = '除数不能为零'; return }
+      if (ErrorFlags.domain_error) { this.preview = '定义域错误'; return }
+      if (ErrorFlags.is_infinity) { this.preview = '结果无穷大'; return }
+      if (ErrorFlags.require_real_number) { this.preview = '需要实数'; return }
+      if (ErrorFlags.syntax_error) { this.preview = ''; return }
+      this.preview = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+    } catch (_e) { this.preview = '计算错误' }
+  }
 
   onEquals(): void {
     if (this.expression.length === 0) return
