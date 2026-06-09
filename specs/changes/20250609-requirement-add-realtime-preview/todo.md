@@ -80,5 +80,23 @@
   - Task 2.2 在 onAC 显式 `preview = ''`（与 result/errorMsg 同步，防御性写法）
 
 ## IMPLEMENTING 阶段结论
-- 任务分解已完成，颗粒度符合 aid-implementing §全局约束（每任务 1-2h 可完成、有明确验收标准）。
-- 等待用户对 Task 3.2（onEquals 同步策略）的确认后进入 APPLYING 阶段。
+- 任务分解已完成，粒度符合 aid-implementing §全局约束（每任务 1-2h 可完成、有明确验收标准）。
+- 等待用户确认后进入 APPLYING 阶段。
+
+## APPLYING 阶段产出
+- **完成日期**: 2026-06-09
+- **提交**: 
+  - #1 `b32bfa6` feat(calculator): add preview state and updatePreview method
+  - #2 `33f701d` feat(calculator): wire updatePreview into 6 button callbacks
+  - #3 `bf6b087` feat(calculator): render realtime preview in DisplayPanel
+- **产出物**: `apply-report.md`
+- **状态**: ✅ 完成
+- **待验证**: Task 4.1, 4.2 需在 DevEco Studio 模拟器手动执行
+
+## 阶段状态汇总
+| 阶段 | 状态 | 备注 |
+|------|------|------|
+| PLANNING | ✅ 完成 | 全部 8 步骤完成 |
+| IMPLEMENTING | ✅ 完成 | 8 任务分解完成 |
+| APPLYING | ✅ 完成 | 3 个原子提交 |
+| ARCHIVING | ⏳ 待审核 | 待 rev-01 审核后执行 |
