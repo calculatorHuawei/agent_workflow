@@ -68,12 +68,12 @@ export struct CalculatorPage {
   }
 
   // ==================== 按钮事件 ====================
-  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
-  onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = '' }
-  onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
-  onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
-  onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; this.preview = ''; ErrorFlags.reset() }
+  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = ''; this.updatePreview() }
+  onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = ''; this.updatePreview() }
+  onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = ''; this.updatePreview() }
+  onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = ''; this.updatePreview() }
+  onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1); this.updatePreview() }
+  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; this.preview = ''; ErrorFlags.reset(); this.updatePreview() }
 
   private updatePreview(): void {
     if (this.expression.length === 0) { this.preview = ''; return }
