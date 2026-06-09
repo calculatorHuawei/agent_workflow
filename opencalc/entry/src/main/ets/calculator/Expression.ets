@@ -7,13 +7,14 @@ export class Expression {
 
   getCleanExpression(calculation: string, decimalSeparatorSymbol: string, groupingSeparatorSymbol: string): string {
     let cleanCalculation: string = this.replaceSymbols(calculation, decimalSeparatorSymbol, groupingSeparatorSymbol)
-    cleanCalculation = this.addMultiply(cleanCalculation)
-    if (cleanCalculation.indexOf('√') !== -1) {
-      cleanCalculation = this.formatSquare(cleanCalculation)
-    }
+    // Process % BEFORE addMultiply to avoid interference (e.g., 50+10% should become 50+50*(10/100), not 50+10*%)
     if (cleanCalculation.indexOf('%') !== -1) {
       cleanCalculation = this.getPercentString(cleanCalculation)
       cleanCalculation = this.replaceAll(cleanCalculation, '%', '/100')
+    }
+    cleanCalculation = this.addMultiply(cleanCalculation)
+    if (cleanCalculation.indexOf('√') !== -1) {
+      cleanCalculation = this.formatSquare(cleanCalculation)
     }
     if (cleanCalculation.indexOf('!') !== -1) {
       cleanCalculation = this.formatFactorial(cleanCalculation)
