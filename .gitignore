@@ -2,6 +2,13 @@
 test-runner/node_modules/
 node_modules/
 
+# Local test-runner (TS port of Expression for env without DevEco Studio)
+# See specs/changes/20260609-requirement-add-percent/apply-report.md §L-06
+test-runner/dist/
+test-runner/*.ts
+!test-runner/tsconfig.json
+!test-runner/package.json
+
 # IDE
 .idea/
 *.iml
