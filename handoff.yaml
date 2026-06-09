@@ -1,8 +1,39 @@
 metadata:
   generated_at: '2026-06-08 19:22:20'
-  stage: soul-injected
-  next_stage: gateway-start
-  updated_at: '2026-06-08 21:00:00'
+  stage: gateway-running
+  next_stage: issue-pending
+  updated_at: '2026-06-09 11:50:00'
+  gateway:
+    started_at: '2026-06-09 11:46:00'
+    pid: 31612
+    task_id: b6iutq36j
+    mode: foreground-background
+    active_cron_jobs: 3
+    cron_jobs:
+      - id: d10000000001
+        name: dev-01 Issue Worker (no-agent watch)
+        profile: dev-01
+        schedule: every 30m
+        mode: no-agent
+      - id: 03b7efc89fc1
+        name: dev-01 Issue Worker (LLM)
+        profile: dev-01
+        schedule: every 30m
+        mode: llm-thinking
+      - id: f4665c6a37a6
+        name: rev-01 Issue Reviewer (LLM)
+        profile: rev-01
+        schedule: every 30m
+        mode: llm-thinking
+      - id: 1ce1503e214f
+        name: pm-01 Issue Manager (LLM)
+        profile: pm-01
+        schedule: every 30m
+        mode: llm-thinking
+    notes:
+      - rev-01 / dev-01 / pm-01 都有每30min LLM 思考 cron，会主动处理分配的 Issue
+      - arch-01 也有 cron，但不在 1+N 团队
+      - dev-01 还有一个 no-agent 一次性 cron 残留（id: d10000000001），不影响工作
   org_name_corrected: true
   previous_org_name: oneplusn-team
   github_push_commit: 8cb00944f3ae6f4cd64eeebe9eb0b736f43ca828

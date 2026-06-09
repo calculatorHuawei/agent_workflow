@@ -84,6 +84,23 @@ gh issue edit <N> --remove-label "agent:旧标签"
 ghe issue edit <N> --add-label "type:正确的类型"
 ```
 
+### 铁律 7：禁止编造测试输出
+
+测试输出必须是**真实执行**的结果，不准 LLM 杜撰、推测、模仿预期输出。
+
+- ✅ 真跑：调用项目的真实构建/测试命令（如鸿蒙的 `hvigorw test`、Android 的 `./gradlew test`）
+- ✅ 贴日志：贴出 `git diff --stat` + 测试命令原始 stdout/stderr
+- ❌ 编造：写"测试输出：expected 55 got TrailingOperator"但实际没跑过
+- ❌ 推测："我觉得应该能跑通" / "看起来对"
+
+| 类型 | 命令 | 通过判据 |
+|------|------|---------|
+| HarmonyOS (ArkTS) | `hvigorw test` 或 `ohpm test` | exit 0 + 测试报告 |
+| 纯逻辑（无 UI） | `node --test` / `python -m pytest` | exit 0 + pass 数量匹配 |
+| 端到端 | `hdc shell uitest` | 截图 + 断言日志 |
+
+**违规处置**：comment 写"已通过 X 测试"但未提供日志 = 视为编造 → 自动退回重做 + 警告一次。
+
 ---
 
 ## 任务拆解
