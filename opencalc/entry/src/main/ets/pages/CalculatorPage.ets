@@ -259,8 +259,16 @@ export struct CalculatorPage {
       if (this.errorMsg.length > 0) {
         Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+      } else if (this.preview.length > 0) {
+        Text(this.preview)
+          .fontSize(this.isLandscape ? 22 : 28).fontColor(this.getT2())
+          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+      } else if (this.result.length > 0) {
+        Text(this.result)
+          .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       } else {
-        Text(this.result.length > 0 ? this.result : '0')
+        Text('0')
           .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       }
