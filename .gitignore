@@ -1,0 +1,14 @@
+# Dependencies
+test-runner/node_modules/
+node_modules/
+
+# IDE
+.idea/
+*.iml
+
+# Build
+build/
+*.har
+
+# Local env
+.env

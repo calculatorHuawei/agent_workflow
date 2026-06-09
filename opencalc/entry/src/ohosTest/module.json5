@@ -1,0 +1,17 @@
+{
+  "module": {
+    "name": "entry_test",
+    "type": "feature",
+    "description": "$string:module_desc",
+    "mainElement": "TestAbility",
+    "abilities": [
+      {
+        "name": "TestAbility",
+        "srcEntry": "./ets/testability/TestAbility.ets",
+        "description": "TestAbility"
+      }
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false
+  }
+}
