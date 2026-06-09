@@ -29,6 +29,7 @@
 | step8 | 组件设计 (mod-design) | ✅ 完成 | delta-design.md | D1-D10 章节 + plantuml 图 |
 | step9 | 设计审视 | ✅ 完成 | design-review.md | 完整性/一致性/规范性/可追溯均通过 |
 | step2-1~3 | IMPLEMENTING (aid-implementing) | ✅ 完成 | tasks.md | 13 个任务，覆盖 8 条 SR + 基线收编 + UI 验收 + 错误用例 + 收尾 |
+| step3-0~4 | APPLYING (aid-applying) | ✅ 完成 | apply-report.md | Task 1.1 reorder 已 commit (1a15476)；Task 2.1-2.7/4.1 测试覆盖已 commit (0813fa0, 27 测试)；Task 3.1 UI 代码层验收 (fafaac9)；遗留问题 L-01..L-06 已登记 |
 
 ## 复杂度评估结果
 
@@ -55,6 +56,7 @@
 - 2026-06-09: 复杂度 M，跳过 step7 new-arch.md。
 - 2026-06-09: 全部 9 步骤完成，PLANNING 阶段产出 6 份制品。
 - 2026-06-09: tasks.md 任务分解完成；13 个任务 = 1 基线收编 + 1 测试脚手架核对 + 7 个 SR 验证（02~08）+ 1 UI 验收 + 1 错误用例 + 2 收尾；关键路径 1.1 → 1.2 → 2.6 → 3.1 → 4.1 → 5.1 → 5.2；IMPLEMENTING 阶段 ✅ 完成。
+- 2026-06-09: APPLYING 阶段完成。Task 1.1 收编 reorder（commit 1a15476）；Task 2.1-2.7/4.1 单元测试 7→27（commit 0813fa0）；Task 3.1 UI 代码层验收（commit fafaac9）；Task 5.1 登记 6 项遗留问题（L-01..L-06 含 SR-05/06 spec 偏差、Task 4.1 错误用例 gap、`done[500]` 上限等）；27/27 测试在 TS 端口下 PASS，真实 Hypium 验证待 reviewer 在 DevEco Studio 内执行 hvigorw ohosTest。
 
 ## 制品清单
 

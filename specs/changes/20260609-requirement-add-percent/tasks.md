@@ -329,8 +329,43 @@ Task 5.2 (todo.md 同步)
 
 ---
 
-## 遗留问题（占位，Task 5.1 填充）
+## 遗留问题（Task 5.1 填充完成）
 
-- [待填] FM-05 `done[500]` 数组硬编码上限：表达式长度 > 500 时 `getPercentString` 越界。属 nice-to-have，design-review §5.1 已记录，本变更不处理。
-- [待填] SR-06 `(expr)!%` 当前实际行为（Task 2.5 实测）：可能与 spec 期望不符。
-- [待填] Task 2.7 兼容性实测值偏差（如有）：与 `main` 分支旧版本不一致的非 `%` 表达式输出。
+### L-01: `getPercentString` 数组 `done[500]` 硬编码上限
+- **现象**：`Expression.ets:176` 使用固定 500 长度的 `done` 数组。表达式长度 > 500 时 `done[i]` 越界 → undefined → `!done[i]` 为 `true` → 同一 `%` 可能被反复处理。
+- **影响**：仅在超长表达式下出现。普通用户场景不可触发。
+- **来源**：FM-05 / design-review §5.1
+- **建议后续 issue**：`refactor(issue-N): dynamic done[] in getPercentString to support arbitrary-length expressions`
+
+### L-02: SR-05 spec 字面量与实现输出不一致
+- **现象**：delta-spec.md §SR-05 写 `5!%` 改写为 `((5!)/100)`，实际 `getCleanExpression('5!%')` 输出 `((factorial(5))/100)`。
+- **根因**：Task 1.1 收编的 reorder（SR-07）让 `getPercentString` 先于 `formatFactorial` 执行。`getPercentString` 把 `5!%` 改写为 `((5!)/100)`，但后续的 `formatFactorial` 看到内部仍有 `!`，又把它改写成 `factorial(5)`，最终结果是 `((factorial(5))/100)`。
+- **影响**：功能上等价（CalcEngine.ets:112 支持 `factorial(...)` 函数调用，结果 120/100 = 1.2），仅字面字符串与 spec 不同。终端用户不受影响。
+- **建议后续 issue**：`docs(issue-N): update delta-spec.md SR-05 expected string to ((factorial(n))/100) (matches new order) OR revert Task 1.1 to put formatFactorial before getPercentString`（产品/PM 决策）
+
+### L-03: SR-06 spec 字面量与实现输出不一致
+- **现象**：delta-spec.md §SR-06 写 `(1+2)!%` 改写为 `((1+2)!)/100`，实际输出 `factorial(1+2)/100`。
+- **根因**：同 L-02。`getPercentString` 看到 `%` 前的 `)`，走 `)` 前缀分支，把 `(1+2)!%` 改写为 `((1+2))/100)` 之后字面 `%` 落空；`formatFactorial` 把 `((1+2))` 进一步吸收为 `factorial(1+2)`。
+- **影响**：功能上等价（6/100 = 0.06），仅字符串不同。
+- **建议后续 issue**：同 L-02（产品/PM 决策）
+
+### L-04: 错误用例未触发 `syntax_error`（Task 4.1 反向测试）
+- **现象**：`+%`、`++%`、`(2+3%` 三个用例按 delta-spec/FMEA 期望应触发 `ErrorFlags.syntax_error = true`，但实际为 `false`。
+- **根因**：
+  - `+%` / `++%`：`getPercentString` 的 `else` 分支（opPos 为 `+`/`-`）未对空 `base` / 空 `num` 设置 `syntax_error`，导致产生 `+*(/100)` / `+++*(/100)` 这种垃圾字符串。
+  - `(2+3%`：`getPercentString` 在 `parenthesisLevel === 1` 时遇到 `%` 不处理（line 200 守卫），`%` 落入兜底 `replaceAll('%','/100')`，输出 `(2+3/100)`；`addParenthesis` 后续自动补 `)`，无错误。
+- **影响**：错误的 `%` 输入会产生**无效但不报错**的中间表达式，CalcEngine 解析时报错或产生 NaN，用户体验为"输入没了反应"。
+- **建议后续 issue**：`fix(issue-N): getPercentString must set syntax_error on empty operand (FM-01/FM-02/FM-03)`
+
+### L-05: `factorial(1+2)` 取代了 `(1+2)factorial`（Task 2.7 兼容性偏差）
+- **现象**：`(1+2)!` 在 `formatFactorial` 走 `)` 前缀分支时被改写为 `factorial(1+2)`，而非 `(1+2)factorial`。
+- **影响**：CalcEngine 支持两种写法（`!` 走 `F` 替换，`factorial(...)` 走函数调用），结果一致。
+- **建议后续 issue**：无（行为正常，spec 未约束此场景的具体输出形式）
+
+### L-06: 单元测试环境无 DevEco Studio 运行时
+- **现象**：本次 APPLYING 在 Git Bash + Windows worktree 环境下执行，无 DevEco Studio / hvigorw ohosTest / 设备模拟器。
+- **应对**：
+  - 在 `test-runner/` 目录用 TypeScript 编写 `Expression` 类的等价端口（`Expression.ts`）+ Hypium API shim（`hypium-shim.ts` + `ErrorFlags-shim.ts`），通过 `npx ts-node` 在纯 Node 运行时跑测试。
+  - 27/27 测试在 TS 端口下 PASS（输出已附在 apply-report.md）。
+  - 真实 Hypium 测试需要 reviewer 在 DevEco Studio 内或设备上执行 `hvigorw ohosTest`。
+- **建议后续 issue**：`chore(issue-N): 恢复完整 resources/ 目录以支持 hvigorw 独立 build`（当前 worktree 缺 `entry/src/main/resources/main_pages.json`，hvigorw 在 `taskTree` 等命令上因找不到 profile 而报错）
