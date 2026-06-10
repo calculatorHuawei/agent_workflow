@@ -1,0 +1,92 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Calculator module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "OpenCalc HarmonyOS entry ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "OpenCalc"
+    },
+    {
+      "name": "mode_basic",
+      "value": "基础"
+    },
+    {
+      "name": "mode_scientific",
+      "value": "科学"
+    },
+    {
+      "name": "mode_programmer",
+      "value": "程序员"
+    },
+    {
+      "name": "base_dec",
+      "value": "DEC"
+    },
+    {
+      "name": "base_bin",
+      "value": "BIN"
+    },
+    {
+      "name": "base_oct",
+      "value": "OCT"
+    },
+    {
+      "name": "base_hex",
+      "value": "HEX"
+    },
+    {
+      "name": "hex_a",
+      "value": "A"
+    },
+    {
+      "name": "hex_b",
+      "value": "B"
+    },
+    {
+      "name": "hex_c",
+      "value": "C"
+    },
+    {
+      "name": "hex_d",
+      "value": "D"
+    },
+    {
+      "name": "hex_e",
+      "value": "E"
+    },
+    {
+      "name": "hex_f",
+      "value": "F"
+    },
+    {
+      "name": "error_overflow",
+      "value": "Overflow"
+    },
+    {
+      "name": "error_invalid",
+      "value": "Invalid"
+    },
+    {
+      "name": "error_decimal_not_supported",
+      "value": "不支持小数"
+    },
+    {
+      "name": "error_expression_not_supported",
+      "value": "当前进制不支持该表达式"
+    },
+    {
+      "name": "setting_default_mode",
+      "value": "默认模式"
+    },
+    {
+      "name": "setting_default_base",
+      "value": "默认进制"
+    }
+  ]
+}

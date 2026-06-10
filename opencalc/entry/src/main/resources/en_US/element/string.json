@@ -1,0 +1,92 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Calculator module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "OpenCalc HarmonyOS entry ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "OpenCalc"
+    },
+    {
+      "name": "mode_basic",
+      "value": "Basic"
+    },
+    {
+      "name": "mode_scientific",
+      "value": "Scientific"
+    },
+    {
+      "name": "mode_programmer",
+      "value": "Programmer"
+    },
+    {
+      "name": "base_dec",
+      "value": "DEC"
+    },
+    {
+      "name": "base_bin",
+      "value": "BIN"
+    },
+    {
+      "name": "base_oct",
+      "value": "OCT"
+    },
+    {
+      "name": "base_hex",
+      "value": "HEX"
+    },
+    {
+      "name": "hex_a",
+      "value": "A"
+    },
+    {
+      "name": "hex_b",
+      "value": "B"
+    },
+    {
+      "name": "hex_c",
+      "value": "C"
+    },
+    {
+      "name": "hex_d",
+      "value": "D"
+    },
+    {
+      "name": "hex_e",
+      "value": "E"
+    },
+    {
+      "name": "hex_f",
+      "value": "F"
+    },
+    {
+      "name": "error_overflow",
+      "value": "Overflow"
+    },
+    {
+      "name": "error_invalid",
+      "value": "Invalid"
+    },
+    {
+      "name": "error_decimal_not_supported",
+      "value": "Decimals are not supported"
+    },
+    {
+      "name": "error_expression_not_supported",
+      "value": "Current base does not support this expression"
+    },
+    {
+      "name": "setting_default_mode",
+      "value": "Default Mode"
+    },
+    {
+      "name": "setting_default_base",
+      "value": "Default Base"
+    }
+  ]
+}
