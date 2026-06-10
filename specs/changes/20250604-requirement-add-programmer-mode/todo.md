@@ -26,6 +26,12 @@
 | **step2-2** | **任务排序（aid-implementing）** | ✅ DONE | **tasks.md §开发顺序** | **2026-06-10** |
 | **step2-3** | **产出 tasks.md（aid-implementing）** | ✅ DONE | **tasks.md** | **2026-06-10** |
 | **IMPLEMENTING 阶段** | **任务分解完成** | ✅ **DONE** | **tasks.md（15 个任务）** | **2026-06-10** |
+| **APPLYING — step3-0** | **环境检查** | ✅ **DONE** | **test harness (tests/loader.mjs) 验证 OK** | **2026-06-10** |
+| **APPLYING — step3-1** | **确认应用条件** | ✅ **DONE** | **代码 + 测试齐备** | **2026-06-10** |
+| **APPLYING — step3-2** | **代码应用 (TDD)** | ✅ **DONE** | **15 个 task 完成,77/77 测试通过** | **2026-06-10** |
+| **APPLYING — step3-3** | **更新任务状态** | ✅ **DONE** | **(本表)** | **2026-06-10** |
+| **APPLYING — step3-4** | **产出应用报告** | ✅ **DONE** | **apply-report.md** | **2026-06-10** |
+| **APPLYING 阶段** | **代码应用完成** | ✅ **DONE** | **apply-report.md (77/77 PASS)** | **2026-06-10** |
 
 ---
 
