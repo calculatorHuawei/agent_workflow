@@ -24,6 +24,21 @@ export enum ScientificModeType {
   OFF = 2          // 强制关闭
 }
 
+/** 计算器工作模式（Issue #4 程序员模式新增） */
+export enum CalculatorMode {
+  BASIC = 0,        // 基础模式
+  SCIENTIFIC = 1,   // 科学模式
+  PROGRAMMER = 2    // 程序员模式
+}
+
+/** 数字基数（Issue #4 程序员模式新增） */
+export enum NumberBase {
+  BIN = 2,    // 二进制
+  OCT = 8,    // 八进制
+  DEC = 10,   // 十进制
+  HEX = 16    // 十六进制
+}
+
 /** 历史记录条目 */
 export interface HistoryItem {
   id: number           // 唯一标识
@@ -44,6 +59,8 @@ export interface CalculatorPreferences {
   numberPrecision: number          // 数字精度
   decimalSeparatorSymbol: string   // 小数点符号
   groupingSeparatorSymbol: string  // 千分位符号
+  programmerModeDefault: number   // 默认工作模式（Issue #4: 0=BASIC 1=SCIENTIFIC 2=PROGRAMMER）
+  defaultBase: number              // 默认数字基数（Issue #4: 2=BIN 8=OCT 10=DEC 16=HEX）
 }
 
 /** 默认偏好设置 */
@@ -57,5 +74,7 @@ export const DEFAULT_PREFERENCES: CalculatorPreferences = {
   radiansDefault: false,
   numberPrecision: 12,
   decimalSeparatorSymbol: '.',
-  groupingSeparatorSymbol: ','
+  groupingSeparatorSymbol: ',',
+  programmerModeDefault: CalculatorMode.BASIC,
+  defaultBase: NumberBase.DEC
 }
