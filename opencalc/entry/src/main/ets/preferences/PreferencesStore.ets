@@ -205,6 +205,34 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== 程序员模式（Issue #4） ====================
+
+  /** 获取默认工作模式（0=BASIC 1=SCIENTIFIC 2=PROGRAMMER） */
+  async getProgrammerModeDefault(): Promise<number> {
+    if (!this.store) return DEFAULT_PREFERENCES.programmerModeDefault
+    return await this.store.get('programmerModeDefault', DEFAULT_PREFERENCES.programmerModeDefault) as number
+  }
+
+  /** 设置默认工作模式 */
+  async setProgrammerModeDefault(value: number): Promise<void> {
+    if (!this.store) return
+    await this.store.put('programmerModeDefault', value)
+    await this.store.flush()
+  }
+
+  /** 获取默认数字基数（2=BIN 8=OCT 10=DEC 16=HEX） */
+  async getDefaultBase(): Promise<number> {
+    if (!this.store) return DEFAULT_PREFERENCES.defaultBase
+    return await this.store.get('defaultBase', DEFAULT_PREFERENCES.defaultBase) as number
+  }
+
+  /** 设置默认数字基数 */
+  async setDefaultBase(value: number): Promise<void> {
+    if (!this.store) return
+    await this.store.put('defaultBase', value)
+    await this.store.flush()
+  }
+
   // ==================== 批量读取 ====================
 
   /** 一次性读取所有偏好设置 */
@@ -219,7 +247,9 @@ export class PreferencesStore {
       radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),
-      groupingSeparatorSymbol: await this.getGroupingSeparator()
+      groupingSeparatorSymbol: await this.getGroupingSeparator(),
+      programmerModeDefault: await this.getProgrammerModeDefault(),
+      defaultBase: await this.getDefaultBase()
     }
   }
 }

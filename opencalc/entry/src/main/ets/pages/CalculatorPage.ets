@@ -1,4 +1,4 @@
-// OpenCalc — 主计算器页面（横竖屏自适应 + Android 配色）
+// OpenCalc — 主计算器页面（横竖屏自适应 + Android 配色 + 程序员模式 Issue #4）
 // 移植自：MainActivity.kt（1447行）
 import { promptAction } from '@kit.ArkUI'
 import { pasteboard } from '@kit.BasicServicesKit'
@@ -6,7 +6,8 @@ import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import { BaseConverter } from '../calculator/BaseConverter'
+import { NumberingSystem, HistoryItem, CalculatorMode, NumberBase } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 
@@ -24,11 +25,18 @@ export struct CalculatorPage {
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
 
+  // ==================== Issue #4 程序员模式状态 ====================
+  @State currentMode: CalculatorMode = CalculatorMode.BASIC
+  @State currentBase: NumberBase = NumberBase.DEC
+  private lastModeChangeTime: number = 0  // 模式切换节流
+
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
   @State preventSleep: boolean = false
   @State radianMode: boolean = false
   @State themeIdx: number = 0
+  @State defaultModePref: number = 0  // 默认模式偏好
+  @State defaultBasePref: number = 10 // 默认进制偏好
 
   // ==================== 内部状态 ====================
   private nextId: number = 0
@@ -49,6 +57,11 @@ export struct CalculatorPage {
     this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
     this.scientific = (await this.prefs.getScientificModeDefault()) === 1
+    // Issue #4: 读取程序员模式 + 默认进制
+    this.defaultModePref = await this.prefs.getProgrammerModeDefault()
+    this.currentMode = this.defaultModePref as CalculatorMode
+    this.defaultBasePref = await this.prefs.getDefaultBase()
+    this.currentBase = this.defaultBasePref as NumberBase
   }
 
   async loadHistory(): Promise<void> {
@@ -64,18 +77,149 @@ export struct CalculatorPage {
     else if (key === 'radianMode') await this.prefs.setRadiansDefault(value as boolean)
     else if (key === 'themeIdx') await this.prefs.setTheme(value as number)
     else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
+    else if (key === 'programmerMode') await this.prefs.setProgrammerModeDefault(value as number)
+    else if (key === 'defaultBase') await this.prefs.setDefaultBase(value as number)
   }
 
   // ==================== 按钮事件 ====================
-  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
+  onDigit(d: string): void {
+    // Issue #4: 程序员模式下校验字符合法性
+    if (this.currentMode === CalculatorMode.PROGRAMMER && !this.isCharValid(d)) {
+      return
+    }
+    this.expression = this.expression + d
+    this.errorMsg = ''
+  }
   onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = '' }
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
   onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
 
+  // ==================== Issue #4 程序员模式事件 ====================
+
+  /** HEX 字母按钮（A-F） */
+  onLetter(ch: string): void {
+    if (this.currentMode !== CalculatorMode.PROGRAMMER) return
+    if (this.currentBase !== NumberBase.HEX) return
+    if (!BaseConverter.isValidChar(ch, NumberBase.HEX)) return
+    this.expression = this.expression + ch
+    this.errorMsg = ''
+  }
+
+  /**
+   * 字符合法性校验（程序员模式专用）
+   * 非程序员模式一律返回 true（基础/科学模式不做限制）
+   */
+  isCharValid(ch: string): boolean {
+    if (this.currentMode !== CalculatorMode.PROGRAMMER) return true
+    // 操作符和括号始终合法
+    if ('+-×÷().'.indexOf(ch) >= 0) return true
+    return BaseConverter.isValidChar(ch, this.currentBase)
+  }
+
+  /**
+   * 模式切换（三态循环 + 200ms 节流 + 动画 + 持久化）
+   */
+  onModeChange(): void {
+    const now: number = Date.now()
+    if (now - this.lastModeChangeTime < 200) return
+    this.lastModeChangeTime = now
+    const newMode: number = (this.currentMode + 1) % 3
+    this.currentMode = newMode as CalculatorMode
+    console.log(`modeChanged: ${(newMode + 2) % 3} → ${newMode}`)
+    // 持久化（失败静默）
+    this.savePref('programmerMode', newMode).catch((e: Error): void => {
+      console.warn('save programmerMode failed: ' + e.message)
+    })
+  }
+
+  /**
+   * 进制切换（DEC/BIN/OCT/HEX）+ 表达式合法性校验 + 持久化
+   */
+  onBaseChange(newBase: NumberBase): void {
+    // 校验当前表达式在 newBase 下是否合法
+    if (this.expression.length > 0 && !BaseConverter.isValidExpression(this.expression, newBase)) {
+      promptAction.showToast({ message: '当前进制不支持该表达式' })
+      return
+    }
+    const oldBase: NumberBase = this.currentBase
+    this.currentBase = newBase
+    console.log(`baseChanged: ${oldBase} → ${newBase}`)
+    this.savePref('defaultBase', newBase).catch((e: Error): void => {
+      console.warn('save defaultBase failed: ' + e.message)
+    })
+  }
+
+  /**
+   * 当前进制行高亮判断
+   */
+  isCurrentBase(base: NumberBase): boolean {
+    return this.currentBase === base
+  }
+
+  /**
+   * 当前进制行高亮背景色（复用 getOp）
+   */
+  getBaseHighlightBg(): string {
+    return this.getOp()
+  }
+
+  // ==================== 4 行进制显示数据源 ====================
+
+  /**
+   * 按当前表达式计算 DEC 数值（程序员模式专用）
+   * 表达式为空时返回 0
+   */
+  getDecValue(): number {
+    if (this.expression.length === 0) return 0
+    const v: number = BaseConverter.fromBase(this.expression, this.currentBase)
+    return Number.isNaN(v) ? 0 : v
+  }
+
+  getDecDisplay(): string {
+    if (this.expression.length === 0) return '0'
+    return BaseConverter.toBase(this.getDecValue(), NumberBase.DEC)
+  }
+
+  getBinDisplay(): string {
+    if (this.expression.length === 0) return '0'
+    const v: number = this.getDecValue()
+    return BaseConverter.toBase(v, NumberBase.BIN)
+  }
+
+  getOctDisplay(): string {
+    if (this.expression.length === 0) return '0'
+    const v: number = this.getDecValue()
+    return BaseConverter.toBase(v, NumberBase.OCT)
+  }
+
+  getHexDisplay(): string {
+    if (this.expression.length === 0) return '0'
+    const v: number = this.getDecValue()
+    return BaseConverter.toBase(v, NumberBase.HEX)
+  }
+
   onEquals(): void {
     if (this.expression.length === 0) return
+    // Issue #4: 程序员模式按 currentBase 解读表达式，结果仅显示 DEC
+    if (this.currentMode === CalculatorMode.PROGRAMMER) {
+      const decValue: number = BaseConverter.fromBase(this.expression, this.currentBase)
+      if (Number.isNaN(decValue)) {
+        this.errorMsg = '表达式无法解读'
+        return
+      }
+      const fmt: string = NumberFormatter.format(decValue.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+      this.result = fmt
+      this.errorMsg = ''
+      const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
+      this.nextId = this.nextId + 1
+      const nh: HistoryItem[] = [item]
+      for (let i: number = 0; i < this.history.length; i++) nh.push(this.history[i])
+      this.history = nh
+      if (this.prefs) this.prefs.setHistory(this.history)
+      return
+    }
     ErrorFlags.reset()
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
@@ -195,6 +339,7 @@ export struct CalculatorPage {
             this.ButtonGrid()
           }
           .layoutWeight(this.showHistory ? 3 : 1).height('100%')
+          .animation({ duration: 200, curve: Curve.EaseInOut })
           if (this.showHistory) this.HistoryPanel()
         }
         .width('100%').height('100%').backgroundColor(this.getBg())
@@ -207,6 +352,7 @@ export struct CalculatorPage {
           if (this.showHistory) this.HistoryPanel()
         }
         .width('100%').height('100%').backgroundColor(this.getBg())
+        .animation({ duration: 200, curve: Curve.EaseInOut })
       }
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
@@ -224,41 +370,93 @@ export struct CalculatorPage {
   // ==================== 显示屏 ====================
   @Builder DisplayPanel() {
     Column() {
-    // 横屏时在显示屏右侧加历史切换按钮
-    if (this.isLandscape) {
-      Row() {
-        Text(this.expression.length > 0 ? this.expression : ' ')
-          .fontSize(14).fontColor(this.getT2()).textAlign(TextAlign.End).maxLines(3).layoutWeight(1)
-        Text(this.showHistory ? '◀' : '▶')
-          .fontSize(14).fontColor(this.getOp()).padding({ left: 8 })
-          .onClick((): void => { this.showHistory = !this.showHistory })
-      }
-      .width('100%').padding({ right: 8, left: 8 })
-    } else {
-      Text(this.expression.length > 0 ? this.expression : ' ')
-        .fontSize(18).fontColor(this.getT2()).width('100%').textAlign(TextAlign.End)
-        .padding({ right: 12, left: 12 }).maxLines(3)
-    }
-      if (this.errorMsg.length > 0) {
-        Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
-          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+      // Issue #4: 程序员模式渲染 BaseConversionPanel（4 行）
+      if (this.currentMode === CalculatorMode.PROGRAMMER) {
+        this.BaseConversionPanel()
       } else {
-        Text(this.result.length > 0 ? this.result : '0')
-          .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
-          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+        // 横屏时在显示屏右侧加历史切换按钮
+        if (this.isLandscape) {
+          Row() {
+            Text(this.expression.length > 0 ? this.expression : ' ')
+              .fontSize(14).fontColor(this.getT2()).textAlign(TextAlign.End).maxLines(3).layoutWeight(1)
+            Text(this.showHistory ? '◀' : '▶')
+              .fontSize(14).fontColor(this.getOp()).padding({ left: 8 })
+              .onClick((): void => { this.showHistory = !this.showHistory })
+          }
+          .width('100%').padding({ right: 8, left: 8 })
+        } else {
+          Text(this.expression.length > 0 ? this.expression : ' ')
+            .fontSize(18).fontColor(this.getT2()).width('100%').textAlign(TextAlign.End)
+            .padding({ right: 12, left: 12 }).maxLines(3)
+        }
+        if (this.errorMsg.length > 0) {
+          Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
+            .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+        } else {
+          Text(this.result.length > 0 ? this.result : '0')
+            .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+            .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+        }
       }
     }
     .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 24, bottom: 8 })
     .gesture(LongPressGesture().onAction((): void => { this.onCopy() }))
   }
 
+  // ==================== Issue #4 BaseConversionPanel（4 行进制显示） ====================
+  @Builder BaseConversionPanel() {
+    Column() {
+      // DEC 行
+      Row() {
+        Text('DEC').fontSize(12).fontColor(this.getT2()).width(40)
+        Text(this.getDecDisplay()).fontSize(28).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+          .layoutWeight(1).textAlign(TextAlign.End)
+      }
+      .width('100%').height(40).padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .backgroundColor(this.isCurrentBase(NumberBase.DEC) ? this.getBaseHighlightBg() : Color.Transparent)
+      .borderRadius(8)
+
+      // BIN 行
+      Row() {
+        Text('BIN').fontSize(12).fontColor(this.getT2()).width(40)
+        Text(this.getBinDisplay()).fontSize(18).fontColor(this.getT2())
+          .layoutWeight(1).textAlign(TextAlign.End)
+      }
+      .width('100%').height(32).padding({ left: 12, right: 12, top: 2, bottom: 2 })
+      .backgroundColor(this.isCurrentBase(NumberBase.BIN) ? this.getBaseHighlightBg() : Color.Transparent)
+      .borderRadius(8)
+
+      // OCT 行
+      Row() {
+        Text('OCT').fontSize(12).fontColor(this.getT2()).width(40)
+        Text(this.getOctDisplay()).fontSize(18).fontColor(this.getT2())
+          .layoutWeight(1).textAlign(TextAlign.End)
+      }
+      .width('100%').height(32).padding({ left: 12, right: 12, top: 2, bottom: 2 })
+      .backgroundColor(this.isCurrentBase(NumberBase.OCT) ? this.getBaseHighlightBg() : Color.Transparent)
+      .borderRadius(8)
+
+      // HEX 行
+      Row() {
+        Text('HEX').fontSize(12).fontColor(this.getT2()).width(40)
+        Text(this.getHexDisplay()).fontSize(18).fontColor(this.getT2())
+          .layoutWeight(1).textAlign(TextAlign.End)
+      }
+      .width('100%').height(32).padding({ left: 12, right: 12, top: 2, bottom: 2 })
+      .backgroundColor(this.isCurrentBase(NumberBase.HEX) ? this.getBaseHighlightBg() : Color.Transparent)
+      .borderRadius(8)
+    }
+    .width('100%').padding({ top: 8, bottom: 8 })
+  }
+
   // ==================== 模式切换栏（仅竖屏显示） ====================
   @Builder ToggleRow() {
     Row() {
-      Text(this.scientific ? '科学' : '基础').fontSize(12).fontColor(this.getOp())
+      // Issue #4: 三态循环 基础/科学/程序员
+      Text(this.getModeLabel()).fontSize(12).fontColor(this.getOp())
         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
         .border({ width: 1, color: this.getOp(), radius: 8 })
-        .onClick((): void => { this.scientific = !this.scientific })
+        .onClick((): void => { this.onModeChange() })
       Blank()
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
@@ -268,20 +466,97 @@ export struct CalculatorPage {
     .width('100%').padding({ left: 16, right: 16, bottom: 4 })
   }
 
+  /** Issue #4: 当前模式文字（基础/科学/程序员） */
+  getModeLabel(): string {
+    if (this.currentMode === CalculatorMode.BASIC) return '基础'
+    if (this.currentMode === CalculatorMode.SCIENTIFIC) return '科学'
+    return '程序员'
+  }
+
+  // ==================== Issue #4 BaseSwitcher（DEC/BIN/OCT/HEX 切换器） ====================
+  @Builder BaseSwitcher() {
+    Row() {
+      this.BtnBase('DEC', NumberBase.DEC)
+      this.BtnBase('BIN', NumberBase.BIN)
+      this.BtnBase('OCT', NumberBase.OCT)
+      this.BtnBase('HEX', NumberBase.HEX)
+    }
+    .width('100%').padding({ left: 8, right: 8, top: 4, bottom: 4 })
+  }
+
+  /** 进制切换按钮 */
+  @Builder BtnBase(label: string, base: NumberBase) {
+    Text(label).fontSize(14).fontWeight(FontWeight.Bold)
+      .fontColor(this.isCurrentBase(base) ? this.getBtnText() : this.getT1())
+      .width('23%').height(32).textAlign(TextAlign.Center)
+      .backgroundColor(this.isCurrentBase(base) ? this.getOp() : this.getBtnBg())
+      .borderRadius(20).margin(2)
+      .onClick((): void => { this.onBaseChange(base) })
+  }
+
   // ==================== 按钮网格 ====================
   @Builder ButtonGrid() {
     Column() {
-      if (this.scientific) {
-        Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
-        Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+      // Issue #4: 程序员模式渲染 ProgrammerKeypad
+      if (this.currentMode === CalculatorMode.PROGRAMMER) {
+        this.ProgrammerKeypad()
+      } else {
+        if (this.scientific) {
+          Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
+          Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+        }
+        Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+        Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+        Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+        Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+        Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
       }
-      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
-      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
-      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
-      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
-      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
     }
     .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+  }
+
+  // ==================== Issue #4 ProgrammerKeypad（程序员键盘） ====================
+  @Builder ProgrammerKeypad() {
+    Column() {
+      // 行 1: 进制切换器
+      this.BaseSwitcher()
+      // 行 2: HEX 字母按钮（A-F 仅 HEX 显示；其他进制隐藏）
+      if (this.currentBase === NumberBase.HEX) {
+        Row() {
+          this.BtnAlpha('A')
+          this.BtnAlpha('B')
+          this.BtnAlpha('C')
+          this.BtnAlpha('D')
+          this.BtnAlpha('E')
+          this.BtnAlpha('F')
+        }
+        .width('100%').padding({ left: 8, right: 8 })
+      }
+      // 行 3-6: 数字 + 运算符（按当前进制过滤字符可用性）
+      Row() { this.BtnDigFiltered('7'); this.BtnDigFiltered('8'); this.BtnDigFiltered('9'); this.BtnOp('÷') }
+      Row() { this.BtnDigFiltered('4'); this.BtnDigFiltered('5'); this.BtnDigFiltered('6'); this.BtnOp('×') }
+      Row() { this.BtnDigFiltered('1'); this.BtnDigFiltered('2'); this.BtnDigFiltered('3'); this.BtnOp('-') }
+      Row() { this.BtnDigFiltered('0'); this.BtnOpPct('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }
+    .width('100%')
+  }
+
+  /** 程序员模式数字按钮（按 currentBase 过滤） */
+  @Builder BtnDigFiltered(d: string) {
+    Text(d).fontSize(this.isLandscape ? 16 : 22)
+      .fontColor(this.isCharValid(d) ? this.getT1() : this.getT2())
+      .opacity(this.isCharValid(d) ? 1.0 : 0.3)
+      .width('23%').height(this.isLandscape ? 36 : 50).textAlign(TextAlign.Center)
+      .backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3)
+      .onClick((): void => { this.onDigit(d) })
+  }
+
+  /** HEX 字母按钮 */
+  @Builder BtnAlpha(ch: string) {
+    Text(ch).fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.getOp())
+      .width('15%').height(this.isLandscape ? 36 : 50).textAlign(TextAlign.Center)
+      .backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3)
+      .onClick((): void => { this.onLetter(ch) })
   }
 
   /** 数字按钮 */
@@ -363,6 +638,9 @@ export struct CalculatorPage {
         ListItem() { this.ToggleItem('防休眠', this.preventSleep, (v: boolean): void => { this.preventSleep = v; this.savePref('preventSleep', v) }) }
         ListItem() { this.ToggleItem('弧度模式', this.radianMode, (v: boolean): void => { this.radianMode = v; this.savePref('radianMode', v) }) }
         ListItem() { this.ThemeItem() }
+        // Issue #4: 默认模式 + 默认进制
+        ListItem() { this.DefaultModeItem() }
+        ListItem() { this.DefaultBaseItem() }
         ListItem() {
           Row() { Text('关于 OpenCalc').fontSize(15).fontColor(this.getT2()); Blank(); Text('>').fontColor(this.getT2()) }
           .width('100%').padding(12).onClick((): void => { this.showSettings = false; this.showAbout = true })
@@ -370,6 +648,53 @@ export struct CalculatorPage {
       }
     }
     .width('85%').backgroundColor(this.getPanelBg()).borderRadius(16)
+  }
+
+  // ==================== Issue #4 SettingsPanel 项：默认模式 ====================
+  @Builder DefaultModeItem() {
+    Row() {
+      Text('默认模式').fontSize(15).fontColor(this.getT1()).layoutWeight(1)
+      Row() {
+        this.RadioItem('基础', CalculatorMode.BASIC, this.defaultModePref)
+        this.RadioItem('科学', CalculatorMode.SCIENTIFIC, this.defaultModePref)
+        this.RadioItem('程序员', CalculatorMode.PROGRAMMER, this.defaultModePref)
+      }
+    }.width('100%').padding(12)
+  }
+
+  // ==================== Issue #4 SettingsPanel 项：默认进制 ====================
+  @Builder DefaultBaseItem() {
+    Row() {
+      Text('默认进制').fontSize(15).fontColor(this.getT1()).layoutWeight(1)
+      Row() {
+        this.RadioBaseItem('DEC', NumberBase.DEC, this.defaultBasePref)
+        this.RadioBaseItem('BIN', NumberBase.BIN, this.defaultBasePref)
+        this.RadioBaseItem('OCT', NumberBase.OCT, this.defaultBasePref)
+        this.RadioBaseItem('HEX', NumberBase.HEX, this.defaultBasePref)
+      }
+    }.width('100%').padding(12)
+  }
+
+  /** 单选按钮（模式） */
+  @Builder RadioItem(label: string, value: number, current: number) {
+    Text(label).fontSize(11).fontColor(current === value ? '#000' : this.getT2())
+      .backgroundColor(current === value ? this.getOp() : (this.themeIdx >= 1 ? '#555' : '#DDD'))
+      .padding({ left: 8, right: 8, top: 4, bottom: 4 }).borderRadius(8).margin({ left: 2 })
+      .onClick((): void => {
+        this.defaultModePref = value
+        this.savePref('programmerMode', value)
+      })
+  }
+
+  /** 单选按钮（进制） */
+  @Builder RadioBaseItem(label: string, value: number, current: number) {
+    Text(label).fontSize(11).fontColor(current === value ? '#000' : this.getT2())
+      .backgroundColor(current === value ? this.getOp() : (this.themeIdx >= 1 ? '#555' : '#DDD'))
+      .padding({ left: 6, right: 6, top: 4, bottom: 4 }).borderRadius(8).margin({ left: 2 })
+      .onClick((): void => {
+        this.defaultBasePref = value
+        this.savePref('defaultBase', value)
+      })
   }
 
   @Builder ToggleItem(title: string, val: boolean, cb: (v: boolean) => void) {
