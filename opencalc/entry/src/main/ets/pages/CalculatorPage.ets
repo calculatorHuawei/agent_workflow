@@ -349,6 +349,30 @@ export struct CalculatorPage {
       .width('100%').height(24).justifyContent(FlexAlign.Center)
       .onClick((): void => { this.showHistory = false })
 
+      // 搜索输入框：仅在有历史时显示（SR-006 空历史降级）；手柄与列表之间
+      if (this.history.length > 0) {
+        Row() {
+          TextInput({ placeholder: '搜索历史', text: this.searchQuery })
+            .width('100%').height(40)
+            .backgroundColor(this.getBtnBg())
+            .fontColor(this.getT1())
+            .placeholderColor(this.getT2())
+            .placeholderFont({ size: 14 })
+            .fontSize(14)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string): void => { this.searchQuery = value })
+            // 降级：右侧 X 清空按钮（仅在 query 非空时显示，避免视觉噪音；SR-004）
+            if (this.searchQuery.length > 0) {
+              Text('✕')
+                .fontSize(16)
+                .fontColor(this.getT2())
+                .padding({ left: 8, right: 12 })
+                .onClick((): void => { this.searchQuery = '' })
+            }
+        }
+        .width('100%').margin({ top: 4, bottom: 4 })
+      }
+
       if (this.history.length === 0) {
         Text('暂无计算记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
       } else {
