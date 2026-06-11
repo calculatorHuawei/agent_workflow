@@ -1,0 +1,27 @@
+{
+  "module": {
+    "name": "entry_test",
+    "type": "feature",
+    "description": "OpenCalc hypium 测试模块 — Issue #8 百分号按钮验收",
+    "mainElement": "TestAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:test_pages",
+    "abilities": [
+      {
+        "name": "TestAbility",
+        "srcEntry": "./ets/testability/TestAbility.ts",
+        "description": "$string:TestAbility_desc",
+        "icon": "$media:app_icon",
+        "label": "$string:TestAbility_label",
+        "exported": true,
+        "startWindowIcon": "$media:app_icon",
+        "startWindowBackground": "$color:start_window_background"
+      }
+    ]
+  }
+}
