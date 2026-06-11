@@ -157,6 +157,13 @@ export struct CalculatorPage {
     return '#DCB5C5'
   }
 
+  /** 百分号按钮色（iOS 橙） */
+  getPct(): string {
+    if (this.themeIdx === 1) return '#FF9F0A'   // AMOLED 柔和橙
+    if (this.themeIdx === 2) return '#FF9500'   // 暗色 饱和橙
+    return '#FF9500'                            // 默认 iOS 橙
+  }
+
   /** 清除按钮色（默认浅绿 #B7DABD） */
   getClr(): string {
     if (this.themeIdx === 2) return '#00BA20'
@@ -275,7 +282,9 @@ export struct CalculatorPage {
         Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
         Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
       }
-      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      // 百分号独立一行：橙色高亮，全宽，Issue #6 醒目化
+      Row() { this.BtnPct() }
       Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
       Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
       Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
@@ -301,6 +310,9 @@ export struct CalculatorPage {
 
   /** 等号按钮 */
   @Builder BtnEq() { Text('=').fontSize(this.isLandscape ? 18 : 24).fontWeight(FontWeight.Bold).fontColor(this.getBtnText()).width('22%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getEq()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onEquals() }) }
+
+  /** 百分号按钮（橙色高亮，全宽醒目，Issue #6） */
+  @Builder BtnPct() { Text('%').fontSize(this.isLandscape ? 16 : 24).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').width('100%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getPct()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp('%') }) }
 
   /** 运算符按钮 - 5列布局版 */
   @Builder BtnOpPct(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
@@ -408,6 +420,11 @@ export struct CalculatorPage {
       Text('原项目: github.com/clementwzk/OpenCalc').fontSize(11).fontColor(this.getT2()).padding({ top: 8 })
       Text('Android 3.2.1 → HarmonyOS').fontSize(11).fontColor(this.getT2()).padding({ top: 2 })
       Text('迁移: github.com/JungleTestLabs/opencalc-harmonyos').fontSize(11).fontColor(this.getOp()).padding({ top: 4 })
+      // 百分号用法提示（Issue #6）
+      Text('—— 百分号用法 ——').fontSize(12).fontWeight(FontWeight.Bold).fontColor(this.getT1()).padding({ top: 16 })
+      Text('50+10% = 55').fontSize(11).fontColor(this.getT2()).padding({ top: 4 })
+      Text('200*10% = 20').fontSize(11).fontColor(this.getT2()).padding({ top: 2 })
+      Text('10% = 0.1').fontSize(11).fontColor(this.getT2()).padding({ top: 2 })
       Button('关闭').margin({ top: 16 }).onClick((): void => { this.showAbout = false })
     }
     .width('80%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
