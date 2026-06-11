@@ -224,7 +224,11 @@ export class Expression {
               result = result.substring(0, opPos + 1) + '((' + subExpr + ')/100)' + result.substring(i + 1)
             } else {
               const base: string = result.substring(0, opPos).trim()
-              result = base + result.charAt(opPos) + base + '*((' + subExpr + ')/100)' + result.substring(i + 1)
+              // Issue #9: wrap base in parens to avoid operator-precedence bugs
+              // when base itself is a complex expression (e.g. "100+100*(10/100)")
+              // e.g. 100+10%+5%  →  before: "100+100*(10/100)+100+100*(10/100)*(5/100)" = 210.5
+              //                    after:  "(100+100*(10/100))+(100+100*(10/100))*(5/100)" = 115.5
+              result = '(' + base + ')' + result.charAt(opPos) + '(' + base + ')*(' + subExpr + '/100)' + result.substring(i + 1)
             }
           } else {
             // Regular number before %
@@ -242,7 +246,8 @@ export class Expression {
             } else {
               const base: string = result.substring(0, opPos).trim()
               const num: string = result.substring(opPos + 1, i)
-              result = base + result.charAt(opPos) + base + '*(' + num + '/100)' + result.substring(i + 1)
+              // Issue #9: wrap base in parens for operator-precedence safety
+              result = '(' + base + ')' + result.charAt(opPos) + '(' + base + ')*(' + num + '/100)' + result.substring(i + 1)
             }
           }
           i = 0
