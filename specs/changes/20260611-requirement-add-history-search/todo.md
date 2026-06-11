@@ -114,3 +114,33 @@
 |---|------|------|------|
 | 1 | DevEco Studio SDK 不完整：`/sdk/default/openharmony/` 仅安装基础 `Ets 6.1.1.125` 包（含 ets-loader），未安装完整构建链（缺 ets2abc / hvigorw plugin pack） | `hvigorw assembleHap` 报 `00303168 SDK component missing` | **TDD 仍可推进**：纯函数 Task 1.1/1.2 用 Node 单测；Tasks 2.1/3.x 通过 TypeScript 语法 + 人工 code review 验证；`build_hap.bat` 已就绪待 SDK 补全后跑通 |
 | 2 | hdc 无连接设备：`hdc list targets` 返回 `[Empty]` | 无法在真机/模拟器跑 UI 自动化（SC-001~008） | **TDD + 静态验证**：用代码 + 设计文档证明 8 场景行为正确；`build_hap.bat` + 模拟器启动后即可跑 hdc UI 测试 |
+
+---
+
+## 本次再入决策（2026-06-11二次调用 aid-planning）
+
+> 用户再次请求「按 AID PLANNING阶段处理 Issue #5」，但目录内已有完整 PLANNING + IMPLEMENTING + APPLYING制品。
+> 为避免覆盖已审查内容 +关联 commit 历史，按自动化模式（低风险决策 todo.md留痕）执行：
+
+|决策项 | 取值 |风险等级 |理由 |
+|--------|------|----------|------|
+| 是否重跑 rq-parse → rq-clarify → rq-codebase → mod-design 全流程 | **否（复用现有制品）** | 低 |制品已通过 step9 设计审视（100%覆盖）；git6 个 feat/test commit 与制品一一对应 |
+| 是否重写 proposal.md / delta-spec.md / info.md / delta-design.md | **否** | 低 | 文件内容与 commit 历史一致；重写会破坏 SHA引用 |
+| 是否补充 new-arch.md | **否** | 低 | step6复杂度评估 = S 级（单文件、<100 行、无架构变更），原决策仍然成立 |
+| 是否刷新 todo.md | **是** | 低 |追加本次再入决策记录，便于追溯 |
+
+### 本次动作清单
+
+- [x] step1~step9制品复核（不重写）
+- [x] design-review.md复核：完整性 / 一致性 /规范性 全通过
+- [x] proposal.md复核：4 个模糊点已自动化决策，无遗留 blocker
+- [x] delta-spec.md / info.md / delta-design.md复核：行数与 commit 历史一致
+- [x] 本决策已写入 todo.md（本节）
+
+### 若未来需要重跑
+
+触发条件（任意一条满足时，可发起重跑）：
+- Issue范围新增搜索结果点击行为（如「点击搜索结果自动填入编辑栏」）
+-引入新持久化维度（如「保存搜索历史」）
+- 数据模型变更（如 `HistoryItem` 增加 `tags`字段）
+-架构演进（如 `HistoryPanel`拆为独立模块）
