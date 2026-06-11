@@ -19,6 +19,7 @@ export struct CalculatorPage {
   @State errorMsg: string = ''
   @State scientific: boolean = false
   @State history: HistoryItem[] = []
+  @State searchQuery: string = ''
   @State showHistory: boolean = false
   @State showSettings: boolean = false
   @State showAbout: boolean = false
@@ -133,6 +134,11 @@ export struct CalculatorPage {
       }
     }
     return out                                              // I-4
+  }
+
+  /** 派生：当前过滤后列表（HistoryPanel 数据源）。依赖 @State history + @State searchQuery，两者变化自动重算。 */
+  private getFilteredHistory(): HistoryItem[] {
+    return this.filterHistory(this.history, this.searchQuery)
   }
 
   // ==================== 主题颜色（对齐 Android 原版） ====================
