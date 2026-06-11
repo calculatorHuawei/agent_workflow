@@ -375,9 +375,13 @@ export struct CalculatorPage {
 
       if (this.history.length === 0) {
         Text('暂无计算记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
+      } else if (this.searchQuery.trim() !== '' && this.getFilteredHistory().length === 0) {
+        // SR-005 无匹配降级：query 非空 + 过滤结果为空
+        Text('无匹配记录').fontSize(13).fontColor(this.getT2())
+          .width('100%').textAlign(TextAlign.Center).padding(20)
       } else {
         List() {
-          ForEach(this.history, (item: HistoryItem) => {
+          ForEach(this.getFilteredHistory(), (item: HistoryItem) => {
             ListItem() {
               Column() {
                 Text(item.expression).fontSize(12).fontColor(this.getT2()).maxLines(1)
