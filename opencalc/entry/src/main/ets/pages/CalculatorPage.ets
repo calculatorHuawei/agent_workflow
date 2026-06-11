@@ -112,6 +112,29 @@ export struct CalculatorPage {
     if (this.prefs) this.prefs.setHistory(this.history)
   }
 
+  /**
+   * 根据 searchQuery 过滤历史列表。
+   * 不变量（delta-design §3.5.8）：
+   *   I-1: query 经 .trim() 去前后空白（空白等价于空 query → 返回全量）
+   *   I-2: query 超过 200 字符时按前 200 字符截断（防御 TM-002-01）
+   *   I-3: 大小写不敏感（统一 .toLowerCase() 归一）
+   *   I-4: 不修改入参 items（返回新数组；filter 天然保证）
+   * 用 String.includes 避免 RegExp 元字符注入（FM-002-01）。
+   */
+  private filterHistory(items: HistoryItem[], query: string): HistoryItem[] {
+    const q: string = (query ?? '').trim().slice(0, 200)   // I-1 + I-2
+    if (q.length === 0) return items                       // I-1 trim 后空 → 全量
+    const needle: string = q.toLowerCase()                 // I-3
+    const out: HistoryItem[] = []
+    for (let i: number = 0; i < items.length; i++) {
+      const it: HistoryItem = items[i]
+      if (it.expression.toLowerCase().includes(needle) || it.result.toLowerCase().includes(needle)) {
+        out.push(it)
+      }
+    }
+    return out                                              // I-4
+  }
+
   // ==================== 主题颜色（对齐 Android 原版） ====================
   // themeIdx: 0=默认浅色  1=AMOLED纯黑  2=暗色
   // 默认：Android values/colors.xml 浅色主题
