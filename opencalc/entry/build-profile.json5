@@ -6,5 +6,11 @@
       "name": "default",
       "runtimeOS": "HarmonyOS"
     }
+  ],
+  "sourceSet": [
+    {
+      "name": "test",
+      "srcPath": "src/test/ets"
+    }
   ]
 }
