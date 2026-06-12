@@ -68,7 +68,19 @@ export struct CalculatorPage {
 
   // ==================== 按钮事件 ====================
   onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
-  onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = '' }
+  onOp(op: string): void {
+    // aid-workflow 20260612: 错误状态恢复（SR-09）
+    // 用户决策：清空 expression 和 errorMsg
+    if (ErrorFlags.syntax_error || ErrorFlags.division_by_0 || ErrorFlags.domain_error ||
+        ErrorFlags.is_infinity || ErrorFlags.require_real_number) {
+      ErrorFlags.reset()
+      this.expression = ''
+      this.errorMsg = ''
+      this.result = ''
+    }
+    this.expression = this.expression + op
+    this.errorMsg = ''
+  }
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
