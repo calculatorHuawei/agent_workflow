@@ -14,7 +14,9 @@ import { PreferencesStore } from '../preferences/PreferencesStore'
 @Component
 export struct CalculatorPage {
   // ==================== 显示状态 ====================
-  @State expression: string = ''
+  // aid-workflow 20260612: @Watch 修饰 @State 字段，expression 变化时触发 onExpressionChange
+  @State @Watch('onExpressionChange') expression: string = ''
+  @State preview: string = ''   // aid-workflow 20260612: 实时预览值
   @State result: string = ''
   @State errorMsg: string = ''
   @State scientific: boolean = false
@@ -67,6 +69,113 @@ export struct CalculatorPage {
   }
 
   // ==================== 按钮事件 ====================
+  // aid-workflow 20260612: 实时预览触发器，expression 变化时同步计算 preview
+  // 注：ArkTS 中 @Watch 装饰器必须紧跟 @State（见字段声明），此处仅为回调方法
+  onExpressionChange(): void {
+    this.preview = this.computePreview(this.expression, this.radianMode)
+  }
+
+  /**
+   * aid-workflow 20260612: 计算表达式实时预览（纯函数，副作用隔离）
+   * 对应 design.md §3.3 与 RealtimePreview.port.mjs::PreviewCalculator.computePreview
+   * @param exprStr 用户当前输入的表达式字符串
+   * @param radianMode true=弧度模式，false=角度模式
+   * @returns 格式化后的预览字符串，错误/不完整时返回空字符串
+   */
+  private computePreview(exprStr: string, radianMode: boolean): string {
+    // 1. 空表达式 → ""
+    if (exprStr.length === 0) return ''
+
+    // 2. 末字符白名单过滤
+    const lastChar: string = exprStr.charAt(exprStr.length - 1)
+    if (!this.isLastCharComputable(lastChar)) return ''
+
+    // 3. 括号平衡过滤（未闭合左括号 → 空）
+    let openP: number = 0
+    let closeP: number = 0
+    for (let pi: number = 0; pi < exprStr.length; pi++) {
+      const ch: string = exprStr.charAt(pi)
+      if (ch === '(') openP++
+      else if (ch === ')') closeP++
+    }
+    if (openP > closeP) return ''
+
+    // 3.5 连续运算符检测（aid-workflow 20260612 修复 1++2 BUG）
+    // 不允许两个二元运算符相邻（如 ++, +-, --, *+, /+, *-, 等）
+    // 允许一元负号: "(-5)" 中 - 紧跟 ( 是合法的一元负号
+    // 实现: 扫描每个运算符位置，如果前一个非 ( 也非数字开头的小数点，则为不合法的连续运算符
+    if (this.hasConsecutiveBinaryOperators(exprStr)) return ''
+
+    // 4. ErrorFlags 快照（避免污染主流程）
+    const snap: boolean[] = ErrorFlags.snapshot()
+
+    try {
+      // 5. 预处理
+      const clean: string = this.expr.getCleanExpression(exprStr, '.', ',')
+      if (ErrorFlags.syntax_error) {
+        ErrorFlags.restore(snap)
+        return ''
+      }
+
+      // 6. 求值
+      const raw: number = this.engine.evaluate(clean, !radianMode)
+      if (ErrorFlags.division_by_0 || ErrorFlags.domain_error ||
+          ErrorFlags.syntax_error || ErrorFlags.is_infinity ||
+          ErrorFlags.require_real_number) {
+        ErrorFlags.restore(snap)
+        return ''
+      }
+
+      // 7. 格式化
+      const formatted: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+      ErrorFlags.restore(snap)
+      return formatted
+    } catch (_e) {
+      ErrorFlags.restore(snap)
+      return ''
+    }
+  }
+
+  /**
+   * aid-workflow 20260612: 末字符是否可参与求值
+   * 可计算末字符：数字 / '.' / ')' / '%' / '!' / 'π' / 'e'
+   */
+  private isLastCharComputable(lastChar: string): boolean {
+    if ((lastChar >= '0' && lastChar <= '9') || lastChar === '.') return true
+    if (lastChar === ')') return true
+    if (lastChar === '%') return true
+    if (lastChar === '!') return true
+    if (lastChar === 'π' || lastChar === 'e') return true
+    return false
+  }
+
+  /**
+   * aid-workflow 20260612 (BUG 修复): 检测连续二元运算符
+   * 修复 1++2 / 2×-2 预览误显示的问题。
+   * 规则：不允许两个二元运算符相邻
+   * 支持的运算符：+ - * / × ÷ % ^ #（含 Unicode × ÷，用户键入的乘除号）
+   * 允许的合法场景：一元负号 (-5)、一元正号 (+5) 在表达式开头或 ( 后
+   * @param exprStr 表达式字符串
+   * @returns true=存在不合法的连续运算符，false=合法
+   */
+  private hasConsecutiveBinaryOperators(exprStr: string): boolean {
+    const binaryOps: string = '+-*/×÷%^#'  // 同时支持 ASCII (* /) 和 Unicode (× ÷)
+    for (let i: number = 1; i < exprStr.length; i++) {
+      const prev: string = exprStr.charAt(i - 1)
+      const curr: string = exprStr.charAt(i)
+      // 当前是二元运算符
+      if (binaryOps.indexOf(curr) === -1) continue
+      // 前一个是 ( → 当前是一元运算符，合法（如 (-5）、(×2)）
+      if (prev === '(') continue
+      // 前一个是数字/小数点/右括号/百分号/阶乘/常量 → 当前是二元运算符，合法
+      if ((prev >= '0' && prev <= '9') || prev === '.' || prev === ')' ||
+          prev === '%' || prev === '!' || prev === 'π' || prev === 'e') continue
+      // 其他情况：两个二元运算符相邻
+      if (binaryOps.indexOf(prev) !== -1) return true
+    }
+    return false
+  }
+
   onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
   onOp(op: string): void {
     // aid-workflow 20260612: 错误状态恢复（SR-09）
@@ -84,7 +193,7 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void { this.expression = ''; this.result = ''; this.preview = ''; this.errorMsg = ''; ErrorFlags.reset() }
 
   onEquals(): void {
     if (this.expression.length === 0) return
@@ -251,6 +360,13 @@ export struct CalculatorPage {
         .fontSize(18).fontColor(this.getT2()).width('100%').textAlign(TextAlign.End)
         .padding({ right: 12, left: 12 }).maxLines(3)
     }
+    // aid-workflow 20260612: 实时预览行（expression 下方、result/errorMsg 上方）
+    Text(this.preview.length > 0 ? this.preview : ' ')
+      .fontSize(this.isLandscape ? 12 : 14)
+      .fontColor(this.getT2())
+      .width('100%').textAlign(TextAlign.End)
+      .padding({ right: 12, left: 12, top: 2, bottom: 2 })
+      .maxLines(1)
       if (this.errorMsg.length > 0) {
         Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
