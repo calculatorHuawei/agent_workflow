@@ -58,7 +58,7 @@ export default function expressionPercentTest() {
       expect(got.indexOf('+') !== -1).assertTrue()
       // 强验证：clean 表达式含 5/100 且不含 ++
       expect(got).assertContain('(5/100)')
-      expect(got).assertLarger(got.length, 10)
+      expect(got.length).assertLarger(10)
     })
 
     it('AC-8_should_set_syntax_error_for_lone_percent', 7, () => {
@@ -90,6 +90,58 @@ export default function expressionPercentTest() {
       const got = e.getCleanExpression('5!+10%', '.', ',')
       expect(got).assertContain('factorial')
       expect(got).assertContain('(10/100)')
+    })
+
+    // ================================================================
+    // aid-workflow 20260612-requirement-add-percent-button 新增测试
+    // 覆盖 3 个边缘场景（对应 delta-design.md 中本次设计的增强点）
+    // ================================================================
+
+    it('AC_001_07_function_inside_percent_should_set_syntax_error', 12, () => {
+      // 边缘场景 1：函数内 % 应报错（如 sin(30%)）
+      const e = new Expression()
+      e.getCleanExpression('sin(30%)', '.', ',')
+      expect(ErrorFlags.syntax_error).assertEqual(true)
+    })
+
+    it('AC_001_08_repeated_percent_should_set_syntax_error', 13, () => {
+      // 边缘场景 2：连续 %% 应报错（如 50%%）
+      const e = new Expression()
+      e.getCleanExpression('50%%', '.', ',')
+      expect(ErrorFlags.syntax_error).assertEqual(true)
+    })
+
+    it('AC_001_08b_repeated_percent_in_expression_should_set_syntax_error', 14, () => {
+      // 边缘场景 2 变体：表达式中含 %%（如 50+10%%）
+      const e = new Expression()
+      e.getCleanExpression('50+10%%', '.', ',')
+      expect(ErrorFlags.syntax_error).assertEqual(true)
+    })
+  })
+
+  // ================================================================
+  // aid-workflow 20260612-requirement-add-percent-button 错误恢复测试
+  // 对应 SR-09（在 CalculatorPage.onOp 中清错）
+  // ================================================================
+
+  describe('ErrorFlags_reset_on_recovery', () => {
+    beforeEach(() => {
+      ErrorFlags.reset()
+    })
+
+    it('AC_001_09_error_flags_reset_method_works', 15, () => {
+      // 单元层验证：ErrorFlags.reset() 能清除所有错误位
+      ErrorFlags.syntax_error = true
+      ErrorFlags.division_by_0 = true
+      ErrorFlags.domain_error = true
+      ErrorFlags.is_infinity = true
+      ErrorFlags.require_real_number = true
+      ErrorFlags.reset()
+      expect(ErrorFlags.syntax_error).assertEqual(false)
+      expect(ErrorFlags.division_by_0).assertEqual(false)
+      expect(ErrorFlags.domain_error).assertEqual(false)
+      expect(ErrorFlags.is_infinity).assertEqual(false)
+      expect(ErrorFlags.require_real_number).assertEqual(false)
     })
   })
 }

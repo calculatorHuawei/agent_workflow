@@ -6,6 +6,11 @@ import { ErrorFlags } from '../model/ErrorFlags'
 export class Expression {
 
   getCleanExpression(calculation: string, decimalSeparatorSymbol: string, groupingSeparatorSymbol: string): string {
+    // aid-workflow 20260612: 重复 %% 错误检测（边缘场景，SR-08）
+    if (calculation.indexOf('%%') !== -1) {
+      ErrorFlags.syntax_error = true
+      return calculation
+    }
     let cleanCalculation: string = this.replaceSymbols(calculation, decimalSeparatorSymbol, groupingSeparatorSymbol)
     cleanCalculation = this.addMultiply(cleanCalculation)
     if (cleanCalculation.indexOf('√') !== -1) {
@@ -196,6 +201,11 @@ export class Expression {
           return result
         }
       } else if (ch === '%') {
+        // aid-workflow 20260612: 函数内 % 错误检测（边缘场景，SR-07）
+        if (parenthesisLevel > 0) {
+          ErrorFlags.syntax_error = true
+          return result
+        }
         if (parenthesisLevel === 0 && !done[i]) {
           done[i] = true
           // Handle factorial before %
