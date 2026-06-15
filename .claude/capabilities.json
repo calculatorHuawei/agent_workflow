@@ -1,7 +1,8 @@
 {
-  "init_date": "2026-06-12 14:50",
+  "init_date": "2026-06-15",
   "project": {
-    "root": "D:/huawei/Demo/worktrees/issue-11/opencalc",
+    "root": "D:/huawei/Demo/calculatorHuawei",
+    "source_root": "D:/huawei/Demo/calculatorHuawei/opencalc",
     "type": "HarmonyOS",
     "platform": "Windows",
     "bundle_name": "com.darkempire78.opencalculator"
@@ -9,21 +10,20 @@
   "build": {
     "tool": "hvigorw",
     "version": "6.24.2",
-    "command": "hvigorw --no-daemon assembleHap",
-    "status": "success"
+    "command": "hvigorw --no-daemon assembleHap"
   },
   "test": {
     "unit_command": "hvigorw --no-daemon test",
     "unit_framework": "hypium+hamock",
-    "test_root": "D:/huawei/Demo/worktrees/issue-11/opencalc/entry/src/test",
-    "ui_test": {
-      "available": true,
-      "skill": "harmonyos-ui-test",
-      "hdc_path": "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe",
-      "hdc_version": "3.2.0d",
-      "emulators": ["127.0.0.1:5555"],
-      "emulator_status": "running"
-    }
+    "test_root_relative": "opencalc/entry/src/test"
+  },
+  "ui_test": {
+    "available": true,
+    "skill": "harmonyos-ui-test",
+    "hdc_path": "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe",
+    "hdc_version": "3.2.0d",
+    "emulators": ["127.0.0.1:5555"],
+    "emulator_status": "running"
   },
   "sdk": {
     "home": "D:/Program Files/Huawei/DevEco Studio/sdk",
@@ -31,10 +31,6 @@
     "hvigorw_path": "D:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw.bat",
     "java_version": "openjdk 21.0.8"
   },
-  "git": {
-    "branch": "feat/issue-11-realtime-preview",
-    "worktree": "issue-11",
-    "status": "dirty",
-    "uncommitted_count": 4
-  }
+  "worktrees_root": "D:/huawei/Demo/worktrees",
+  "worktree_convention": "issue-<num>"
 }
