@@ -1,0 +1,25 @@
+{
+  "test_run_id": "2026-06-15-issue-14-ui-test",
+  "status": "BLOCKED_BY_ENVIRONMENT",
+  "blocked_reason": "hdc server 反复 'Connect server failed',实际环境无法 install HAP 到 127.0.0.1:5555 模拟器。已尝试 5+ 次:kill hdc → 等待 → list targets(显示 127.0.0.1:5555 在线)→ install/screen 命令仍 Connect server failed。",
+  "tested_at": "2026-06-15T21:30:00",
+  "hdc_path": "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe",
+  "device": "127.0.0.1:5555 (Emulator.exe running, PID 41904)",
+  "verification_evidence": {
+    "arkts_compilation": "PASS — hvigorw assembleHap BUILD SUCCESSFUL,无 arkts-no-untyped-obj-literals 等错误",
+    "node_port_unit_tests": "PASS — 70/70(UnitConverter 38 + NaturalLanguageParser 32),运行 node --test 全绿",
+    "node_port_includes_nl_aliases_fix": "fl oz (空格)、cm/厘米/公分 等别名识别;数字与单位间空格可选(\\s*而非\\s+)"
+  },
+  "tests_planned": [
+    {"id": "ac_uc_01", "input": "100厘米转英寸", "expected": "39.3700787"},
+    {"id": "ac_uc_02", "input": "30摄氏度转华氏度", "expected": "86"},
+    {"id": "ac_uc_06", "input": "100cm to inch", "expected": "39.3700787"},
+    {"id": "ac_uc_09", "input": "1米转千克", "expected": "ERROR (跨类降级)"},
+    {"id": "ac_uc_10", "input": "1+2", "expected": "3 (原计算,不触发 NL)"},
+    {"id": "ac_uc_13", "input": "1 kg to g", "expected": "1000"}
+  ],
+  "tests_executed": [],
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "next_step": "在 hdc server 恢复后,运行 `python specs/changes/20260615-requirement-add-unit-conversion/ui-tests/run_ui_tests.py` 即可执行 6 个测试场景"
+}
