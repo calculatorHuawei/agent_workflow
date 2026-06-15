@@ -9,6 +9,8 @@ import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguageParser'
+import { UnitConverter } from '../common/UnitConverter'
 
 @Entry
 @Component
@@ -19,6 +21,7 @@ export struct CalculatorPage {
   @State preview: string = ''   // aid-workflow 20260612: 实时预览值
   @State result: string = ''
   @State errorMsg: string = ''
+  @State nlConversionResult: string = ''  // aid-workflow 20260615: NL 单位换算结果(空=未识别 NL,降级到原计算)
   @State scientific: boolean = false
   @State history: HistoryItem[] = []
   @State showHistory: boolean = false
@@ -70,8 +73,26 @@ export struct CalculatorPage {
 
   // ==================== 按钮事件 ====================
   // aid-workflow 20260612: 实时预览触发器，expression 变化时同步计算 preview
+  // aid-workflow 20260615: NL 单位换算触发器,在 preview 之前执行
   // 注：ArkTS 中 @Watch 装饰器必须紧跟 @State（见字段声明），此处仅为回调方法
   onExpressionChange(): void {
+    // 1. NL 解析【aid-workflow 20260615】
+    const nlResult: ParseResult | null = NaturalLanguageParser.parse(this.expression)
+    if (nlResult !== null) {
+      const converted: number | null = UnitConverter.convert(
+        nlResult.value, nlResult.from, nlResult.to, nlResult.category
+      )
+      if (converted !== null) {
+        this.nlConversionResult = NumberFormatter.format(
+          converted.toString(), '.', ',', NumberingSystem.INTERNATIONAL
+        )
+      } else {
+        this.nlConversionResult = ''
+      }
+    } else {
+      this.nlConversionResult = ''
+    }
+    // 2. 原有 preview 计算【aid-workflow 20260612】
     this.preview = this.computePreview(this.expression, this.radianMode)
   }
 
@@ -193,10 +214,24 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.preview = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void { this.expression = ''; this.result = ''; this.preview = ''; this.nlConversionResult = ''; this.errorMsg = ''; ErrorFlags.reset() }
 
   onEquals(): void {
     if (this.expression.length === 0) return
+
+    // aid-workflow 20260615: NL 换算结果优先(若已识别)
+    if (this.nlConversionResult.length > 0) {
+      this.result = this.nlConversionResult
+      this.errorMsg = ''
+      const item: HistoryItem = { id: this.nextId, expression: this.expression, result: this.nlConversionResult, timestamp: Date.now() }
+      this.nextId = this.nextId + 1
+      const nh: HistoryItem[] = [item]
+      for (let i: number = 0; i < this.history.length; i++) nh.push(this.history[i])
+      this.history = nh
+      if (this.prefs) this.prefs.setHistory(this.history)
+      return
+    }
+
     ErrorFlags.reset()
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
