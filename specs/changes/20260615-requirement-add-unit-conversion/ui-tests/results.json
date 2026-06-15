@@ -1,10 +1,20 @@
 {
   "test_run_id": "2026-06-15-issue-14-ui-test",
+  "re_dispatch_attempt": "2026-06-15T22:00:00",
   "status": "BLOCKED_BY_ENVIRONMENT",
-  "blocked_reason": "hdc server 反复 'Connect server failed',实际环境无法 install HAP 到 127.0.0.1:5555 模拟器。已尝试 5+ 次:kill hdc → 等待 → list targets(显示 127.0.0.1:5555 在线)→ install/screen 命令仍 Connect server failed。",
+  "blocked_reason": "hdc server 反复 'Connect server failed',实际环境无法 install HAP 到 127.0.0.1:5555 模拟器。re-dispatch 重试:kill hdc → 等待 → list targets(显示 127.0.0.1:5555 在线)→ shell 命令仍 Connect server failed。已尝试 5+ 次。",
   "tested_at": "2026-06-15T21:30:00",
-  "hdc_path": "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe",
-  "device": "127.0.0.1:5555 (Emulator.exe running, PID 41904)",
+  "re_diagnostics": {
+    "hdc_path": "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe",
+    "hdc_pid_before": 20676,
+    "kill_result": "成功(PID 20676 terminated)",
+    "hdc_kill_server_result": "Kill server finish",
+    "hdc_list_targets_after_kill": "127.0.0.1:5555",
+    "hdc_shell_after_kill": "Connect server failed",
+    "emulator_status": "Emulator.exe running (PID 55228)",
+    "port_5555_status": "LISTENING (netstat confirms)",
+    "conclusion": "Windows hdc daemon 进入不可恢复的 broken state,只能等 daemon 自然恢复或重启 DevEco Studio"
+  },
   "verification_evidence": {
     "arkts_compilation": "PASS — hvigorw assembleHap BUILD SUCCESSFUL,无 arkts-no-untyped-obj-literals 等错误",
     "node_port_unit_tests": "PASS — 70/70(UnitConverter 38 + NaturalLanguageParser 32),运行 node --test 全绿",
@@ -21,5 +31,13 @@
   "tests_executed": [],
   "tests_passed": 0,
   "tests_failed": 0,
-  "next_step": "在 hdc server 恢复后,运行 `python specs/changes/20260615-requirement-add-unit-conversion/ui-tests/run_ui_tests.py` 即可执行 6 个测试场景"
+  "next_step": "在 hdc server 恢复后,运行 `python specs/changes/20260615-requirement-add-unit-conversion/ui-tests/run_ui_tests.py` 即可执行 6 个测试场景",
+  "iron_rule_7_compliance": "本次不伪造任何 UI 测试产物(无截图、无 dump);结果明确标记 BLOCKED_BY_ENVIRONMENT。",
+  "rev01_blocking_items_resolution": {
+    "apply_report_md": "✅ EXISTS (287 lines, comprehensive APPLYING report)",
+    "commits_signed_off": "✅ ALL COMMITS HAVE Signed-off-by trailer (including 955eab5 edf7676 with Co-Authored-By)",
+    "code_in_git_history": "✅ 5 commits covering tests + UnitConverter + NaturalLanguageParser + CalculatorPage integration + docs",
+    "ui_tests_directory": "✅ NOT EMPTY — contains run_ui_tests.py (187 lines) + results.json (this file)",
+    "ui_tests_screenshots_dumps": "❌ MISSING — hdc server connection persistently fails on this Windows env"
+  }
 }
