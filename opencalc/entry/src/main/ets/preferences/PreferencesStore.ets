@@ -6,8 +6,10 @@ import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 import {
   CalculatorPreferences,
+  CalculatorMode,
   DEFAULT_PREFERENCES,
   HistoryItem,
+  NumberBase,
   ScientificModeType
 } from '../model/Models'
 
@@ -205,6 +207,36 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== Issue #12 程序员模式 ====================
+
+  /** 获取当前计算器模式（基础/科学/程序员） */
+  async getMode(): Promise<CalculatorMode> {
+    if (!this.store) return DEFAULT_PREFERENCES.mode
+    const raw: number = await this.store.get('mode', DEFAULT_PREFERENCES.mode) as number
+    return raw as CalculatorMode
+  }
+
+  /** 设置当前计算器模式 */
+  async setMode(mode: CalculatorMode): Promise<void> {
+    if (!this.store) return
+    await this.store.put('mode', mode)
+    await this.store.flush()
+  }
+
+  /** 获取主结果显示进制 */
+  async getActiveBase(): Promise<NumberBase> {
+    if (!this.store) return DEFAULT_PREFERENCES.activeBase
+    const raw: number = await this.store.get('activeBase', DEFAULT_PREFERENCES.activeBase) as number
+    return raw as NumberBase
+  }
+
+  /** 设置主结果显示进制 */
+  async setActiveBase(base: NumberBase): Promise<void> {
+    if (!this.store) return
+    await this.store.put('activeBase', base)
+    await this.store.flush()
+  }
+
   // ==================== 批量读取 ====================
 
   /** 一次性读取所有偏好设置 */
@@ -219,7 +251,9 @@ export class PreferencesStore {
       radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),
-      groupingSeparatorSymbol: await this.getGroupingSeparator()
+      groupingSeparatorSymbol: await this.getGroupingSeparator(),
+      mode: await this.getMode(),
+      activeBase: await this.getActiveBase()
     }
   }
 }

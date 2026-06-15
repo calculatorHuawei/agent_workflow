@@ -6,7 +6,14 @@ import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import { BaseConverter } from '../calculator/BaseConverter'
+import {
+  BaseConversions,
+  CalculatorMode,
+  HistoryItem,
+  NumberBase,
+  NumberingSystem
+} from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 
@@ -19,12 +26,17 @@ export struct CalculatorPage {
   @State preview: string = ''   // aid-workflow 20260612: 实时预览值
   @State result: string = ''
   @State errorMsg: string = ''
-  @State scientific: boolean = false
+  // Issue #12: 二选一 → 三选一模式（基础 / 科学 / 程序员）
+  @State @Watch('onModeChange') mode: CalculatorMode = CalculatorMode.BASIC
+  @State @Watch('onActiveBaseChange') activeBase: NumberBase = NumberBase.DEC
+  @State baseConversions: BaseConversions = { dec: '', hex: '', oct: '', bin: '' }
   @State history: HistoryItem[] = []
   @State showHistory: boolean = false
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+  // Issue #12: 最近一次计算结果（用于模式切换后刷新多进制显示行）
+  @State lastResult: number = 0
 
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
@@ -50,7 +62,15 @@ export struct CalculatorPage {
     this.preventSleep = await this.prefs.getPreventSleep()
     this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
-    this.scientific = (await this.prefs.getScientificModeDefault()) === 1
+    // Issue #12: 优先读取 mode 字段；缺失时回退到旧 scientificModeDefault（兼容旧版本数据）
+    const savedMode: number = await this.prefs.getMode()
+    if (savedMode === CalculatorMode.BASIC || savedMode === CalculatorMode.SCIENTIFIC || savedMode === CalculatorMode.PROGRAMMER) {
+      this.mode = savedMode
+    } else {
+      const oldSci: number = await this.prefs.getScientificModeDefault()
+      this.mode = oldSci === 1 ? CalculatorMode.SCIENTIFIC : CalculatorMode.BASIC
+    }
+    this.activeBase = await this.prefs.getActiveBase()
   }
 
   async loadHistory(): Promise<void> {
@@ -65,7 +85,10 @@ export struct CalculatorPage {
     else if (key === 'preventSleep') await this.prefs.setPreventSleep(value as boolean)
     else if (key === 'radianMode') await this.prefs.setRadiansDefault(value as boolean)
     else if (key === 'themeIdx') await this.prefs.setTheme(value as number)
+    // Issue #12: 兼容旧 scientific 写入路径
     else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
+    else if (key === 'mode') await this.prefs.setMode(value as number)
+    else if (key === 'activeBase') await this.prefs.setActiveBase(value as number)
   }
 
   // ==================== 按钮事件 ====================
@@ -201,22 +224,81 @@ export struct CalculatorPage {
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
       const raw: number = this.engine.evaluate(clean, !this.radianMode)
-      if (ErrorFlags.division_by_0) { this.errorMsg = '除数不能为零'; this.result = '' }
-      else if (ErrorFlags.domain_error) { this.errorMsg = '定义域错误'; this.result = '' }
-      else if (ErrorFlags.syntax_error) { this.errorMsg = '表达式错误'; this.result = '' }
-      else if (ErrorFlags.is_infinity) { this.errorMsg = '结果无穷大'; this.result = '' }
-      else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = '' }
+      if (ErrorFlags.division_by_0) { this.errorMsg = '除数不能为零'; this.result = ''; this.refreshBaseConversions(NaN) }
+      else if (ErrorFlags.domain_error) { this.errorMsg = '定义域错误'; this.result = ''; this.refreshBaseConversions(NaN) }
+      else if (ErrorFlags.syntax_error) { this.errorMsg = '表达式错误'; this.result = ''; this.refreshBaseConversions(NaN) }
+      else if (ErrorFlags.is_infinity) { this.errorMsg = '结果无穷大'; this.result = ''; this.refreshBaseConversions(NaN) }
+      else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = ''; this.refreshBaseConversions(NaN) }
       else {
-        const fmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
-        this.result = fmt; this.errorMsg = ''
-        const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
+        // Issue #12: 程序员模式下主结果按 activeBase 格式化
+        let displayStr: string
+        if (this.mode === CalculatorMode.PROGRAMMER) {
+          displayStr = BaseConverter.withPrefix(raw, this.activeBase)
+        } else {
+          displayStr = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+        }
+        this.result = displayStr
+        this.errorMsg = ''
+        this.lastResult = raw
+        this.refreshBaseConversions(raw)
+        // 历史记录保存 DEC 显示（兼容现有行为）
+        const histFmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+        const item: HistoryItem = { id: this.nextId, expression: this.expression, result: histFmt, timestamp: Date.now() }
         this.nextId = this.nextId + 1
         const nh: HistoryItem[] = [item]
         for (let i: number = 0; i < this.history.length; i++) nh.push(this.history[i])
         this.history = nh
         if (this.prefs) this.prefs.setHistory(this.history)
       }
-    } catch (_e) { this.errorMsg = '计算错误' }
+    } catch (_e) {
+      this.errorMsg = '计算错误'
+      this.refreshBaseConversions(NaN)
+    }
+  }
+
+  // ==================== Issue #12 程序员模式 - 状态回调 ====================
+
+  /**
+   * 模式切换回调：@Watch('onModeChange') 触发持久化 + 刷新多进制显示
+   */
+  onModeChange(): void {
+    this.savePref('mode', this.mode)
+    this.refreshBaseConversions(this.lastResult)
+    // 主结果按新模式重新格式化（程序员模式按 activeBase）
+    if (Number.isFinite(this.lastResult)) {
+      if (this.mode === CalculatorMode.PROGRAMMER) {
+        this.result = BaseConverter.withPrefix(this.lastResult, this.activeBase)
+      } else if (this.result.length > 0) {
+        this.result = NumberFormatter.format(this.lastResult.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+      }
+    }
+  }
+
+  /**
+   * 主进制切换回调：@Watch('onActiveBaseChange') 触发持久化 + 刷新主结果
+   */
+  onActiveBaseChange(): void {
+    this.savePref('activeBase', this.activeBase)
+    if (this.mode === CalculatorMode.PROGRAMMER && Number.isFinite(this.lastResult)) {
+      this.result = BaseConverter.withPrefix(this.lastResult, this.activeBase)
+    }
+  }
+
+  /**
+   * 刷新 4 行多进制显示行
+   * @param value 当前计算结果（NaN 表示错误状态）
+   */
+  private refreshBaseConversions(value: number): void {
+    if (!Number.isFinite(value)) {
+      this.baseConversions = { dec: '-', hex: '-', oct: '-', bin: '-' }
+    } else {
+      this.baseConversions = {
+        dec: BaseConverter.convert(value, NumberBase.DEC),
+        hex: BaseConverter.withPrefix(value, NumberBase.HEX),
+        oct: BaseConverter.withPrefix(value, NumberBase.OCT),
+        bin: BaseConverter.withPrefix(value, NumberBase.BIN)
+      }
+    }
   }
 
   onCopy(): void {
@@ -323,7 +405,11 @@ export struct CalculatorPage {
         // 竖屏：原有布局
         Column() {
           this.DisplayPanel()
-          this.ToggleRow()
+          this.ModeToggleRow()
+          if (this.mode === CalculatorMode.PROGRAMMER) {
+            this.ActiveBaseSegment()
+            this.BaseConverterPanel()
+          }
           this.ButtonGrid()
           if (this.showHistory) this.HistoryPanel()
         }
@@ -337,8 +423,10 @@ export struct CalculatorPage {
       const w: number = newVal.width as number
       const h: number = newVal.height as number
       this.isLandscape = w > h
-      // 横屏时自动开启科学模式（但不强制显示历史）
-      if (this.isLandscape) this.scientific = true
+      // Issue #12: 横屏时自动升级 BASIC → SCIENTIFIC (但不覆盖用户主动选择的 PROGRAMMER)
+      if (this.isLandscape && this.mode === CalculatorMode.BASIC) {
+        this.mode = CalculatorMode.SCIENTIFIC
+      }
     })
   }
 
@@ -381,12 +469,15 @@ export struct CalculatorPage {
   }
 
   // ==================== 模式切换栏（仅竖屏显示） ====================
-  @Builder ToggleRow() {
+  // Issue #12: 三选一互斥 (BASIC / SCIENTIFIC / PROGRAMMER)
+  @Builder ModeToggleRow() {
     Row() {
-      Text(this.scientific ? '科学' : '基础').fontSize(12).fontColor(this.getOp())
-        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-        .border({ width: 1, color: this.getOp(), radius: 8 })
-        .onClick((): void => { this.scientific = !this.scientific })
+      Row() {
+        this.ModeButton('基础', CalculatorMode.BASIC)
+        this.ModeButton('科学', CalculatorMode.SCIENTIFIC)
+        this.ModeButton('程序员', CalculatorMode.PROGRAMMER)
+      }
+      .border({ width: 1, color: this.getOp(), radius: 8 })
       Blank()
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
@@ -396,20 +487,130 @@ export struct CalculatorPage {
     .width('100%').padding({ left: 16, right: 16, bottom: 4 })
   }
 
-  // ==================== 按钮网格 ====================
+  /** 模式按钮 - 当前 mode 高亮 */
+  @Builder ModeButton(label: string, target: CalculatorMode) {
+    Text(label)
+      .fontSize(12)
+      .fontColor(this.mode === target ? '#FFFFFF' : this.getOp())
+      .backgroundColor(this.mode === target ? this.getOp() : 'transparent')
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .onClick((): void => { if (this.mode !== target) { this.mode = target } })
+  }
+
+  // ==================== Issue #12 主进制切换 (仅 PROGRAMMER 模式) ====================
+  @Builder ActiveBaseSegment() {
+    Row() {
+      this.BaseButton('DEC', NumberBase.DEC)
+      this.BaseButton('BIN', NumberBase.BIN)
+      this.BaseButton('OCT', NumberBase.OCT)
+      this.BaseButton('HEX', NumberBase.HEX)
+    }
+    .width('100%').padding({ left: 16, right: 16, top: 2, bottom: 2 })
+    .justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  /** 主进制按钮 - 当前 activeBase 高亮 */
+  @Builder BaseButton(label: string, target: NumberBase) {
+    Text(label)
+      .fontSize(this.isLandscape ? 10 : 12)
+      .fontColor(this.activeBase === target ? '#FFFFFF' : this.getT1())
+      .backgroundColor(this.activeBase === target ? this.getOp() : this.getBtnBg())
+      .width('22%').height(this.isLandscape ? 24 : 30)
+      .textAlign(TextAlign.Center)
+      .borderRadius(8)
+      .onClick((): void => { if (this.activeBase !== target) { this.activeBase = target } })
+  }
+
+  // ==================== Issue #12 多进制显示面板 (仅 PROGRAMMER 模式) ====================
+  @Builder BaseConverterPanel() {
+    Column() {
+      this.BaseConvRow('DEC', this.baseConversions.dec, NumberBase.DEC)
+      this.BaseConvRow('HEX', this.baseConversions.hex, NumberBase.HEX)
+      this.BaseConvRow('OCT', this.baseConversions.oct, NumberBase.OCT)
+      this.BaseConvRow('BIN', this.baseConversions.bin, NumberBase.BIN)
+    }
+    .width('100%').padding({ left: 16, right: 16, top: 2, bottom: 4 })
+  }
+
+  /** 单行多进制显示 */
+  @Builder BaseConvRow(label: string, value: string, base: NumberBase) {
+    Row() {
+      Text(label)
+        .fontSize(this.isLandscape ? 11 : 13)
+        .fontColor(this.getT2())
+        .width(40)
+      Text(value.length > 0 ? value : '-')
+        .fontSize(this.isLandscape ? 11 : 14)
+        .fontColor(this.activeBase === base ? this.getOp() : this.getT1())
+        .fontWeight(this.activeBase === base ? FontWeight.Bold : FontWeight.Normal)
+        .layoutWeight(1)
+        .textAlign(TextAlign.End)
+    }
+    .width('100%').height(this.isLandscape ? 22 : 26)
+  }
+
+  // ==================== 按钮网格 - 根据 mode 渲染不同键盘 ====================
   @Builder ButtonGrid() {
     Column() {
-      if (this.scientific) {
-        Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
-        Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+      if (this.mode === CalculatorMode.PROGRAMMER) {
+        this.ProgrammerKeypad()
+      } else if (this.mode === CalculatorMode.SCIENTIFIC) {
+        this.ScientificKeypad()
+      } else {
+        this.BasicKeypad()
       }
+    }
+    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+  }
+
+  // ==================== 基础键盘 (5 列 × 6 行) ====================
+  @Builder BasicKeypad() {
+    Column() {
       Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
       Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
       Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
       Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
       Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
     }
-    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+    .width('100%')
+    .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ x: 8, y: 0 }))
+      .animation({ duration: 200, curve: Curve.EaseInOut }))
+  }
+
+  // ==================== 科学键盘 (5 列 × 7 行, 含 sin/cos/tan/ln/log/常量) ====================
+  @Builder ScientificKeypad() {
+    Column() {
+      Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
+      Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }
+    .width('100%')
+    .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ x: 8, y: 0 }))
+      .animation({ duration: 200, curve: Curve.EaseInOut }))
+  }
+
+  // ==================== 程序员键盘 (5 列 × 5 行, BIN 0/1 复用数字按钮 + HEX A-F) ====================
+  // 布局 (DEC 数字按钮 0-9 对 BIN/OCT/HEX 通用, HEX 字母 A-F 用 BtnHexLetter):
+  //   行 1: AC  | %   | (   | )   | ÷
+  //   行 2: 7   | 8   | 9   | A   | ×
+  //   行 3: 4   | 5   | 6   | B   | -
+  //   行 4: 1   | 2   | 3   | C   | +
+  //   行 5: 0   | D   | E   | F   | =
+  @Builder ProgrammerKeypad() {
+    Column() {
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnHexLetter('A'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnHexLetter('B'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnHexLetter('C'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnHexLetter('D'); this.BtnHexLetter('E'); this.BtnHexLetter('F'); this.BtnEq() }
+    }
+    .width('100%')
+    .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ x: 8, y: 0 }))
+      .animation({ duration: 200, curve: Curve.EaseInOut }))
   }
 
   /** 数字按钮 */
@@ -423,6 +624,9 @@ export struct CalculatorPage {
 
   /** 常量按钮 */
   @Builder BtnConst(l: string) { Text(l).fontSize(this.isLandscape ? 13 : 18).fontColor(this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onConst(l) }) }
+
+  /** Issue #12: HEX 字母按钮 (A-F), 复用数字按钮样式 + Func 颜色 */
+  @Builder BtnHexLetter(l: string) { Text(l).fontSize(this.isLandscape ? 13 : 18).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) }) }
 
   /** 动作按钮（AC/退格） */
   @Builder BtnAct(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(l === 'AC' ? this.getClr() : this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { if (l === 'AC') this.onAC(); else this.onBS() }) }

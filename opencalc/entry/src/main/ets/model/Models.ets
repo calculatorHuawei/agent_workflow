@@ -44,6 +44,8 @@ export interface CalculatorPreferences {
   numberPrecision: number          // 数字精度
   decimalSeparatorSymbol: string   // 小数点符号
   groupingSeparatorSymbol: string  // 千分位符号
+  mode: CalculatorMode             // 当前计算器模式（基础/科学/程序员）
+  activeBase: NumberBase           // 主结果显示进制（DEC/BIN/OCT/HEX）
 }
 
 /** 默认偏好设置 */
@@ -57,5 +59,32 @@ export const DEFAULT_PREFERENCES: CalculatorPreferences = {
   radiansDefault: false,
   numberPrecision: 12,
   decimalSeparatorSymbol: '.',
-  groupingSeparatorSymbol: ','
+  groupingSeparatorSymbol: ',',
+  mode: CalculatorMode.BASIC,
+  activeBase: NumberBase.DEC
+}
+
+// ==================== Issue #12 程序员模式 ====================
+
+/** 计算器模式（三选一互斥） */
+export enum CalculatorMode {
+  BASIC = 0,        // 基础模式（默认）
+  SCIENTIFIC = 1,   // 科学模式
+  PROGRAMMER = 2    // 程序员模式（DEC/BIN/OCT/HEX）
+}
+
+/** 数字进制（主结果显示与多进制显示行） */
+export enum NumberBase {
+  DEC = 0,          // 十进制（默认）
+  BIN = 1,          // 二进制
+  OCT = 2,          // 八进制
+  HEX = 3           // 十六进制
+}
+
+/** 多进制显示行的结果（4 行实时显示） */
+export interface BaseConversions {
+  dec: string       // 十进制显示值
+  hex: string       // 十六进制显示值（含 0x 前缀）
+  oct: string       // 八进制显示值（含 0o 前缀）
+  bin: string       // 二进制显示值（含 0b 前缀）
 }
