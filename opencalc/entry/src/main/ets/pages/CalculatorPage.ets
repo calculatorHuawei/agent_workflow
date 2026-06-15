@@ -5,10 +5,12 @@ import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
+import { HistoryFilter } from '../calculator/HistoryFilter'
 import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 
 @Entry
 @Component
@@ -25,6 +27,8 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+  // aid-workflow 20260615: Issue #13 一键分享二维码
+  @State showShare: boolean = false
 
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
@@ -225,6 +229,46 @@ export struct CalculatorPage {
     promptAction.showToast({ message: '已复制' })
   }
 
+  // ==================== Issue #13 一键分享二维码 ====================
+
+  /**
+   * aid-workflow 20260615: 分享按钮是否可用（用方法而非 getter，规避 ArkTS getter 兼容性问题）
+   * 启用条件：expression 非空 + errorMsg 为空 + result 非空
+   */
+  checkShareEnabled(): boolean {
+    return this.expression.length > 0 && this.errorMsg.length === 0 && this.result.length > 0
+  }
+
+  /**
+   * aid-workflow 20260615: 点击分享按钮（直接弹出 QR 模态，QR 码由 ArkUI 内置组件渲染）
+   */
+  onShareClick(): void {
+    if (!this.checkShareEnabled()) return
+    this.showShare = true
+  }
+
+  /**
+   * aid-workflow 20260615: 关闭分享模态层
+   */
+  onShareClose(): void {
+    this.showShare = false
+  }
+
+  /**
+   * aid-workflow 20260615: 构造 QR payload（纯函数委托给 QrCodeBuilder）
+   * @returns URL 编码后的 payload 字符串
+   */
+  get sharePayload(): string {
+    return QrCodeBuilder.buildSharePayload(this.expression, this.result)
+  }
+
+  /**
+   * aid-workflow 20260615: 当前 payload 是否被截断（用于显示提示）
+   */
+  get isPayloadTruncated(): boolean {
+    return this.sharePayload.indexOf(QrCodeBuilder.TRUNCATED_FLAG) !== -1
+  }
+
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
   onHistoryDelete(item: HistoryItem): void {
     const keep: HistoryItem[] = []
@@ -331,6 +375,7 @@ export struct CalculatorPage {
       }
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
+      if (this.showShare) this.SharePanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -345,6 +390,8 @@ export struct CalculatorPage {
   // ==================== 显示屏 ====================
   @Builder DisplayPanel() {
     Column() {
+    // aid-workflow 20260615: 分享按钮行已移至 ToggleRow（避开 DisplayPanel 的 LongPressGesture）
+
     // 横屏时在显示屏右侧加历史切换按钮
     if (this.isLandscape) {
       Row() {
@@ -376,8 +423,43 @@ export struct CalculatorPage {
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       }
     }
-    .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 24, bottom: 8 })
+    .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 16, bottom: 8 })
     .gesture(LongPressGesture().onAction((): void => { this.onCopy() }))
+  }
+
+  // ==================== 分享二维码模态层（Issue #13） ====================
+  @Builder SharePanel() {
+    Column() {
+      // 标题栏
+      Row() {
+        Text('二维码分享').fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        Blank()
+        Text('✕').fontSize(20).fontColor(this.getT2())
+          .onClick((): void => { this.onShareClose() })
+      }.width('100%').padding(16)
+
+      // QR 码区域（ArkUI 内置 QRCode 组件 + 强制白底，不受主题影响）
+      QRCode(this.sharePayload)
+        .width(240).height(240)
+        .color(Color.Black)
+        .backgroundColor(Color.White)
+
+      // 文本副本（人工可读）
+      Text(this.expression + ' = ' + this.result)
+        .fontSize(14).fontColor(this.getT1())
+        .padding({ top: 12 })
+        .maxLines(2)
+
+      // 截断提示（payload 超长时）
+      if (this.isPayloadTruncated) {
+        Text('⚠ 算式过长已截断').fontSize(11).fontColor(this.getT2()).padding({ top: 4 })
+      }
+
+      // 操作提示
+      Text('用手机扫码即可在手机上查看算式与结果')
+        .fontSize(11).fontColor(this.getT2()).padding({ top: 8 })
+    }
+    .width('85%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
   }
 
   // ==================== 模式切换栏（仅竖屏显示） ====================
@@ -390,6 +472,13 @@ export struct CalculatorPage {
       Blank()
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
+      // aid-workflow 20260615: Issue #13 一键分享按钮
+      Button('分享', { type: ButtonType.Normal })
+        .fontSize(11).fontColor(this.checkShareEnabled() ? this.getOp() : this.getT2())
+        .backgroundColor(Color.Transparent)
+        .height(22).padding({ left: 6, right: 6 })
+        .margin({ right: 4 })
+        .onClick((): void => { this.onShareClick() })
       Text('⚙').fontSize(16).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showSettings = true })
     }
