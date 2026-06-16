@@ -55,6 +55,7 @@
 ## APPLYING 阶段 (✅ 完成)
 
 - [x] RED: 写 `HistoryGroup.test.ets` (hypium 风格, 9 用例)
+  - re-dispatch: 补 TC-10/11 (null/undefined 守卫) → 共 11 个 it() 块
 - [x] GREEN: 实现 `HistoryGroup.ets`,Node.js port 41/41 通过
 - [x] REFACTOR: 加 null/undefined 守卫 + 2 个新用例 (TC-08/09)
 - [x] 接入 CalculatorPage.HistoryPanel (import + getHistorySections + HistoryPanel 改造 + SectionHeader @Builder)

@@ -2,6 +2,34 @@
 
 > AID APPLYING step3-4 产出 · 自动模式 (claude -p 非交互)
 > 应用日期: 2026-06-16
+> **re-dispatch: 2026-06-16 (rev-01 REQUEST CHANGES 后)**
+
+---
+
+## 0. ⚠️ rev-01 阻塞项与处理结果 (re-dispatch 重点)
+
+| rev-01 阻塞项 | 状态 | 处理方式 |
+|---------------|------|----------|
+| #1 UI 截图非真实渲染新功能 (f4a809c) | ⚠️ 已知限制 | **方案 B**: 在本文件 §0 + §4.2 显眼标注, PR 标题加 `[DRAFT]` 后缀, 不强行补 main_pages.json (项目级问题,超出 #15 范围) |
+| #2 同分支未签名 commit (955eab5) | ✅ 已修复 | `git rebase 955eab5~1 --exec "git commit --amend --no-edit --signoff"` 重写 5215449 + 8083dfc, 两个 commit 均含 `Signed-off-by: 223556cy <223556cy@users.noreply.github.com>` |
+
+### 0.1 关于 #1 阻塞项的真实情况 (PR Reviewer 请优先看)
+
+**本 PR 不含真实渲染新功能的 UI 截图**。原因:
+
+- `entry/src/main/resources/base/profile/main_pages.json` 在本仓库缺失
+- `hvigorw assembleHap` 报 `Profile 'main_pages.json' not found` 无法构建新 HAP
+- 设备上安装的 `com.darkempire78.opencalculator` 是**旧版 HAP**,不含 `HistoryGroup` 模块
+- 即便向旧版注入历史数据, UI 也不会渲染 "今天/昨天/更早" 标题
+- 若强行在旧版上截图, 会显示**不存在的功能**, 违反铁律 7 (不伪造)
+
+**`ui-tests/screenshot/opencalc-home.jpeg` 等是「基础设施证据」, 不是新功能渲染证据**:
+- 证明: hdc / uitest / snapshot 链路通畅, 模拟器可达, 旧版本 UI 元素完整
+- 不证明: 新功能 `HistoryGroup` 在真机渲染
+
+**建议后续**: 由 `aid-init` 阶段补 `main_pages.json` + 重建 HAP 后, 重跑 Task 5.3 即可补真实截图, 预计改动 < 5 行 (新加一个空白的 pages profile)。本 PR 维持原范围。
+
+---
 
 ## 1. 应用信息
 
@@ -127,7 +155,9 @@
 | UI dump | ✅ | `uitest dumpLayout` 工作, 已解析 layout JSON 含全部按钮文本 |
 | 整体 UI 测试能力 | ✅ | 基础设施 100% 可用 |
 
-### 4.2 ⚠️ 真实渲染验证 BLOCKED
+### 4.2 ⚠️ 真实渲染验证 BLOCKED — rev-01 阻塞项 #1 根因
+
+> re-dispatch 注: 本节是 rev-01 阻塞项 #1 的根因解释。修复见 §0, 本节未改动。
 
 **根因**: 项目当前状态无法重建带新代码的 HAP。
 
@@ -253,7 +283,7 @@ CommitDate: 2026-06-16
 | 新增 HistoryGroup.ets 纯函数模块 | ✅ |
 | 新增 HistoryGroup.test.ets ≥ 7 用例 | ✅ (10 个用例) |
 | hvigorw test 通过 | ⚠️ 见 §4.2 (项目缺 main_pages.json, 用 Node.js port 等价验证) |
-| harmonyos-ui-test 真实截图 | ⚠️ 见 §4.3 (基础设施 OK, 新功能 BLOCKED by 项目缺口) |
+| harmonyos-ui-test 真实截图 | ⚠️ 见 §0 + §4.2 (rev-01 阻塞项 #1, 已知限制, 不在 #15 修复范围) |
 | commit 含 Signed-off-by | ✅ |
 
 ## 9. 遗留问题与后续建议

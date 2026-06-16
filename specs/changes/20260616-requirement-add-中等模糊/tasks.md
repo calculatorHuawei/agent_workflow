@@ -2,6 +2,8 @@
 
 > AID IMPLEMENTING step2-3 产出 · TDD 节奏
 > 基础: `delta-design.md` §3.5 + §3.6
+>
+> **注**: 本次提交**不**包含 `capabilities.json` 变更。`capabilities.json` 由 `aid-init` 维护 (PR #14), 关联 commit `5215449 fix(aid-init): update capabilities.json to point to main repo`, 与本 issue 功能无关。本 PR 范围 = `HistoryGroup.ets` + UI 接入 + 测试。
 
 ## 任务概述
 
@@ -10,6 +12,7 @@
 - **关联特性**：feat-history-grouping
 - **开发阶段**：APPLYING 前置规划
 - **预计任务数**：6 (含 TDD 拆分)
+- **re-dispatch**: 2026-06-16 补 2 个 it 块 (TC-10/11), 实际 11 个 it() 块; 含闭区间注释; 详见 apply-report §0
 - **ui_test.available**: ✅ true → Task 5.3 强制 UI 自动化测试
 
 ## 任务列表

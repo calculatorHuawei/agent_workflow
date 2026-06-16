@@ -47,6 +47,9 @@ export function groupHistoryByDate(items: HistoryItem[] | null | undefined, now:
 
   for (let i: number = 0; i < safeItems.length; i++) {
     const item: HistoryItem = safeItems[i]
+    // 闭区间判定: `timestamp >= todayStart` 包含今日 00:00:00.000.000 (归今天),
+    // `timestamp >= yesterdayStart` 包含昨日 00:00:00.000.000 (归昨天).
+    // 不要改成 `>` 否则 00:00:00 整点会落到 "更早" 段 — 与 delta-spec AC_HG_06 不符.
     if (item.timestamp >= todayStart) {
       sections[0].items.push(item)
     } else if (item.timestamp >= yesterdayStart) {

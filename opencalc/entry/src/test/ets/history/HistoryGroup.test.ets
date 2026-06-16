@@ -170,4 +170,36 @@ export default function historyGroupTest() {
       expect(start).assertEqual(d.getTime())
     })
   })
+
+  describe('groupHistoryByDate_null_guards', () => {
+
+    // TC-10: items=null → 返回 3 段均空 (不抛异常)
+    it('AC_HG_10_null_items_should_return_three_empty_sections', 9, () => {
+      const now = msOf(2026, 6, 16, 10, 0, 0)
+      const sections = groupHistoryByDate(null, now)
+
+      expect(sections.length).assertEqual(3)
+      expect(sections[0].key).assertEqual(HistoryGroupKey.TODAY)
+      expect(sections[0].items.length).assertEqual(0)
+      expect(sections[1].key).assertEqual(HistoryGroupKey.YESTERDAY)
+      expect(sections[1].items.length).assertEqual(0)
+      expect(sections[2].key).assertEqual(HistoryGroupKey.EARLIER)
+      expect(sections[2].items.length).assertEqual(0)
+    })
+
+    // TC-11: items=undefined → 返回 3 段均空 (不抛异常)
+    it('AC_HG_11_undefined_items_should_return_three_empty_sections', 10, () => {
+      const now = msOf(2026, 6, 16, 10, 0, 0)
+      // undefined 是 ArkTS/TS 的合法值,与 null 分别覆盖守卫路径
+      const sections = groupHistoryByDate(undefined, now)
+
+      expect(sections.length).assertEqual(3)
+      expect(sections[0].key).assertEqual(HistoryGroupKey.TODAY)
+      expect(sections[0].items.length).assertEqual(0)
+      expect(sections[1].key).assertEqual(HistoryGroupKey.YESTERDAY)
+      expect(sections[1].items.length).assertEqual(0)
+      expect(sections[2].key).assertEqual(HistoryGroupKey.EARLIER)
+      expect(sections[2].items.length).assertEqual(0)
+    })
+  })
 }
