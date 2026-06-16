@@ -60,15 +60,43 @@
 - [x] REFACTOR: 加 null/undefined 守卫 + 2 个新用例 (TC-08/09)
 - [x] 接入 CalculatorPage.HistoryPanel (import + getHistorySections + HistoryPanel 改造 + SectionHeader @Builder)
 - [x] hvigorw test: ⚠️ 项目缺 main_pages.json, 沿用 PR #9/#11 Node.js port 模式
-- [x] harmonyos-ui-test: ✅ 基础设施可用 (hdc/uitest/snapshot), 新功能渲染 ⚠️ BLOCKED by 项目缺口
+- [x] harmonyos-ui-test (v1): ✅ 基础设施可用 (hdc/uitest/snapshot), 新功能渲染 ⚠️ BLOCKED by 项目缺口
+- [x] **harmonyos-ui-test (v2 re-dispatch)**: ✅ **方案 A 实际修复** — 资源已补 + 新 HAP 安装 + 真实截图 6 张 + dump 1 份 (commit `68982c3` + `5009c07`)
 - [x] 产出 `apply-report.md` (含完整测试日志 + UI 截图 + 限制说明)
-- [x] `git commit -s` 满足铁律 7 (commit c302234)
+- [x] `git commit -s` 满足铁律 7 (commit `8083dfc`)
 
-## 提交
+## re-dispatch v1 (7dff45d, dev-01) — 已合入 origin
 
-- **commit SHA**: c302234a7a43fca541e2d2f877f09ee8c9fb28b7
-- **branch**: feat/issue-15-中等模糊 (ahead 1)
-- **push 状态**: 未推送 (留给 dev-01)
+- [x] rev-01 阻塞项 #2: `git rebase --exec "git commit --amend --signoff"` 重写 5215449 + 8083dfc (均含 Signed-off-by)
+- [x] rev-01 阻塞项 #1: 方案 B (DRAFT 标注, 等 aid-init 补资源)
+- [x] rev-01 建议项: TC-10/11 + HistoryGroup.ets:50 闭区间注释 + tasks.md 顶部说明
+
+## re-dispatch v2 (5009c07, 本次) — 已 force-push 到 origin
+
+- [x] rev-01 阻塞项 #1: **方案 A 实际修复**
+  - commit `68982c3`: 补 4 个项目级资源 (main_pages.json / color.json / string.json / app_icon.png)
+  - `hvigorw --no-daemon assembleHap` → BUILD SUCCESSFUL in 18 s 291 ms
+  - `hdc install -r entry-default-unsigned.hap` → install bundle successfully
+  - `aa start -b com.darkempire78.opencalculator -a EntryAbility` → start ability successfully
+  - 真实计算 3 次 → 截图 `ss-history-today.jpeg` (今天 段头 + 3 条 entry)
+  - 临时注入多日数据 → 截图 `ss-history-3sections.jpeg` (3 段全显示 + 10 条 entry)
+  - UI dump `layout-3sections.json` grep 命中 3/3
+- [x] apply-report §0 + §4.2 + §6 + §8 重写 (BLOCKED → UNBLOCKED)
+- [x] force-push 到 origin `feat/issue-15-中等模糊` = `5009c07`
+- [x] gh issue comment @littleleafccccc @littleleafbbbbb (issue #15)
+
+## 提交 (最终)
+
+- **branch**: `feat/issue-15-中等模糊`
+- **本地 HEAD**: `5009c07 fix(issue-15): re-dispatch v2 真实 UI 渲染截图 (UNBLOCK rev-01 #1)`
+- **origin HEAD**: `5009c07` (force-push 完成)
+- **历史 commits**:
+  - `5215449` fix(aid-init): update capabilities.json (Signed-off-by 223556cy)
+  - `8083dfc` feat(history): 按日期分组 (Signed-off-by Claude)
+  - `7dff45d` fix(history): re-dispatch for rev-01 (Signed-off-by 223556cy)
+  - `68982c3` fix(infra): 补 HarmonyOS 编译必需资源 (Signed-off-by Claude)
+  - `5009c07` fix(issue-15): re-dispatch v2 真实 UI 渲染截图 (Signed-off-by Claude)
+- **所有 5 个 commits 均含 Signed-off-by** ✅ 铁律 7 满足
 
 ## 自动决策记录 (无交互模式)
 
