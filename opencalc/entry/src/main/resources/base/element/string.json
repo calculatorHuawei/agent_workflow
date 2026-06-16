@@ -1,0 +1,8 @@
+{
+  "string": [
+    { "name": "app_name", "value": "OpenCalc" },
+    { "name": "module_desc", "value": "OpenCalc HarmonyOS" },
+    { "name": "EntryAbility_desc", "value": "OpenCalc" },
+    { "name": "EntryAbility_label", "value": "OpenCalc" }
+  ]
+}
