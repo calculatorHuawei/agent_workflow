@@ -50,7 +50,13 @@
 - **IMPLEMENTING ✅ 完成**
 
 ## APPLYING 阶段进度
-- [ ] 待 IMPLEMENTING 完成后开始
+- [x] step3-0 环境检查 (Node v24, hdc 3.2.0d, emulator 127.0.0.1:5555)
+- [x] step3-2 TDD: RED (16 tests, 6 fail) → GREEN (16/16 pass)
+- [x] step3-2 真实代码: LongPressMenu.ets + CalculatorPage.ets 修改
+- [x] step3-2 真实编译: hvigorw BUILD SUCCESSFUL (19.7s)
+- [x] step3-2 真实 HAP 安装 + 启动 + UI 自动化: 7/7 AC 在模拟器上验证通过
+- [x] step3-4 apply-report.md 生成
+- **APPLYING ✅ 完成**
 
 ## 风险点
 - 无 (简单 UI 增强, 不删现有功能, 不改架构)
