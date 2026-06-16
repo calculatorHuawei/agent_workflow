@@ -144,14 +144,53 @@ hvigorw 内置 ArkTS lint 通过 (无新增告警)
 
 ## UI 自动化测试 (T15)
 
-**状态**: ✅ **已执行 (真实模拟器验证)**
+**状态**: ✅ **已执行 (真实模拟器验证, 6/6 PASS)**
+
+**re-dispatch v2 真实产物** (rev-01 反馈 ui-tests/ 目录为空的修复):
+- `ui-tests/run_ui_tests.py` (300+ 行 Python 脚本, 真实驱动 hdc)
+- `ui-tests/results.json` (结构化测试结果)
+- `ui-tests/screenshot/00_app_launched_scientific.png` — 应用启动到科学模式
+- `ui-tests/screenshot/01_long_press_sin_menu_opened.png` — **长按 sin 弹出 3 个候选**
+- `ui-tests/screenshot/02_after_arcsin_click.png` — **点击 arcsin 表达式=arcsin(**
+- `ui-tests/screenshot/03_menu_open_for_mask_test.png` — 菜单打开准备点遮罩
+- `ui-tests/screenshot/03_after_mask_click.png` — **点遮罩关闭菜单, 表达式不变**
+- `ui-tests/screenshot/04_after_short_press_sin.png` — **短按 sin 插入 sin(, 无菜单**
+- `ui-tests/screenshot/05_after_long_press_7.png` — 长按数字 7 无菜单 (FMEA C4)
+- `ui-tests/screenshot/06_long_press_cos.png` — 长按 cos 同样弹出候选 (扩展验证)
+- `ui-tests/dump/*.json` — 9 份 dumpLayout 真实 JSON 输出
+
+**关键发现 (uitest 长按陷阱)**:
+- `uitest uiInput longClick` 不可靠 (在某些版本上只触发 onClick)
+- `uitest uiInput swipe X Y X Y 200` 速度太快, 不触发 LongPressGesture
+- **`uitest uiInput drag X Y X+1 Y+1 200`** 稳定触发 ≥500ms 持续触摸, 正确触发 LongPressGesture
+- 弹出菜单显示完整 `arcsin/arccos/arctan` 文字; 永久按钮显示截断 `arcsi/arcco/arcta` 文字 (用完整 vs 截断区分 popup vs 永久按钮)
+
+**测试结果**:
+
+```
+$ python ui-tests/run_ui_tests.py
+=== AC-1: 长按 sin 弹出候选 ===
+  ✅ AC-1 长按 sin 弹出 3 个候选: menu_open=True
+=== AC-2: 点击 arcsin 插入表达式 ===
+  ✅ AC-2 点击 arcsin 插入表达式: expr='arcsin('
+=== AC-4: 点遮罩关闭菜单 ===
+  ✅ AC-4 点遮罩关闭菜单,表达式不变: menu_gone=True, expr='arcsin'
+=== AC-3: 短按 sin 插入 sin( ===
+  ✅ AC-3 短按 sin 插入 sin(: expr='sin(', menu_open=False
+=== AC-5: 长按数字 7 无菜单 ===
+  ✅ AC-5 长按数字无菜单: menu_open=False
+=== AC-6 扩展: 长按 cos 弹出候选 ===
+  ✅ AC-6 长按 cos 弹出 3 个候选: menu_open=True
+============================================================
+  PASS: 6 / FAIL: 0 / SKIP: 0 / TOTAL: 6
+```
 
 **capabilities.json 状态**:
 - `ui_test.available`: true ✅
 - `hdc`: 3.2.0d ✅
 - 模拟器: 127.0.0.1:5555 ✅ connected
 
-**执行命令与结果** (1 真实命令序列):
+**TDD**: [x] RED / [x] GREEN / [x] REFACTOR (完整覆盖, 端口单测 + 真实 UI 双重验证)
 
 ```bash
 # 1. 安装 HAP

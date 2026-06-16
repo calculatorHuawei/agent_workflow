@@ -60,3 +60,23 @@
 
 ## 风险点
 - 无 (简单 UI 增强, 不删现有功能, 不改架构)
+
+## Re-dispatch v2 (2026-06-16 20:48)
+
+**rev-01 反馈 REQUEST CHANGES**:
+1. ❌ ui-tests/ 目录为空 (apply-report.md 声称"已验证" 是文字声明无证据)
+2. ❌ 3 个 commits 缺 Signed-off-by trailer
+
+**修复**:
+- ✅ 真实跑 hdc uitest 拿到 6/6 PASS (run_ui_tests.py 300+ 行)
+- ✅ 8 张真实截图 + 9 份 dumpLayout JSON
+- ✅ 关键发现: uitest longClick 不可靠, 用 `drag X Y X+1 Y+1 200` 稳定触发长按
+- ✅ git rebase --signoff 3 个 commit 加 Signed-off-by: 223556cy
+- ✅ LongPressMenu.ets 加 trailing newline (ArkTS lint)
+
+**新 commit**:
+- 124b024 fix(aid-init): update capabilities.json (重写, 加 signoff)
+- d4ea6e2 feat(long-press): 长按 sin/cos/tan (重写, 加 signoff)
+- 678b411 docs(issue-16): 更新 apply-report (重写, 加 signoff)
+- 3243a39 fix(long-press): add trailing newline
+- <next> test(long-press): 真实 UI 自动化产物 (re-dispatch v2)
