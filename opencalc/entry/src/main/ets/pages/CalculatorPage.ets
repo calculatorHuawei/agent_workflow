@@ -9,6 +9,7 @@ import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
 
 @Entry
 @Component
@@ -233,6 +234,12 @@ export struct CalculatorPage {
     if (this.prefs) this.prefs.setHistory(this.history)
   }
 
+  // aid-workflow 20260616: 按日期分组 (今天/昨天/更早)
+  // 每次 build 时即时计算, 无缓存, 无副作用
+  getHistorySections(): HistorySection[] {
+    return groupHistoryByDate(this.history, Date.now())
+  }
+
   // ==================== 主题颜色（对齐 Android 原版） ====================
   // themeIdx: 0=默认浅色  1=AMOLED纯黑  2=暗色
   // 默认：Android values/colors.xml 浅色主题
@@ -452,17 +459,23 @@ export struct CalculatorPage {
         Text('暂无计算记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
       } else {
         List() {
-          ForEach(this.history, (item: HistoryItem) => {
-            ListItem() {
-              Column() {
-                Text(item.expression).fontSize(12).fontColor(this.getT2()).maxLines(1)
-                Text(item.result).fontSize(15).fontWeight(FontWeight.Bold).fontColor(this.getOp())
-              }
-              .alignItems(HorizontalAlign.Start).width('100%').padding(this.isLandscape ? 8 : 12)
-              .onClick((): void => { this.onHistoryTap(item) })
+          // aid-workflow 20260616: 按日期分组 (今天/昨天/更早), 每段组内 newest-first
+          ForEach(this.getHistorySections(), (section: HistorySection) => {
+            if (section.items.length > 0) {
+              ListItem() { this.SectionHeader(section.title) }
+              ForEach(section.items, (item: HistoryItem) => {
+                ListItem() {
+                  Column() {
+                    Text(item.expression).fontSize(12).fontColor(this.getT2()).maxLines(1)
+                    Text(item.result).fontSize(15).fontWeight(FontWeight.Bold).fontColor(this.getOp())
+                  }
+                  .alignItems(HorizontalAlign.Start).width('100%').padding(this.isLandscape ? 8 : 12)
+                  .onClick((): void => { this.onHistoryTap(item) })
+                }
+                .swipeAction({ end: { builder: (): void => { this.DelBtn(item) } } })
+              }, (item: HistoryItem): string => item.id.toString())
             }
-            .swipeAction({ end: { builder: (): void => { this.DelBtn(item) } } })
-          })
+          }, (section: HistorySection): string => section.key.toString())
         }
         .layoutWeight(1)
       }
@@ -471,6 +484,18 @@ export struct CalculatorPage {
     .width('100%').height(this.isLandscape ? '100%' : 'auto')
     .backgroundColor(this.getPanelBg())
     .borderRadius(this.isLandscape ? 0 : { topLeft: 16, topRight: 16 })
+  }
+
+  // aid-workflow 20260616: 段标题 (今天 / 昨天 / 更早)
+  @Builder SectionHeader(title: string) {
+    Row() {
+      Text(title)
+        .fontSize(11)
+        .fontColor(this.getT2())
+        .padding({ left: 12, top: 8, bottom: 4 })
+    }
+    .width('100%')
+    .backgroundColor(this.getPanelBg())
   }
 
   @Builder DelBtn(item: HistoryItem) {
