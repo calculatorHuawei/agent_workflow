@@ -271,47 +271,36 @@ export struct CalculatorPage {
     promptAction.showToast({ message: '已复制' })
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   // ==================== Issue #13 一键分享二维码 ====================
-
-  /**
-   * aid-workflow 20260615: 分享按钮是否可用（用方法而非 getter，规避 ArkTS getter 兼容性问题）
-   * 启用条件：expression 非空 + errorMsg 为空 + result 非空
-   */
+  // aid-workflow 20260615: 分享按钮是否可用（用方法而非 getter，规避 ArkTS getter 兼容性问题）
+  // 启用条件：expression 非空 + errorMsg 为空 + result 非空
   checkShareEnabled(): boolean {
     return this.expression.length > 0 && this.errorMsg.length === 0 && this.result.length > 0
   }
 
-  /**
-   * aid-workflow 20260615: 点击分享按钮（直接弹出 QR 模态，QR 码由 ArkUI 内置组件渲染）
-   */
+  // aid-workflow 20260615: 点击分享按钮（直接弹出 QR 模态，QR 码由 ArkUI 内置组件渲染）
   onShareClick(): void {
     if (!this.checkShareEnabled()) return
     this.showShare = true
   }
 
-  /**
-   * aid-workflow 20260615: 关闭分享模态层
-   */
+  // aid-workflow 20260615: 关闭分享模态层
   onShareClose(): void {
     this.showShare = false
   }
 
-  /**
-   * aid-workflow 20260615: 构造 QR payload（纯函数委托给 QrCodeBuilder）
-   * @returns URL 编码后的 payload 字符串
-   */
+  // aid-workflow 20260615: 构造 QR payload（纯函数委托给 QrCodeBuilder）
+  // @returns URL 编码后的 payload 字符串
   get sharePayload(): string {
     return QrCodeBuilder.buildSharePayload(this.expression, this.result)
   }
 
-  /**
-   * aid-workflow 20260615: 当前 payload 是否被截断（用于显示提示）
-   */
+  // aid-workflow 20260615: 当前 payload 是否被截断（用于显示提示）
   get isPayloadTruncated(): boolean {
     return this.sharePayload.indexOf(QrCodeBuilder.TRUNCATED_FLAG) !== -1
-=======
+  }
+
+  // ==================== Issue #16 长按菜单 ====================
   // aid-workflow 20260616: 长按按钮 → 弹出候选菜单 (FR-1)
   // 无候选时不弹 (FMEA C4: ln/log 首版不映射)
   onLongPress(label: string): void {
@@ -325,23 +314,22 @@ export struct CalculatorPage {
   onLongPressCandidate(item: string): void {
     this.showLongPressMenu = false
     this.onFunc(item)
->>>>>>> feat/issue-16-中等需求
-=======
+  }
+
+  // ==================== Issue #17 粘贴即计算 ====================
   // aid-workflow 20260617 Issue #17: 页面挂载/恢复时尝试自动粘贴
   // ArkTS @Entry 组件生命周期：onPageShow 等价于 Android onResume
   onPageShow(): void {
     this.onPaste()  // 异步 fire-and-forget; onPaste 内部 await
   }
 
-  /**
-   * aid-workflow 20260617 Issue #17: 从剪贴板粘贴并自动计算
-   * - 复用 onEquals()（push history）
-   * - 复用 computePreview()（校验）
-   * - lastPastedHash 去重（FMEA-4）
-   * - 失败仅 Toast，不弹窗不震动
-   * - FMEA-5: 系统异常静默；FMEA-6: 空白静默；FMEA-2: 超长截断
-   * 注意: pasteboard.getData() 在 HarmonyOS 4.0+ 是 async, 必须 await
-   */
+  // aid-workflow 20260617 Issue #17: 从剪贴板粘贴并自动计算
+  // - 复用 onEquals()（push history）
+  // - 复用 computePreview()（校验）
+  // - lastPastedHash 去重（FMEA-4）
+  // - 失败仅 Toast，不弹窗不震动
+  // - FMEA-5: 系统异常静默；FMEA-6: 空白静默；FMEA-2: 超长截断
+  // 注意: pasteboard.getData() 在 HarmonyOS 4.0+ 是 async, 必须 await
   private async onPaste(): Promise<void> {
     let text: string = ''
     try {
@@ -373,17 +361,14 @@ export struct CalculatorPage {
     this.onEquals()              // 复用：计算 + push history
   }
 
-  /**
-   * aid-workflow 20260617 Issue #17: 简单字符串 hash（仅用于去重，不强加密）
-   * 字符 code 累加 + 长度系数，避免碰撞概率
-   */
+  // aid-workflow 20260617 Issue #17: 简单字符串 hash（仅用于去重，不强加密）
+  // 字符 code 累加 + 长度系数，避免碰撞概率
   private computeHash(text: string): number {
     let h: number = 0
     for (let i: number = 0; i < text.length; i++) {
       h = (h * 31 + text.charCodeAt(i)) | 0
     }
     return (h ^ text.length) | 0
->>>>>>> feat/issue-17-中等模糊
   }
 
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
@@ -525,12 +510,10 @@ export struct CalculatorPage {
       }
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
-<<<<<<< HEAD
+      // aid-workflow 20260615: Issue #13 分享二维码模态层
       if (this.showShare) this.SharePanel()
-=======
-      // aid-workflow 20260616: 长按候选菜单 (FR-1/FR-2, 顶层遮罩盖全屏)
+      // aid-workflow 20260616: Issue #16 长按候选菜单 (FR-1/FR-2, 顶层遮罩盖全屏)
       if (this.showLongPressMenu) this.LongPressMenuPanel()
->>>>>>> feat/issue-16-中等需求
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
