@@ -109,3 +109,51 @@ $ "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/toolchains/hdc.
 
 ## 下一步
 执行 aid-archiving 归档变更到 specs/archives/
+
+---
+
+## re-dispatch 增补 (rev-01 反馈后)
+
+### 955eab5 capabilities.json 修改的 dev-01 cron impact 描述
+
+rev-01 建议补一段对 dev-01 cron prompt 的影响面描述。说明:
+
+**修改内容**:
+- `test.test_root` 改为相对路径 `opencalc/entry/src/test`(原来是绝对路径假设)
+- 删掉 `git.*` 段(原 worktree 状态字段不属于项目身份,worktree 不应再持有主仓的项目身份副本)
+- `ui_test` 提升到顶层(原在 `git` 段下,语义错误)
+- 新增 `worktrees_root` + `worktree_convention` 字段(明确 worktree 路径约定)
+
+**对 dev-01 cron prompt 的影响**:
+1. **每个 worktree 自管 specs/initialized.flag**:之前 capabilities.json 里有 `worktree_initialized` 标志,worktree 复用主仓 capabilities.json 会导致该标志被错误共享。修改后 worktree 不再持有主仓 capabilities.json 副本,`specs/initialized.flag` 由 worktree 自己写。dev-01 cron 不再需要担心"误读 worktree 标志"。
+2. **worktree 路径解析统一**:新增 `worktrees_root` 字段(如 `D:/huawei/Demo/worktrees`),dev-01 cron 可直接用该字段定位当前 issue 的 worktree,不再需要从 git 命令推断。
+3. **worktree_convention 约定**:`{root}/worktrees/issue-<num>-<name>` 是唯一约定,dev-01 cron 解析路径时不需要支持多套命名规则。
+4. **ui_test 提升到顶层**:dev-01 cron 在做"该 issue 是否需要 UI 测试"决策时,直接读 `capabilities.json.ui_test.available`,不再需要到 `git.ui_test` 这种错误位置查找。
+
+**潜在风险**:
+- 如果 dev-01 cron prompt 有 hardcode 引用 `capabilities.json.git.*` 的逻辑,需要同步更新。已在 worktree 跑通验证 cron 不再依赖该字段。
+- 如果有其他 worktree 还持有旧版 capabilities.json 副本(未重新生成),可能解析失败。rev-01 之后会统一用 aid-init 重生成。
+
+### UI 自动化测试 re-run 结果(rev-01 要求补做)
+
+**运行环境**:
+- 模拟器:127.0.0.1:5555(hdc 3.2.0d, Emulator.exe PID 54560)
+- HAP:已重新 `hdc install -r entry-default-unsigned.hap`(264KB, 含 UnitConverter + NaturalLanguageParser)
+- 应用启动:`aa start -a EntryAbility -b com.darkempire78.opencalculator` start ability successfully
+
+**测试结果**:
+| 用例 | 描述 | 结果 |
+|------|------|------|
+| TC-1 | 100厘米转英寸 → 39.3701 | 🚫 阻塞: 无 TextInput 入口 (P0 UX gap) |
+| TC-2 | 30摄氏度转华氏度 → 86 | 🚫 阻塞: 同上 |
+| TC-3 | 1+2 不被误判 → 3 | ⚠️ 部分: 2+3=5 PASS (走 CalcEngine,NL 分支未污染) |
+| TC-4 | 基础回归 (按钮 2+3) | ✅ PASS |
+
+**新发现 P0 阻塞**:
+- CalculatorPage.ets:408-410 是 `Text(this.expression)`,不是 `TextInput`
+- UI 树 dump 扫描 0 个 TextInput / TextArea / Search
+- `uitest uiInput text "100cm"` 后 display 仍为 "0"
+- **结论**:用户**无法**从 UI 触发 NL 换算,需要下一个 PR 把 `Text` 替换为 `TextInput + onChange`
+
+详细报告: `ui-tests/01_ui_test_report.md`
+截图证据: `ui-tests/screenshot/{00_initial, 02_after_text, 03_1plus2_result}.png`
