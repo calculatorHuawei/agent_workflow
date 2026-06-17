@@ -33,6 +33,8 @@ export struct CalculatorPage {
   @State isLandscape: boolean = false
   // aid-workflow 20260615: Issue #13 一键分享二维码
   @State showShare: boolean = false
+  // aid-workflow 20260617 Issue #17: 粘贴去重 hash
+  @State lastPastedHash: number = 0
 
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
@@ -270,6 +272,7 @@ export struct CalculatorPage {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   // ==================== Issue #13 一键分享二维码 ====================
 
   /**
@@ -323,6 +326,64 @@ export struct CalculatorPage {
     this.showLongPressMenu = false
     this.onFunc(item)
 >>>>>>> feat/issue-16-中等需求
+=======
+  // aid-workflow 20260617 Issue #17: 页面挂载/恢复时尝试自动粘贴
+  // ArkTS @Entry 组件生命周期：onPageShow 等价于 Android onResume
+  onPageShow(): void {
+    this.onPaste()  // 异步 fire-and-forget; onPaste 内部 await
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #17: 从剪贴板粘贴并自动计算
+   * - 复用 onEquals()（push history）
+   * - 复用 computePreview()（校验）
+   * - lastPastedHash 去重（FMEA-4）
+   * - 失败仅 Toast，不弹窗不震动
+   * - FMEA-5: 系统异常静默；FMEA-6: 空白静默；FMEA-2: 超长截断
+   * 注意: pasteboard.getData() 在 HarmonyOS 4.0+ 是 async, 必须 await
+   */
+  private async onPaste(): Promise<void> {
+    let text: string = ''
+    try {
+      // getData 返回 Promise<PasteData>，需要 await
+      const data: pasteboard.PasteData = await pasteboard.getSystemPasteboard().getData()
+      if (data === null || data === undefined) return
+      const primary: string = data.getPrimaryText()
+      if (primary === null || primary === undefined) return
+      text = primary.trim()
+    } catch (_e) {
+      return  // FMEA-5: 系统异常静默
+    }
+
+    if (text.length === 0) return  // FMEA-6: 空白静默
+
+    if (text.length > 200) text = text.substring(0, 200).trim()  // FMEA-2: 超长截断
+    if (text.length === 0) return
+
+    const hash: number = this.computeHash(text)
+    if (hash === this.lastPastedHash) return  // FMEA-4: 静默去重
+
+    if (this.computePreview(text, this.radianMode).length === 0) {
+      promptAction.showToast({ message: '非数学表达式', duration: 1500 })
+      return
+    }
+
+    this.lastPastedHash = hash
+    this.expression = text       // @Watch 自动重算 preview
+    this.onEquals()              // 复用：计算 + push history
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #17: 简单字符串 hash（仅用于去重，不强加密）
+   * 字符 code 累加 + 长度系数，避免碰撞概率
+   */
+  private computeHash(text: string): number {
+    let h: number = 0
+    for (let i: number = 0; i < text.length; i++) {
+      h = (h * 31 + text.charCodeAt(i)) | 0
+    }
+    return (h ^ text.length) | 0
+>>>>>>> feat/issue-17-中等模糊
   }
 
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
@@ -564,6 +625,9 @@ export struct CalculatorPage {
         .border({ width: 1, color: this.getOp(), radius: 8 })
         .onClick((): void => { this.scientific = !this.scientific })
       Blank()
+      // aid-workflow 20260617 Issue #17: 粘贴按钮（手动触发粘贴）
+      Text('📋').fontSize(14).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onPaste() })
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
       // aid-workflow 20260615: Issue #13 一键分享按钮
