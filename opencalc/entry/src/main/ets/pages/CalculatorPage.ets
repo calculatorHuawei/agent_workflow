@@ -13,6 +13,7 @@ import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguagePar
 import { UnitConverter } from '../common/UnitConverter'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
+import { filterHistoryByQuery } from '../history/HistorySearch'
 import { LongPressMenu, MENU_WIDTH_RATIO, MENU_MAX_WIDTH, MENU_ITEM_HEIGHT, MENU_FONT_SIZE, MENU_BORDER_RADIUS, MENU_MASK_COLOR, MENU_MASK_OPACITY, MENU_PADDING } from './LongPressMenu'
 
 @Entry
@@ -27,6 +28,8 @@ export struct CalculatorPage {
   @State nlConversionResult: string = ''  // aid-workflow 20260615: NL 单位换算结果(空=未识别 NL,降级到原计算)
   @State scientific: boolean = false
   @State history: HistoryItem[] = []
+  // aid-workflow 20260617 Issue #24: 历史搜索关键字 (空=不过滤)
+  @State searchQuery: string = ''
   @State showHistory: boolean = false
   @State showSettings: boolean = false
   @State showAbout: boolean = false
@@ -371,7 +374,7 @@ export struct CalculatorPage {
     return (h ^ text.length) | 0
   }
 
-  onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
+  onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false; this.searchQuery = '' }
   onHistoryDelete(item: HistoryItem): void {
     const keep: HistoryItem[] = []
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
@@ -380,9 +383,11 @@ export struct CalculatorPage {
   }
 
   // aid-workflow 20260616: 按日期分组 (今天/昨天/更早)
+  // aid-workflow 20260617 Issue #24: 过滤后分组,空 query 透传 (FR-24-08)
   // 每次 build 时即时计算, 无缓存, 无副作用
   getHistorySections(): HistorySection[] {
-    return groupHistoryByDate(this.history, Date.now())
+    const filtered: HistoryItem[] = filterHistoryByQuery(this.history, this.searchQuery)
+    return groupHistoryByDate(filtered, Date.now())
   }
 
   // ==================== 主题颜色（对齐 Android 原版） ====================
@@ -681,10 +686,16 @@ export struct CalculatorPage {
         Text('').width(40).height(4).backgroundColor(this.getT2()).borderRadius(2)
       }
       .width('100%').height(24).justifyContent(FlexAlign.Center)
-      .onClick((): void => { this.showHistory = false })
+      .onClick((): void => { this.showHistory = false; this.searchQuery = '' })
+
+      // aid-workflow 20260617 Issue #24: 搜索框 (FR-24-01)
+      this.SearchBox()
 
       if (this.history.length === 0) {
         Text('暂无计算记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
+      } else if (this.searchQuery.length > 0 && this.getHistorySections().every((s: HistorySection): boolean => s.items.length === 0)) {
+        // aid-workflow 20260617 Issue #24: 无匹配占位 (FR-24-07)
+        Text('无匹配记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
       } else {
         List() {
           // aid-workflow 20260616: 按日期分组 (今天/昨天/更早), 每段组内 newest-first
@@ -729,6 +740,28 @@ export struct CalculatorPage {
   @Builder DelBtn(item: HistoryItem) {
     Text('删除').fontSize(14).fontColor(this.getT1()).padding(16).backgroundColor(this.getErr()).height('100%')
       .onClick((): void => { this.onHistoryDelete(item) })
+  }
+
+  // aid-workflow 20260617 Issue #24: 搜索框 (FR-24-01 / FR-24-02)
+  // TextInput + ✕ 清除按钮; 背景随主题 getPanelBg
+  @Builder SearchBox() {
+    Row() {
+      TextInput({ placeholder: '搜索算式或结果', text: this.searchQuery })
+        .layoutWeight(1)
+        .fontSize(14)
+        .fontColor(this.getT1())
+        .backgroundColor('transparent')
+        .placeholderColor(this.getT2())
+        .onChange((value: string): void => { this.searchQuery = value })
+      if (this.searchQuery.length > 0) {
+        Text('✕').fontSize(16).fontColor(this.getT2())
+          .padding(8)
+          .onClick((): void => { this.searchQuery = '' })
+      }
+    }
+    .width('100%').height(this.isLandscape ? 36 : 40)
+    .padding({ left: 12, right: 12 })
+    .backgroundColor(this.getPanelBg())
   }
 
   // ==================== 设置面板 ====================
