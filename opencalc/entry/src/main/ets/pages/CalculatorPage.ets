@@ -230,7 +230,7 @@ export struct CalculatorPage {
   // aid-workflow 20260617 Issue #17: 页面挂载/恢复时尝试自动粘贴
   // ArkTS @Entry 组件生命周期：onPageShow 等价于 Android onResume
   onPageShow(): void {
-    this.onPaste()
+    this.onPaste()  // 异步 fire-and-forget; onPaste 内部 await
   }
 
   /**
@@ -240,11 +240,13 @@ export struct CalculatorPage {
    * - lastPastedHash 去重（FMEA-4）
    * - 失败仅 Toast，不弹窗不震动
    * - FMEA-5: 系统异常静默；FMEA-6: 空白静默；FMEA-2: 超长截断
+   * 注意: pasteboard.getData() 在 HarmonyOS 4.0+ 是 async, 必须 await
    */
-  private onPaste(): void {
+  private async onPaste(): Promise<void> {
     let text: string = ''
     try {
-      const data: pasteboard.PasteData = pasteboard.getSystemPasteboard().getData()
+      // getData 返回 Promise<PasteData>，需要 await
+      const data: pasteboard.PasteData = await pasteboard.getSystemPasteboard().getData()
       if (data === null || data === undefined) return
       const primary: string = data.getPrimaryText()
       if (primary === null || primary === undefined) return
