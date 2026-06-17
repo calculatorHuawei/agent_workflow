@@ -35,8 +35,8 @@
 - [x] step9 设计审视 (design-review.md, 完整性/一致性/规范性 全通过)
 - [x] IMPLEMENTING (aid-implementing → tasks.md, 11 任务 / 5 阶段)
 - [x] APPLYING (aid-applying + tdd-enforcer → apply-report.md, 77/77 单测 + UI PASS)
-- [ ] git commit
-- [ ] gh_helper.py comment
+- [x] git commit (4db7331)
+- [x] gh_helper.py comment (id=4730572918)
 
 ## 关键决策记录
 - 分支: 已切到 feat/issue-26-进阶,跳过 step1.1 分支推荐
