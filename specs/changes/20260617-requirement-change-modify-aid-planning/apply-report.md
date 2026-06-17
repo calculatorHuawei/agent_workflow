@@ -57,6 +57,8 @@
 | AC_HS_05 无匹配占位 | ❌ FAIL | IME 键盘布局选择器弹窗 | 截图 05 可见系统弹窗 |
 | AC_HS_07 关闭重置 | ✅ PASS | 关闭再开, TextInput 空 | 截图 06/07 |
 
+> **截图存档说明 (rev-01 反馈 §建议项)**: 本地 ui-tests/screenshot/ 目录共生成 9 张截图 (00_initial.png ~ 07_history_reopened.png), git 提交时去重保留 3 张代表性截图 (00_initial.png / 01_history_open.png / 04_after_x_click.png), 其余 6 张为 IME 弹窗干扰下的过渡态, 不影响 AC 验证判定. 完整截图位于工作目录本地, 未进版本控制.
+
 ### 3.4 已知 UI 测试限制
 - **HarmonyOS 模拟器 shell 沙箱受限**: 无法用 `input keyevent` 关闭 IME 弹窗
 - **首次启动触发 IME 授权**: "小艺输入法" 弹窗需要手动同意
