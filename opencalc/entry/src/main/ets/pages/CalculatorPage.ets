@@ -13,6 +13,7 @@ import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguagePar
 import { UnitConverter } from '../common/UnitConverter'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
+import { LongPressMenu, MENU_WIDTH_RATIO, MENU_MAX_WIDTH, MENU_ITEM_HEIGHT, MENU_FONT_SIZE, MENU_BORDER_RADIUS, MENU_MASK_COLOR, MENU_MASK_OPACITY, MENU_PADDING } from './LongPressMenu'
 
 @Entry
 @Component
@@ -38,6 +39,10 @@ export struct CalculatorPage {
   @State preventSleep: boolean = false
   @State radianMode: boolean = false
   @State themeIdx: number = 0
+
+  // aid-workflow 20260616: 长按候选菜单状态 (FMEA C2: 状态独立, 任何关闭路径置 false)
+  @State showLongPressMenu: boolean = false
+  @State longPressSource: string = ''
 
   // ==================== 内部状态 ====================
   private nextId: number = 0
@@ -264,6 +269,7 @@ export struct CalculatorPage {
     promptAction.showToast({ message: '已复制' })
   }
 
+<<<<<<< HEAD
   // ==================== Issue #13 一键分享二维码 ====================
 
   /**
@@ -302,6 +308,21 @@ export struct CalculatorPage {
    */
   get isPayloadTruncated(): boolean {
     return this.sharePayload.indexOf(QrCodeBuilder.TRUNCATED_FLAG) !== -1
+=======
+  // aid-workflow 20260616: 长按按钮 → 弹出候选菜单 (FR-1)
+  // 无候选时不弹 (FMEA C4: ln/log 首版不映射)
+  onLongPress(label: string): void {
+    if (!LongPressMenu.hasCandidates(label)) return
+    this.longPressSource = label
+    this.showLongPressMenu = true
+  }
+
+  // aid-workflow 20260616: 点击候选 → 复用 onFunc 插入 + 关闭菜单 (FR-3)
+  // FMEA C3: 必须复用 onFunc, 禁止另写插入逻辑
+  onLongPressCandidate(item: string): void {
+    this.showLongPressMenu = false
+    this.onFunc(item)
+>>>>>>> feat/issue-16-中等需求
   }
 
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
@@ -391,6 +412,33 @@ export struct CalculatorPage {
   }
 
   // ==================== 主布局 ====================
+  // aid-workflow 20260616: 长按候选菜单面板 (FR-2/FR-3/FR-4)
+  // 半透明遮罩 + 居中菜单列表, Stack 层级隔离 (FMEA C5)
+  @Builder LongPressMenuPanel() {
+    Stack() {
+      // 1. 遮罩层 (FR-4: 点击外部关闭)
+      Column().width('100%').height('100%')
+        .backgroundColor(MENU_MASK_COLOR).opacity(MENU_MASK_OPACITY)
+        .onClick((): void => { this.showLongPressMenu = false })
+
+      // 2. 菜单容器 (FR-2: 居中垂直列表)
+      Column() {
+        ForEach(LongPressMenu.getCandidates(this.longPressSource), (item: string) => {
+          Text(item)
+            .fontSize(MENU_FONT_SIZE).fontColor(this.getT1())
+            .width('100%').height(MENU_ITEM_HEIGHT)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(this.getPanelBg())
+            .onClick((): void => { this.onLongPressCandidate(item) })
+        })
+      }
+      .width(MENU_WIDTH_RATIO).constraintSize({ maxWidth: MENU_MAX_WIDTH })
+      .backgroundColor(this.getPanelBg()).borderRadius(MENU_BORDER_RADIUS)
+      .padding(MENU_PADDING)
+    }
+    .width('100%').height('100%')
+  }
+
   build() {
     Stack() {
       if (this.isLandscape) {
@@ -416,7 +464,12 @@ export struct CalculatorPage {
       }
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
+<<<<<<< HEAD
       if (this.showShare) this.SharePanel()
+=======
+      // aid-workflow 20260616: 长按候选菜单 (FR-1/FR-2, 顶层遮罩盖全屏)
+      if (this.showLongPressMenu) this.LongPressMenuPanel()
+>>>>>>> feat/issue-16-中等需求
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -549,7 +602,12 @@ export struct CalculatorPage {
   @Builder BtnOp(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
 
   /** 科学函数按钮 */
-  @Builder BtnFunc(l: string) { Text(l).fontSize(this.isLandscape ? 11 : 14).fontColor(this.getT1()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onFunc(l) }) }
+  @Builder BtnFunc(l: string) {
+    Text(l).fontSize(this.isLandscape ? 11 : 14).fontColor(this.getT1()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onFunc(l) })
+      // aid-workflow 20260616: 长按弹出候选菜单 (FR-1)
+      // 系统保证短按触发 onClick, 长按触发 onAction, 互不冲突 (FMEA C5)
+      .gesture(LongPressGesture().onAction((): void => { this.onLongPress(l) }))
+  }
 
   /** 常量按钮 */
   @Builder BtnConst(l: string) { Text(l).fontSize(this.isLandscape ? 13 : 18).fontColor(this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onConst(l) }) }
