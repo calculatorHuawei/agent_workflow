@@ -9,6 +9,22 @@ import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import { NaturalLanguageParser } from '../common/NaturalLanguageParser'
+import { UnitConverter } from '../common/UnitConverter'
+
+// aid-workflow 20260617 Issue #18: NL 换算尝试结果
+class UCResult {
+  ok: boolean = false
+  value: number = NaN
+  parseFailed: boolean = false
+  error: string = ''
+  constructor(ok: boolean, value: number, parseFailed: boolean, error: string) {
+    this.ok = ok
+    this.value = value
+    this.parseFailed = parseFailed
+    this.error = error
+  }
+}
 
 @Entry
 @Component
@@ -198,6 +214,27 @@ export struct CalculatorPage {
   onEquals(): void {
     if (this.expression.length === 0) return
     ErrorFlags.reset()
+    // aid-workflow 20260617: Issue #18 NL 单位换算优先分支
+    const uc: UCResult = this.tryUnitConversion(this.expression)
+    if (uc.ok) {
+      const fmt: string = NumberFormatter.format(uc.value.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
+      this.result = fmt
+      this.errorMsg = ''
+      const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
+      this.nextId = this.nextId + 1
+      const nh: HistoryItem[] = [item]
+      for (let i: number = 0; i < this.history.length; i++) nh.push(this.history[i])
+      this.history = nh
+      if (this.prefs) this.prefs.setHistory(this.history)
+      return
+    }
+    // 识别为换算但失败 → 直接报错,不走 CalcEngine
+    if (uc.parseFailed && uc.error.length > 0) {
+      this.errorMsg = uc.error
+      this.result = ''
+      return
+    }
+    // NL 不匹配 → 走原 CalcEngine 降级
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
       const raw: number = this.engine.evaluate(clean, !this.radianMode)
@@ -217,6 +254,28 @@ export struct CalculatorPage {
         if (this.prefs) this.prefs.setHistory(this.history)
       }
     } catch (_e) { this.errorMsg = '计算错误' }
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #18: 尝试自然语言单位换算
+   * @param expr 用户输入的 expression
+   * @returns ok=true, value=换算结果    → 换算成功
+   *          ok=false, parseFailed=true, error=错误信息  → 识别为换算但单位不合法
+   *          ok=false, parseFailed=false, error=''        → 不是 NL 模式,降级 CalcEngine
+   */
+  private tryUnitConversion(expr: string): UCResult {
+    try {
+      const nl = NaturalLanguageParser.parse(expr)
+      if (nl == null) return new UCResult(false, NaN, false, '')
+      const r: number = UnitConverter.convert(nl.value, nl.fromUnit, nl.toUnit)
+      if (isNaN(r)) {
+        // 区分跨维度 vs 未知单位 — 都归为"单位不匹配或未知"
+        return new UCResult(false, NaN, true, '单位不匹配或未知')
+      }
+      return new UCResult(true, r, false, '')
+    } catch (_e) {
+      return new UCResult(false, NaN, true, '解析失败')
+    }
   }
 
   onCopy(): void {
