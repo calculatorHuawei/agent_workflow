@@ -1,6 +1,8 @@
 // OpenCalc — UnitConverter 单元测试(hypium 风格)
-// aid-workflow 20260615: Issue #14 单位换算功能
+// aid-workflow 20260615: Issue #14 单位换算功能 (length/temperature/mass/volume)
+// aid-workflow 20260617: Issue #25 单位换算扩展 (area/time/speed)
 // 真实跑测入口:hvigorw test 或 ohpm test(若环境不可用,降级为 Node 端口测试)
+// 端口:specs/changes/20260617-requirement-add-中等模糊/tests/UnitConverter.port.mjs
 
 import { describe, it, expect } from '@ohos/hypium'
 import { UnitConverter } from '../../../main/ets/common/UnitConverter'
@@ -155,6 +157,155 @@ export default function unitConverterTest() {
     })
     it('UC_ERR_05_invalid_category', 4, () => {
       const got: number | null = UnitConverter.convert(1, 'm', 'kg', 'invalid')
+      expect(got).assertEqual(null)
+    })
+  })
+
+  // aid-workflow 20260617: Issue #25 单位换算扩展 — area/time/speed 3 大类
+  describe('UnitConverter_area', () => {
+    it('UC_A_01_1m2_to_cm2', 0, () => {
+      const got: number | null = UnitConverter.convert(1, 'm2', 'cm2', 'area')
+      expect(got !== null && Math.abs(got - 10000) < EPS).assertTrue()
+    })
+    it('UC_A_02_1cm2_to_m2', 1, () => {
+      const got: number | null = UnitConverter.convert(1, 'cm2', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 0.0001) < EPS).assertTrue()
+    })
+    it('UC_A_03_1acre_to_m2', 2, () => {
+      const got: number | null = UnitConverter.convert(1, 'acre', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 4046.8564224) < 1e-4).assertTrue()
+    })
+    it('UC_A_04_1hectare_to_m2', 3, () => {
+      const got: number | null = UnitConverter.convert(1, 'hectare', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 10000) < EPS).assertTrue()
+    })
+    it('UC_A_05_1mu_to_m2', 4, () => {
+      const got: number | null = UnitConverter.convert(1, 'mu', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 2000.0 / 3.0) < 1e-3).assertTrue()
+    })
+    it('UC_A_06_100mu_to_m2', 5, () => {
+      const got: number | null = UnitConverter.convert(100, 'mu', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 66666.66666666667) < 1e-3).assertTrue()
+    })
+    it('UC_A_07_1km2_to_m2', 6, () => {
+      const got: number | null = UnitConverter.convert(1, 'km2', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 1000000) < EPS).assertTrue()
+    })
+    it('UC_A_08_1ft2_to_m2', 7, () => {
+      const got: number | null = UnitConverter.convert(1, 'ft2', 'm2', 'area')
+      expect(got !== null && Math.abs(got - 0.09290304) < 1e-4).assertTrue()
+    })
+    it('UC_A_09_1m2_to_acre', 8, () => {
+      const got: number | null = UnitConverter.convert(1, 'm2', 'acre', 'area')
+      expect(got !== null && Math.abs(got - 1.0 / 4046.8564224) < 1e-6).assertTrue()
+    })
+    it('UC_A_10_1hectare_to_acre', 9, () => {
+      const got: number | null = UnitConverter.convert(1, 'hectare', 'acre', 'area')
+      expect(got !== null && Math.abs(got - 10000.0 / 4046.8564224) < 1e-4).assertTrue()
+    })
+  })
+
+  describe('UnitConverter_time', () => {
+    it('UC_Ti_01_1min_to_s', 0, () => {
+      const got: number | null = UnitConverter.convert(1, 'min', 's', 'time')
+      expect(got !== null && Math.abs(got - 60) < EPS).assertTrue()
+    })
+    it('UC_Ti_02_1h_to_min', 1, () => {
+      const got: number | null = UnitConverter.convert(1, 'h', 'min', 'time')
+      expect(got !== null && Math.abs(got - 60) < EPS).assertTrue()
+    })
+    it('UC_Ti_03_2h_to_min', 2, () => {
+      const got: number | null = UnitConverter.convert(2, 'h', 'min', 'time')
+      expect(got !== null && Math.abs(got - 120) < EPS).assertTrue()
+    })
+    it('UC_Ti_04_1d_to_h', 3, () => {
+      const got: number | null = UnitConverter.convert(1, 'd', 'h', 'time')
+      expect(got !== null && Math.abs(got - 24) < EPS).assertTrue()
+    })
+    it('UC_Ti_05_1wk_to_d', 4, () => {
+      const got: number | null = UnitConverter.convert(1, 'wk', 'd', 'time')
+      expect(got !== null && Math.abs(got - 7) < EPS).assertTrue()
+    })
+    it('UC_Ti_06_1mo_to_d', 5, () => {
+      const got: number | null = UnitConverter.convert(1, 'mo', 'd', 'time')
+      expect(got !== null && Math.abs(got - 30) < EPS).assertTrue()
+    })
+    it('UC_Ti_07_1yr_to_d', 6, () => {
+      const got: number | null = UnitConverter.convert(1, 'yr', 'd', 'time')
+      expect(got !== null && Math.abs(got - 365) < EPS).assertTrue()
+    })
+    it('UC_Ti_08_1000ms_to_s', 7, () => {
+      const got: number | null = UnitConverter.convert(1000, 'ms', 's', 'time')
+      expect(got !== null && Math.abs(got - 1) < EPS).assertTrue()
+    })
+    it('UC_Ti_09_1h_to_ms', 8, () => {
+      const got: number | null = UnitConverter.convert(1, 'h', 'ms', 'time')
+      expect(got !== null && Math.abs(got - 3600000) < EPS).assertTrue()
+    })
+    it('UC_Ti_10_1wk_to_h', 9, () => {
+      const got: number | null = UnitConverter.convert(1, 'wk', 'h', 'time')
+      expect(got !== null && Math.abs(got - 168) < EPS).assertTrue()
+    })
+  })
+
+  describe('UnitConverter_speed', () => {
+    it('UC_S_01_60mph_to_kmh', 0, () => {
+      const got: number | null = UnitConverter.convert(60, 'mph', 'kmh', 'speed')
+      expect(got !== null && Math.abs(got - 96.56064) < 1e-3).assertTrue()
+    })
+    it('UC_S_02_100kmh_to_mph', 1, () => {
+      const got: number | null = UnitConverter.convert(100, 'kmh', 'mph', 'speed')
+      expect(got !== null && Math.abs(got - 62.137273664) < 1e-3).assertTrue()
+    })
+    it('UC_S_03_1knot_to_kmh', 2, () => {
+      const got: number | null = UnitConverter.convert(1, 'knot', 'kmh', 'speed')
+      expect(got !== null && Math.abs(got - 1.852) < 1e-4).assertTrue()
+    })
+    it('UC_S_04_1knot_to_mps', 3, () => {
+      const got: number | null = UnitConverter.convert(1, 'knot', 'm_s', 'speed')
+      expect(got !== null && Math.abs(got - 1852.0 / 3600.0) < 1e-4).assertTrue()
+    })
+    it('UC_S_05_1mach_to_mps', 4, () => {
+      const got: number | null = UnitConverter.convert(1, 'mach', 'm_s', 'speed')
+      expect(got !== null && Math.abs(got - 340.29) < 1e-3).assertTrue()
+    })
+    it('UC_S_06_1kmh_to_mps', 5, () => {
+      const got: number | null = UnitConverter.convert(1, 'kmh', 'm_s', 'speed')
+      expect(got !== null && Math.abs(got - 1000.0 / 3600.0) < 1e-4).assertTrue()
+    })
+    it('UC_S_07_1mps_to_kmh', 6, () => {
+      const got: number | null = UnitConverter.convert(1, 'm_s', 'kmh', 'speed')
+      expect(got !== null && Math.abs(got - 3.6) < 1e-4).assertTrue()
+    })
+    it('UC_S_08_1mph_to_mps', 7, () => {
+      const got: number | null = UnitConverter.convert(1, 'mph', 'm_s', 'speed')
+      expect(got !== null && Math.abs(got - 1609.344 / 3600.0) < 1e-4).assertTrue()
+    })
+  })
+
+  describe('UnitConverter_cross_category_new', () => {
+    it('UC_XC_01_area_to_time', 0, () => {
+      const got: number | null = UnitConverter.convert(1, 'mu', 'h', 'area')
+      expect(got).assertEqual(null)
+    })
+    it('UC_XC_02_time_to_speed', 1, () => {
+      const got: number | null = UnitConverter.convert(1, 'h', 'kmh', 'time')
+      expect(got).assertEqual(null)
+    })
+    it('UC_XC_03_speed_to_area', 2, () => {
+      const got: number | null = UnitConverter.convert(1, 'kmh', 'mu', 'speed')
+      expect(got).assertEqual(null)
+    })
+    it('UC_XC_04_area_to_speed', 3, () => {
+      const got: number | null = UnitConverter.convert(1, 'mu', 'mph', 'area')
+      expect(got).assertEqual(null)
+    })
+    it('UC_XC_05_length_to_area', 4, () => {
+      const got: number | null = UnitConverter.convert(1, 'cm', 'mu', 'length')
+      expect(got).assertEqual(null)
+    })
+    it('UC_XC_06_unknown_unit_area', 5, () => {
+      const got: number | null = UnitConverter.convert(1, 'm2', 'xyz', 'area')
       expect(got).assertEqual(null)
     })
   })

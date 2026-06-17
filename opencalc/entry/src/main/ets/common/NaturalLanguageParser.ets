@@ -1,7 +1,9 @@
 // OpenCalc — 自然语言单位换算查询解析
-// aid-workflow 20260615: Issue #14 单位换算功能
+// aid-workflow 20260615: Issue #14 单位换算功能 (4 大类)
+// aid-workflow 20260617: Issue #25 单位换算扩展 (新增 area/time/speed)
 // 支持中文/英文 NL 模式:"数字+单位A+转/到/换成/to/in/->/=>+单位B"
-// 端口:与 specs/changes/20260615-requirement-add-unit-conversion/tests/NaturalLanguageParser.port.mjs 1:1 对应
+// 当前覆盖 7 大类 ~140 个中英文别名
+// 端口:与 specs/changes/20260617-requirement-add-中等模糊/tests/NaturalLanguageParser.port.mjs 1:1 对应
 
 interface ParseResult {
   value: number
@@ -120,6 +122,61 @@ function buildAliases(): Map<string, AliasEntry> {
   m.set('fl oz', { key: 'fl_oz', category: 'volume' })
   m.set('fluid ounce', { key: 'fl_oz', category: 'volume' })
   m.set('fluid ounces', { key: 'fl_oz', category: 'volume' })
+
+  // aid-workflow 20260617: Issue #25 area (9 基准)
+  m.set('亩', { key: 'mu', category: 'area' })
+  m.set('平方米', { key: 'm2', category: 'area' })
+  m.set('平方千米', { key: 'km2', category: 'area' })
+  m.set('平方厘米', { key: 'cm2', category: 'area' })
+  m.set('平方英尺', { key: 'ft2', category: 'area' })
+  m.set('平方英寸', { key: 'in2', category: 'area' })
+  m.set('平方码', { key: 'yd2', category: 'area' })
+  m.set('英亩', { key: 'acre', category: 'area' })
+  m.set('公顷', { key: 'hectare', category: 'area' })
+  m.set('m2', { key: 'm2', category: 'area' })
+  m.set('km2', { key: 'km2', category: 'area' })
+  m.set('cm2', { key: 'cm2', category: 'area' })
+  m.set('ft2', { key: 'ft2', category: 'area' })
+  m.set('in2', { key: 'in2', category: 'area' })
+  m.set('yd2', { key: 'yd2', category: 'area' })
+  m.set('acre', { key: 'acre', category: 'area' })
+  m.set('hectare', { key: 'hectare', category: 'area' })
+  m.set('ha', { key: 'hectare', category: 'area' })
+
+  // aid-workflow 20260617: Issue #25 time (8 基准,1 mo=30 d, 1 yr=365 d 工程近似)
+  m.set('秒', { key: 's', category: 'time' })
+  m.set('毫秒', { key: 'ms', category: 'time' })
+  m.set('分钟', { key: 'min', category: 'time' })
+  m.set('小时', { key: 'h', category: 'time' })
+  m.set('天', { key: 'd', category: 'time' })
+  m.set('周', { key: 'wk', category: 'time' })
+  m.set('月', { key: 'mo', category: 'time' })
+  m.set('年', { key: 'yr', category: 'time' })
+  m.set('s', { key: 's', category: 'time' })
+  m.set('ms', { key: 'ms', category: 'time' })
+  m.set('min', { key: 'min', category: 'time' })
+  m.set('h', { key: 'h', category: 'time' })
+  m.set('hour', { key: 'h', category: 'time' })
+  m.set('day', { key: 'd', category: 'time' })
+  m.set('week', { key: 'wk', category: 'time' })
+  m.set('month', { key: 'mo', category: 'time' })
+  m.set('year', { key: 'yr', category: 'time' })
+
+  // aid-workflow 20260617: Issue #25 speed (5 基准,1 mach=340.29 海平面 15°C 标况声速)
+  m.set('米每秒', { key: 'm_s', category: 'speed' })
+  m.set('千米每小时', { key: 'kmh', category: 'speed' })
+  m.set('公里每小时', { key: 'kmh', category: 'speed' })
+  m.set('英里每小时', { key: 'mph', category: 'speed' })
+  m.set('节', { key: 'knot', category: 'speed' })
+  m.set('马赫', { key: 'mach', category: 'speed' })
+  m.set('m/s', { key: 'm_s', category: 'speed' })
+  m.set('km/h', { key: 'kmh', category: 'speed' })
+  m.set('kph', { key: 'kmh', category: 'speed' })
+  m.set('m_s', { key: 'm_s', category: 'speed' })
+  m.set('kmh', { key: 'kmh', category: 'speed' })
+  m.set('mph', { key: 'mph', category: 'speed' })
+  m.set('knot', { key: 'knot', category: 'speed' })
+  m.set('mach', { key: 'mach', category: 'speed' })
   return m
 }
 
