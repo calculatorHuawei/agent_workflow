@@ -147,6 +147,21 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== 程序员模式 (Issue #29) ====================
+
+  /** aid-workflow 20260618: 获取默认程序员模式状态 */
+  async getProgrammerModeDefault(): Promise<number> {
+    if (!this.store) return DEFAULT_PREFERENCES.programmerModeDefault
+    return await this.store.get('programmerModeDefault', DEFAULT_PREFERENCES.programmerModeDefault) as number
+  }
+
+  /** aid-workflow 20260618: 设置默认程序员模式 */
+  async setProgrammerModeDefault(value: number): Promise<void> {
+    if (!this.store) return
+    await this.store.put('programmerModeDefault', value)
+    await this.store.flush()
+  }
+
   // ==================== 弧度/角度 ====================
 
   /** 获取默认弧度模式 */
@@ -216,6 +231,7 @@ export class PreferencesStore {
       preventSleep: await this.getPreventSleep(),
       historySize: await this.getHistorySize(),
       scientificModeDefault: await this.getScientificModeDefault(),
+      programmerModeDefault: await this.getProgrammerModeDefault(),
       radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),

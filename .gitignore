@@ -1,3 +1,6 @@
 ai_auto_test/
 TestCase.md
 .merge-conflicts-backup/
+# hvigorw test output (test binaries / coverage)
+opencalc/entry/.test/
+opencalc/entry/build/

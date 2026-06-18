@@ -40,6 +40,8 @@ export interface CalculatorPreferences {
   preventSleep: boolean            // 防休眠开关
   historySize: number              // 历史记录最大条数
   scientificModeDefault: number    // 默认科学模式状态
+  // aid-workflow 20260618: Issue #29 程序员模式默认值 (0=未激活 1=激活 2=强制关闭)
+  programmerModeDefault: number
   radiansDefault: boolean          // 默认弧度模式
   numberPrecision: number          // 数字精度
   decimalSeparatorSymbol: string   // 小数点符号
@@ -54,6 +56,7 @@ export const DEFAULT_PREFERENCES: CalculatorPreferences = {
   preventSleep: false,
   historySize: 100,
   scientificModeDefault: ScientificModeType.NOT_ACTIVE,
+  programmerModeDefault: ScientificModeType.NOT_ACTIVE,
   radiansDefault: false,
   numberPrecision: 12,
   decimalSeparatorSymbol: '.',
