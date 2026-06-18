@@ -3,12 +3,23 @@
 // 对应 .port.mjs 与 delta-design.md §3.5
 // 1:1 对应 specs/changes/20260617-requirement-add-memory-slots/tests/MemorySlots.port.mjs
 
-export interface MemorySlot {
+// aid-workflow 20260617 Issue #28: MemorySlot 用 class 实现而非 interface,
+// 因为 ArkTS 严格模式不允许 untyped object literal 与 method-shorthand 中的 this
+export class MemorySlot {
   slotIndex: 1 | 2 | 3 | 4 | 5 | 6
   value: number
   updatedAt: number
+
+  constructor(slotIndex: 1 | 2 | 3 | 4 | 5 | 6, value: number, updatedAt: number) {
+    this.slotIndex = slotIndex
+    this.value = value
+    this.updatedAt = updatedAt
+  }
+
   /** aid-workflow 20260617: 空槽判定（value 非有限） */
-  isEmpty(): boolean
+  isEmpty(): boolean {
+    return !Number.isFinite(this.value)
+  }
 }
 
 export interface MemorySlotsState {
@@ -68,21 +79,11 @@ export class MemorySlots {
 
   // ---- private helpers ----
   private static makeEmptySlot(slotIndex: 1 | 2 | 3 | 4 | 5 | 6): MemorySlot {
-    return {
-      slotIndex: slotIndex,
-      value: NaN,
-      updatedAt: 0,
-      isEmpty(): boolean { return !Number.isFinite(this.value) }
-    }
+    return new MemorySlot(slotIndex, NaN, 0)
   }
 
   private static makeSlot(slotIndex: 1 | 2 | 3 | 4 | 5 | 6, value: number): MemorySlot {
-    return {
-      slotIndex: slotIndex,
-      value: value,
-      updatedAt: Date.now(),
-      isEmpty(): boolean { return !Number.isFinite(this.value) }
-    }
+    return new MemorySlot(slotIndex, value, Date.now())
   }
 
   private static validateIdx(idx: number): void {

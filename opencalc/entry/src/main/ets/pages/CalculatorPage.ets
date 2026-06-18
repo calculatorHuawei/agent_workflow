@@ -609,7 +609,8 @@ export struct CalculatorPage {
   }
 
   // aid-workflow 20260617 Issue #28: 数字键长按手势构造器（仅 1-6 触发存槽；0/7/8/9 noop）
-  private buildDigitLongPressGesture(l: string): GestureConfig {
+  // 返回类型推断为 LongPressGesture；显式标 GestureConfig 在 ArkTS 严格模式下未导出
+  private buildDigitLongPressGesture(l: string) {
     if (l < '1' || l > '6') {
       return LongPressGesture().onAction((): void => {})
     }
