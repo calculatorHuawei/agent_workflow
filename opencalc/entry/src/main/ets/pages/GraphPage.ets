@@ -33,6 +33,10 @@ struct GraphPage {
   @State canvasReady: boolean = false
   @State canvasWidth: number = 0
   @State canvasHeight: number = 0
+  // aid-workflow 20260626: 自动重绘 debounce 句柄
+  private autoDrawTimer: number = -1
+  // aid-workflow 20260626: 用于键盘可见性,固定"绘制"按钮位置
+  @State @Watch('onKeyboardStateChange') keyboardVisible: boolean = false
 
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
   private prefs: PreferencesStore | null = null
@@ -53,6 +57,31 @@ struct GraphPage {
     this.prefs.init().then((): void => { this.loadPrefs() })
     // 首次计算
     setTimeout((): void => { this.vm.compute() }, 0)
+  }
+
+  aboutToDisappear(): void {
+    // aid-workflow 20260626: 清理 debounce 定时器,避免页面销毁后回调
+    if (this.autoDrawTimer !== -1) {
+      clearTimeout(this.autoDrawTimer)
+      this.autoDrawTimer = -1
+    }
+  }
+
+  // aid-workflow 20260626: f(x) 变化后 debounce 300ms 自动重绘
+  // 不再需要用户手动按"绘制"按钮,大幅提升体验
+  private scheduleAutoDraw(): void {
+    if (this.autoDrawTimer !== -1) {
+      clearTimeout(this.autoDrawTimer)
+    }
+    this.autoDrawTimer = setTimeout((): void => {
+      this.vm.compute()
+      this.drawCanvas()
+      this.autoDrawTimer = -1
+    }, 300)
+  }
+
+  onKeyboardStateChange(): void {
+    // 预留:键盘状态变化时(如弹出"绘制"按钮在屏幕外),未来可加自动滚动
   }
 
   onPageShow(): void {
@@ -104,15 +133,26 @@ struct GraphPage {
               this.drawCanvas()
             }
           })
-        // 错误条
+        // 错误条 (aid-workflow 20260626: 加重错误提示,加示例按钮一键填入)
         if (this.vm.errorMessage.length > 0) {
-          Text(this.vm.errorMessage)
-            .fontSize(12)
-            .fontColor('#FF3B30')
-            .width('100%')
-            .padding(8)
-            .backgroundColor('#FFEEEE')
-            .textAlign(TextAlign.Center)
+          Column() {
+            Text(this.vm.errorMessage)
+              .fontSize(13)
+              .fontColor('#FF3B30')
+              .fontWeight(FontWeight.Medium)
+              .width('100%')
+              .textAlign(TextAlign.Center)
+            Text('示例: sin(x) / cos(x) / x*x / x^3 / sqrt(x) / log(x)')
+              .fontSize(11)
+              .fontColor('#888888')
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .margin({ top: 4 })
+          }
+          .width('100%')
+          .padding(10)
+          .backgroundColor('#FFEEEE')
+          .border({ width: { top: 1 }, color: '#FFCCCC' })
         }
         // 输入栏
         this.InputPanel()
@@ -163,9 +203,11 @@ struct GraphPage {
           .layoutWeight(1)
           .height(36)
           .fontSize(14)
+          // aid-workflow 20260626: 改完 300ms 自动重绘,无需按"绘制"按钮
           .onChange((value: string): void => {
             this.expressionInput = value
             this.vm.expression = value
+            this.scheduleAutoDraw()
           })
         Button('绘制')
           .fontSize(13)
@@ -173,6 +215,11 @@ struct GraphPage {
           .margin({ left: 8 })
           .backgroundColor(this.curveColor)
           .onClick((): void => {
+            // aid-workflow 20260626: 主动取消 debounce,立即重绘
+            if (this.autoDrawTimer !== -1) {
+              clearTimeout(this.autoDrawTimer)
+              this.autoDrawTimer = -1
+            }
             this.vm.compute()
             this.drawCanvas()
           })
@@ -191,6 +238,7 @@ struct GraphPage {
               this.xMinInput = value
               const v = PlotUtils.parseRange(value)
               if (v !== null) this.vm.xMin = v
+              this.scheduleAutoDraw()
             })
         }
         .layoutWeight(1)
@@ -206,6 +254,7 @@ struct GraphPage {
               this.xMaxInput = value
               const v = PlotUtils.parseRange(value)
               if (v !== null) this.vm.xMax = v
+              this.scheduleAutoDraw()
             })
         }
         .layoutWeight(1)
@@ -221,6 +270,7 @@ struct GraphPage {
               this.samplesInput = value
               const v = parseInt(value)
               if (!isNaN(v)) this.vm.samples = v
+              this.scheduleAutoDraw()
             })
         }
         .layoutWeight(1)
