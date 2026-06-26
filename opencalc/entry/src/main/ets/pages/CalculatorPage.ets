@@ -14,6 +14,9 @@ import { UnitConverter } from '../common/UnitConverter'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
 import { LongPressMenu, MENU_WIDTH_RATIO, MENU_MAX_WIDTH, MENU_ITEM_HEIGHT, MENU_FONT_SIZE, MENU_BORDER_RADIUS, MENU_MASK_COLOR, MENU_MASK_OPACITY, MENU_PADDING } from './LongPressMenu'
+import { NumberBase, CalculatorMode, ProgrammerDisplayState } from '../model/ModeModel'
+import { BaseConverter } from '../calculator/BaseConverter'
+import { ProgrammerPanel } from './ProgrammerPanel'
 
 @Entry
 @Component
@@ -46,6 +49,12 @@ export struct CalculatorPage {
   @State showLongPressMenu: boolean = false
   @State longPressSource: string = ''
 
+  // aid-workflow 20260617: Issue #22 程序员模式状态
+  @State mode: CalculatorMode = CalculatorMode.STANDARD
+  @State activeBase: NumberBase = NumberBase.DEC
+  @State showModeSheet: boolean = false
+  @State programmerDisplay: ProgrammerDisplayState = new ProgrammerDisplayState()
+
   // ==================== 内部状态 ====================
   private nextId: number = 0
   private engine: CalcEngine = new CalcEngine()
@@ -65,6 +74,8 @@ export struct CalculatorPage {
     this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
     this.scientific = (await this.prefs.getScientificModeDefault()) === 1
+    // aid-workflow 20260617 Issue #22: 程序员模式持久化
+    this.mode = (await this.prefs.getProgrammerModeDefault()) ? CalculatorMode.PROGRAMMER : CalculatorMode.STANDARD
   }
 
   async loadHistory(): Promise<void> {
@@ -208,7 +219,18 @@ export struct CalculatorPage {
     return false
   }
 
-  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
+  onDigit(d: string): void {
+    // aid-workflow 20260617 Issue #22: 程序员模式下校验字符合法性
+    if (this.mode === CalculatorMode.PROGRAMMER) {
+      // 数字与 A-F 允许; BIN 下 '2'-'9' 拒绝, OCT 下 '8'-'9' 拒绝, DEC 下 'A'-'F' 拒绝
+      if (!BaseConverter.isValidChar(d, this.activeBase)) {
+        promptAction.showToast({ message: this.activeBase.label + ' 不支持字符 ' + d, duration: 1500 })
+        return
+      }
+    }
+    this.expression = this.expression + d
+    this.errorMsg = ''
+  }
   onOp(op: string): void {
     // aid-workflow 20260612: 错误状态恢复（SR-09）
     // 用户决策：清空 expression 和 errorMsg
@@ -225,7 +247,12 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.preview = ''; this.nlConversionResult = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void {
+    this.expression = ''; this.result = ''; this.preview = ''; this.nlConversionResult = ''; this.errorMsg = ''
+    // aid-workflow 20260617 Issue #22: 程序员模式下重置 activeBase
+    if (this.mode === CalculatorMode.PROGRAMMER) this.activeBase = NumberBase.DEC
+    ErrorFlags.reset()
+  }
 
   onEquals(): void {
     if (this.expression.length === 0) return
@@ -379,6 +406,70 @@ export struct CalculatorPage {
     if (this.prefs) this.prefs.setHistory(this.history)
   }
 
+  // ==================== 程序员模式 (Issue #22) ====================
+
+  /**
+   * aid-workflow 20260617 Issue #22: 模式切换
+   * 持久化偏好 + 触发 animateTo 220ms 平滑过渡
+   */
+  setMode(m: CalculatorMode): void {
+    animateTo({ duration: 220, curve: Curve.EaseInOut }, (): void => {
+      this.mode = m
+    })
+    if (this.prefs) this.prefs.setProgrammerModeDefault(m === CalculatorMode.PROGRAMMER)
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 弹出模式选择 ActionSheet
+   */
+  onModeToggle(): void {
+    // 简化方案: 直接在 STANDARD ↔ PROGRAMMER 之间切换(无需 ActionSheet 模态,避免阻塞)
+    // 完整 ActionSheet 方案需要 promptAction.showActionSheet 异步回调
+    const next: CalculatorMode = (this.mode === CalculatorMode.STANDARD)
+      ? CalculatorMode.PROGRAMMER
+      : CalculatorMode.STANDARD
+    this.setMode(next)
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 跨进制接续
+   * 用户点击 BIN/OCT/HEX 行 → 解析该行字符串 → 设为新 expression → 切换 activeBase
+   */
+  onProgrammerBaseTap(b: NumberBase): void {
+    this.activeBase = b
+    const rep: ProgrammerDisplayState = this.programmerDisplay
+    let s: string = ''
+    if (b === NumberBase.BIN) s = rep.bin
+    else if (b === NumberBase.OCT) s = rep.oct
+    else if (b === NumberBase.DEC) s = rep.dec
+    else if (b === NumberBase.HEX) s = rep.hex
+    if (s.length === 0) return
+    const n: number = BaseConverter.fromBase(s, b)
+    if (isNaN(n)) return
+    // expression 用纯 DEC 数字(不带千分位),确保 CalcEngine 可解析
+    this.expression = n.toString()
+    this.errorMsg = ''
+    this.onProgrammerRecompute()
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 四进制展示重算
+   * 从 expression 解析 number → BaseConverter.getRepresentations
+   */
+  onProgrammerRecompute(): void {
+    const trimmed: string = this.expression.replace(/[^0-9A-Fa-f\-]/g, '')
+    if (trimmed.length === 0) {
+      this.programmerDisplay = new ProgrammerDisplayState()
+      return
+    }
+    const n: number = BaseConverter.fromBase(trimmed, this.activeBase)
+    if (isNaN(n)) {
+      this.programmerDisplay = new ProgrammerDisplayState()
+      return
+    }
+    this.programmerDisplay = BaseConverter.getRepresentations(n)
+  }
+
   // aid-workflow 20260616: 按日期分组 (今天/昨天/更早)
   // 每次 build 时即时计算, 无缓存, 无副作用
   getHistorySections(): HistorySection[] {
@@ -492,6 +583,10 @@ export struct CalculatorPage {
         Row() {
           Column() {
             this.DisplayPanel()
+            // aid-workflow 20260617 Issue #22: 程序员模式分支
+            if (this.mode === CalculatorMode.PROGRAMMER) {
+              this.ProgrammerSection()
+            }
             this.ButtonGrid()
           }
           .layoutWeight(this.showHistory ? 3 : 1).height('100%')
@@ -503,7 +598,13 @@ export struct CalculatorPage {
         Column() {
           this.DisplayPanel()
           this.ToggleRow()
-          this.ButtonGrid()
+          // aid-workflow 20260617 Issue #22: 程序员模式分支
+          if (this.mode === CalculatorMode.PROGRAMMER) {
+            this.ProgrammerSection()
+            this.ProgrammerKeyboard()
+          } else {
+            this.ButtonGrid()
+          }
           if (this.showHistory) this.HistoryPanel()
         }
         .width('100%').height('100%').backgroundColor(this.getBg())
@@ -607,6 +708,18 @@ export struct CalculatorPage {
         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
         .border({ width: 1, color: this.getOp(), radius: 8 })
         .onClick((): void => { this.scientific = !this.scientific })
+      // aid-workflow 20260617 Issue #22: 程序员模式切换按钮
+      Text(this.mode === CalculatorMode.PROGRAMMER ? '程序员' : '标准')
+        .fontSize(12)
+        .fontColor(this.mode === CalculatorMode.PROGRAMMER ? this.getOp() : this.getT2())
+        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+        .border({
+          width: 1,
+          color: this.mode === CalculatorMode.PROGRAMMER ? this.getOp() : this.getT2(),
+          radius: 8
+        })
+        .margin({ left: 8 })
+        .onClick((): void => { this.onModeToggle() })
       Blank()
       // aid-workflow 20260617 Issue #17: 粘贴按钮（手动触发粘贴）
       Text('📋').fontSize(14).fontColor(this.getT2()).padding(8)
@@ -645,6 +758,53 @@ export struct CalculatorPage {
 
   /** 数字按钮 */
   @Builder BtnDig(l: string) { Text(l).fontSize(this.isLandscape ? 16 : 22).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) }) }
+
+  // ==================== 程序员模式 (Issue #22) ====================
+
+  /** 程序员模式四进制展示区 */
+  @Builder ProgrammerSection() {
+    ProgrammerPanel({
+      decimalValue: this.parseExpressionAsNumber(),
+      activeBase: this.activeBase,
+      themeIdx: this.themeIdx
+    })
+  }
+
+  /** 程序员模式键盘:0-9 A-F + 运算符 + AC/=/⌫ */
+  @Builder ProgrammerKeyboard() {
+    Column() {
+      Row() { this.BtnActPct('AC'); this.BtnProg('A'); this.BtnProg('B'); this.BtnProg('C'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×'); this.BtnAct('⌫') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-'); this.BtnProg('D') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+'); this.BtnProg('E') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnProg('F'); this.BtnEq() }
+    }
+    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+  }
+
+  /** 程序员模式十六进制字母按钮 */
+  @Builder BtnProg(l: string) {
+    Text(l)
+      .fontSize(this.isLandscape ? 14 : 18)
+      .fontColor(this.getT1())
+      .width('17%')
+      .height(this.isLandscape ? 36 : 56)
+      .textAlign(TextAlign.Center)
+      .backgroundColor(this.getFuncBg())
+      .borderRadius(50)
+      .margin(this.isLandscape ? 1 : 4)
+      .onClick((): void => { this.onDigit(l) })
+  }
+
+  /** 解析 expression 为 number(按 activeBase 解释) */
+  private parseExpressionAsNumber(): number {
+    const trimmed: string = this.expression.trim()
+    if (trimmed.length === 0) return 0
+    const cleaned: string = trimmed.replace(/[^0-9A-Fa-f\-]/g, '')
+    if (cleaned.length === 0) return 0
+    const n: number = BaseConverter.fromBase(cleaned, this.activeBase)
+    return isNaN(n) ? 0 : n
+  }
 
   /** 运算符按钮（含 %） */
   @Builder BtnOp(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }

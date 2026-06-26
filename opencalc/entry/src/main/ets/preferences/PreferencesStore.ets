@@ -222,4 +222,25 @@ export class PreferencesStore {
       groupingSeparatorSymbol: await this.getGroupingSeparator()
     }
   }
+
+  // ==================== 程序员模式 (Issue #22) ====================
+
+  /**
+   * 获取启动时默认程序员模式状态
+   * @returns true=程序员模式, false=标准模式
+   */
+  async getProgrammerModeDefault(): Promise<boolean> {
+    if (!this.store) return false
+    return await this.store.get('programmerModeDefault', false) as boolean
+  }
+
+  /**
+   * 设置启动时默认程序员模式状态
+   * 切换模式时调用,值会立即 flush 到磁盘
+   */
+  async setProgrammerModeDefault(value: boolean): Promise<void> {
+    if (!this.store) return
+    await this.store.put('programmerModeDefault', value)
+    await this.store.flush()
+  }
 }
