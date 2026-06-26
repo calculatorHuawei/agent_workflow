@@ -7,11 +7,12 @@ import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import { DisplayMode, NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguageParser'
 import { UnitConverter } from '../common/UnitConverter'
+import { FractionUtil } from '../common/FractionUtil'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
 import { filterHistoryByQuery } from '../history/HistorySearch'
@@ -59,6 +60,12 @@ export struct CalculatorPage {
   @State showModeSheet: boolean = false
   @State programmerDisplay: ProgrammerDisplayState = new ProgrammerDisplayState()
 
+  // aid-workflow 20260617: Issue #27 分数/小数显示模式
+  @State displayMode: DisplayMode = DisplayMode.DECIMAL
+
+  // aid-workflow 20260617: Issue #27 缓存最近一次原始计算结果(用于分数模式重格式化)
+  @State lastRawResult: number = 0
+
   // ==================== 内部状态 ====================
   private nextId: number = 0
   private engine: CalcEngine = new CalcEngine()
@@ -80,6 +87,8 @@ export struct CalculatorPage {
     this.scientific = (await this.prefs.getScientificModeDefault()) === 1
     // aid-workflow 20260617 Issue #22: 程序员模式持久化
     this.mode = (await this.prefs.getProgrammerModeDefault()) ? CalculatorMode.PROGRAMMER : CalculatorMode.STANDARD
+    // aid-workflow 20260617: Issue #27 加载结果显示模式
+    this.displayMode = await this.prefs.getResultDisplayMode()
   }
 
   async loadHistory(): Promise<void> {
@@ -88,13 +97,15 @@ export struct CalculatorPage {
     if (this.history.length > 0) this.nextId = this.history[0].id + 1
   }
 
-  async savePref(key: string, value: boolean | number): Promise<void> {
+  async savePref(key: string, value: boolean | number | string): Promise<void> {
     if (!this.prefs) return
     if (key === 'vibrateOn') await this.prefs.setVibrationEnabled(value as boolean)
     else if (key === 'preventSleep') await this.prefs.setPreventSleep(value as boolean)
     else if (key === 'radianMode') await this.prefs.setRadiansDefault(value as boolean)
     else if (key === 'themeIdx') await this.prefs.setTheme(value as number)
     else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
+    // aid-workflow 20260617: Issue #27 持久化显示模式
+    else if (key === 'resultDisplayMode') await this.prefs.setResultDisplayMode(value as DisplayMode)
   }
 
   // ==================== 按钮事件 ====================
@@ -252,9 +263,15 @@ export struct CalculatorPage {
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
   onAC(): void {
-    this.expression = ''; this.result = ''; this.preview = ''; this.nlConversionResult = ''; this.errorMsg = ''
+    this.expression = ''
+    this.result = ''
+    this.preview = ''
+    this.nlConversionResult = ''
+    this.errorMsg = ''
     // aid-workflow 20260617 Issue #22: 程序员模式下重置 activeBase
     if (this.mode === CalculatorMode.PROGRAMMER) this.activeBase = NumberBase.DEC
+    // aid-workflow 20260617: Issue #27 清空最近原始结果
+    this.lastRawResult = 0
     ErrorFlags.reset()
   }
 
@@ -285,7 +302,10 @@ export struct CalculatorPage {
       else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = '' }
       else {
         const fmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
-        this.result = fmt; this.errorMsg = ''
+        this.result = fmt
+        // aid-workflow 20260617: Issue #27 缓存 raw 数值, 用于分数模式重格式化
+        this.lastRawResult = raw
+        this.errorMsg = ''
         const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
         this.nextId = this.nextId + 1
         const nh: HistoryItem[] = [item]
@@ -294,6 +314,35 @@ export struct CalculatorPage {
         if (this.prefs) this.prefs.setHistory(this.history)
       }
     } catch (_e) { this.errorMsg = '计算错误' }
+  }
+
+  // ==================== Issue #27 分数/小数显示切换 ====================
+  // aid-workflow 20260617: 切换显示模式(小数 ↔ 分数) 并持久化
+  onToggleDisplayMode(): void {
+    if (this.errorMsg.length > 0) return  // 错误态禁用
+    if (this.result.length === 0) return  // 无结果时禁用
+    if (this.displayMode === DisplayMode.DECIMAL) {
+      this.displayMode = DisplayMode.FRACTION
+    } else {
+      this.displayMode = DisplayMode.DECIMAL
+    }
+    this.savePref('resultDisplayMode', this.displayMode)
+  }
+
+  // aid-workflow 20260617: Issue #27 根据 displayMode 重新格式化结果显示
+  // 不修改 this.result 本身(那是历史记录用的小数), 只在 UI 渲染时按模式格式化
+  // 历史记录保持小数显示, 与 resultDisplayMode 解耦
+  private formatResultForDisplay(): string {
+    if (this.displayMode === DisplayMode.FRACTION) {
+      const frac = FractionUtil.toFraction(this.lastRawResult)
+      if (frac !== null) {
+        return FractionUtil.format(frac.numerator, frac.denominator)
+      }
+    }
+    // 小数模式或分数化简失败时回退
+    return NumberFormatter.format(
+      this.lastRawResult.toString(), '.', ',', NumberingSystem.INTERNATIONAL
+    )
   }
 
   onCopy(): void {
@@ -675,9 +724,21 @@ export struct CalculatorPage {
         Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       } else {
-        Text(this.result.length > 0 ? this.result : '0')
-          .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
-          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+        // aid-workflow 20260617: Issue #27 用 Stack 包裹结果 Text + 模式切换按钮
+        // 横屏隐藏按钮(节省空间, 仿 ToggleRow 策略)
+        Stack({ alignContent: Alignment.TopEnd }) {
+          Text(this.result.length > 0 ? this.formatResultForDisplay() : '0')
+            .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+            .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+          if (!this.isLandscape && this.result.length > 0) {
+            Text(this.displayMode === DisplayMode.FRACTION ? '0.5' : '1/2')
+              .fontSize(11).fontColor(this.displayMode === DisplayMode.FRACTION ? this.getOp() : this.getT2())
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .border({ width: 1, color: this.displayMode === DisplayMode.FRACTION ? this.getOp() : this.getT2(), radius: 4 })
+              .margin({ right: 12, top: 6 })
+              .onClick((): void => { this.onToggleDisplayMode() })
+          }
+        }.width('100%')
       }
     }
     .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 16, bottom: 8 })

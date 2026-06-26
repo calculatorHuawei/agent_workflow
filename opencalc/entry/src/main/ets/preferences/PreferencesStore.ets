@@ -7,6 +7,7 @@ import { common } from '@kit.AbilityKit'
 import {
   CalculatorPreferences,
   DEFAULT_PREFERENCES,
+  DisplayMode,
   HistoryItem,
   ScientificModeType
 } from '../model/Models'
@@ -205,6 +206,26 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== 结果显示模式（Issue #27） ====================
+
+  /**
+   * aid-workflow 20260617: Issue #27 分数/小数显示模式
+   * 获取结果显示模式,失败/未设置时返回默认 DECIMAL
+   */
+  async getResultDisplayMode(): Promise<DisplayMode> {
+    if (!this.store) return DEFAULT_PREFERENCES.resultDisplayMode
+    const raw: string = await this.store.get('resultDisplayMode', DEFAULT_PREFERENCES.resultDisplayMode) as string
+    if (raw === DisplayMode.FRACTION) return DisplayMode.FRACTION
+    return DisplayMode.DECIMAL
+  }
+
+  /** 设置结果显示模式, 写入并立即 flush */
+  async setResultDisplayMode(mode: DisplayMode): Promise<void> {
+    if (!this.store) return
+    await this.store.put('resultDisplayMode', mode)
+    await this.store.flush()
+  }
+
   // ==================== 批量读取 ====================
 
   /** 一次性读取所有偏好设置 */
@@ -219,7 +240,9 @@ export class PreferencesStore {
       radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),
-      groupingSeparatorSymbol: await this.getGroupingSeparator()
+      groupingSeparatorSymbol: await this.getGroupingSeparator(),
+      // aid-workflow 20260617: Issue #27
+      resultDisplayMode: await this.getResultDisplayMode()
     }
   }
 
