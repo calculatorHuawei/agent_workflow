@@ -46,10 +46,17 @@ export class CalcEngine {
     this.xValue = x
     this.deg = isDegree
     try {
-      // aid-workflow 20260626: DEBUG 强制返回 sin(x) 看曲线
-      // 如果曲线变成 M 形,说明 evaluate 对 sin(x) 处理有 bug
-      return Math.sin(this.xValue)
-    } catch (e) {
+      const v = this.evaluate(cleanExpr, isDegree)
+      if (!isFinite(v)) {
+        return null
+      }
+      if (ErrorFlags.syntax_error || ErrorFlags.division_by_0 ||
+          ErrorFlags.domain_error || ErrorFlags.is_infinity ||
+          ErrorFlags.require_real_number) {
+        return null
+      }
+      return v
+    } catch {
       return null
     }
   }
