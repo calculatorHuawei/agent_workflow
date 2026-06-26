@@ -47,6 +47,7 @@ export class CalcEngine {
     this.deg = isDegree
     try {
       const v = this.evaluate(cleanExpr, isDegree)
+      console.log('[Graph evaluateAt] cleanExpr=' + cleanExpr + ' x=' + x + ' isDeg=' + isDegree + ' result=' + v)
       if (!isFinite(v)) {
         return null
       }
@@ -56,7 +57,8 @@ export class CalcEngine {
         return null
       }
       return v
-    } catch {
+    } catch (e) {
+      console.log('[Graph evaluateAt] catch error: ' + (e instanceof Error ? e.message : String(e)))
       return null
     }
   }
