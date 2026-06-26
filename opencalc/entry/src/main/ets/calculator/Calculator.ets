@@ -18,6 +18,8 @@ export class CalcEngine {
   private c: number = 0
   /** 是否为角度模式（否则为弧度） */
   private deg: boolean = true
+  // aid-workflow 20260617: Issue #26 函数图像 - x 变量当前值
+  private xValue: number = 0
 
   /**
    * 主入口：计算表达式
@@ -28,6 +30,35 @@ export class CalcEngine {
   evaluate(equation: string, isDegree: boolean): number {
     this.eq = equation; this.p = -1; this.c = 0; this.deg = isDegree
     this.nx(); return this.parseExpression()
+  }
+
+  /**
+   * aid-workflow 20260617: Issue #26 函数图像
+   * 在 x 取某值时计算表达式(单点求值)
+   * 失败(语法错误/除零/定义域外/NaN/Inf)返回 null,不抛异常,不污染 ErrorFlags
+   * @param cleanExpr 已通过 Expression.getCleanExpression 预处理的 ASCII 表达式
+   * @param x x 变量值
+   * @param isDegree true=角度, false=弧度
+   * @returns 数值结果;失败返回 null
+   */
+  evaluateAt(cleanExpr: string, x: number, isDegree: boolean): number | null {
+    ErrorFlags.reset()
+    this.xValue = x
+    this.deg = isDegree
+    try {
+      const v = this.evaluate(cleanExpr, isDegree)
+      if (!isFinite(v)) {
+        return null
+      }
+      if (ErrorFlags.syntax_error || ErrorFlags.division_by_0 ||
+          ErrorFlags.domain_error || ErrorFlags.is_infinity ||
+          ErrorFlags.require_real_number) {
+        return null
+      }
+      return v
+    } catch {
+      return null
+    }
   }
 
   /** 读取下一个字符 */
@@ -78,6 +109,13 @@ export class CalcEngine {
     if (this.eat(43)) return +this.parseFactor()
     // 一元负号
     if (this.eat(45)) return -this.parseFactor()
+
+    // aid-workflow 20260617: Issue #26 单字母变量 x (绘图用)
+    // 必须在函数名分支前特判,否则 'x' 会被当成未知函数名 → syntax_error
+    if (this.c === 120) {  // 'x' = 120
+      this.nx()
+      return this.xValue
+    }
 
     let x: number = 0; const sp: number = this.p
 

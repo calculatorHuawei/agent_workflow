@@ -1,3 +1,6 @@
 ai_auto_test/
 TestCase.md
 .merge-conflicts-backup/
+.hvigor/
+opencalc/entry/.test/
+opencalc/entry/build/

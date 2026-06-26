@@ -1,6 +1,7 @@
 // OpenCalc — 主计算器页面（横竖屏自适应 + Android 配色）
 // 移植自：MainActivity.kt（1447行）
 import { promptAction } from '@kit.ArkUI'
+import { router } from '@kit.ArkUI'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
@@ -351,6 +352,18 @@ export struct CalculatorPage {
   // ArkTS @Entry 组件生命周期：onPageShow 等价于 Android onResume
   onPageShow(): void {
     this.onPaste()  // 异步 fire-and-forget; onPaste 内部 await
+  }
+
+  // aid-workflow 20260617 Issue #26: 跳转到函数图像绘制页
+  // 传当前 expression (若含 x 变量,GraphPage 复用;否则用默认 sin(x))
+  onGraphClick(): void {
+    router.pushUrl({
+      url: 'pages/GraphPage',
+      params: { expression: this.expression }
+    }).catch((err: Error): void => {
+      // 路由失败不弹窗,仅 log
+      console.error('[GraphPage] pushUrl failed: ' + err.message)
+    })
   }
 
   // aid-workflow 20260617 Issue #17: 从剪贴板粘贴并自动计算
@@ -726,6 +739,9 @@ export struct CalculatorPage {
         .margin({ left: 8 })
         .onClick((): void => { this.onModeToggle() })
       Blank()
+      // aid-workflow 20260617 Issue #26: 绘图入口按钮
+      Text('📈').fontSize(14).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onGraphClick() })
       // aid-workflow 20260617 Issue #17: 粘贴按钮（手动触发粘贴）
       Text('📋').fontSize(14).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.onPaste() })
