@@ -3,6 +3,19 @@
     { "name": "app_name", "value": "OpenCalc" },
     { "name": "module_desc", "value": "OpenCalc HarmonyOS" },
     { "name": "EntryAbility_desc", "value": "OpenCalc" },
-    { "name": "EntryAbility_label", "value": "OpenCalc" }
+    { "name": "EntryAbility_label", "value": "OpenCalc" },
+    { "name": "mode_basic", "value": "基础" },
+    { "name": "mode_scientific", "value": "科学" },
+    { "name": "mode_programmer", "value": "程序员" },
+    { "name": "base_hex", "value": "HEX" },
+    { "name": "base_dec", "value": "DEC" },
+    { "name": "base_oct", "value": "OCT" },
+    { "name": "base_bin", "value": "BIN" },
+    { "name": "op_and", "value": "AND" },
+    { "name": "op_or", "value": "OR" },
+    { "name": "op_not", "value": "NOT" },
+    { "name": "op_xor", "value": "XOR" },
+    { "name": "op_shl", "value": "<<" },
+    { "name": "op_shr", "value": ">>" }
   ]
 }

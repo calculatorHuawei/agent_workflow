@@ -9,6 +9,7 @@ import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
 import { DisplayMode, NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
+import { KeyboardMode, cycleMode as modeCycle, applySwiperIndex, resolveStartupMode } from '../model/ModeController'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguageParser'
 import { UnitConverter } from '../common/UnitConverter'
@@ -34,6 +35,8 @@ export struct CalculatorPage {
   @State errorMsg: string = ''
   @State nlConversionResult: string = ''  // aid-workflow 20260615: NL 单位换算结果(空=未识别 NL,降级到原计算)
   @State scientific: boolean = false
+  // aid-workflow 20260618 Issue #29: 三态键盘模式 (BASIC=0 / SCIENTIFIC=1 / PROGRAMMER=2)
+  @State currentMode: KeyboardMode = KeyboardMode.BASIC
   @State history: HistoryItem[] = []
   // aid-workflow 20260617 Issue #24: 历史搜索关键字 (空=不过滤)
   @State searchQuery: string = ''
@@ -77,6 +80,8 @@ export struct CalculatorPage {
   private engine: CalcEngine = new CalcEngine()
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
+  // aid-workflow 20260618 Issue #29: Swiper 控制器, 模式按钮通过 changeIndex 触发滑动
+  private swpController: SwiperController = new SwiperController()
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
@@ -90,9 +95,13 @@ export struct CalculatorPage {
     this.preventSleep = await this.prefs.getPreventSleep()
     this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
-    this.scientific = (await this.prefs.getScientificModeDefault()) === 1
-    // aid-workflow 20260617 Issue #22: 程序员模式持久化
-    this.mode = (await this.prefs.getProgrammerModeDefault()) ? CalculatorMode.PROGRAMMER : CalculatorMode.STANDARD
+    // aid-workflow 20260618 Issue #29: 启动优先级 SCIENTIFIC > PROGRAMMER > BASIC
+    const sci: number = await this.prefs.getScientificModeDefault()
+    const prog: number = await this.prefs.getProgrammerModeDefault()
+    this.currentMode = resolveStartupMode(sci, prog)
+    this.scientific = (this.currentMode === KeyboardMode.SCIENTIFIC)
+    // aid-workflow 20260617 Issue #22: 程序员模式持久化 (use prog from above)
+    this.mode = (prog === 1) ? CalculatorMode.PROGRAMMER : CalculatorMode.STANDARD
     // aid-workflow 20260617: Issue #27 加载结果显示模式
     this.displayMode = await this.prefs.getResultDisplayMode()
   }
@@ -112,6 +121,38 @@ export struct CalculatorPage {
     else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
     // aid-workflow 20260617: Issue #27 持久化显示模式
     else if (key === 'resultDisplayMode') await this.prefs.setResultDisplayMode(value as DisplayMode)
+    // aid-workflow 20260618 Issue #29: 程序员模式持久化
+    else if (key === 'programmer') await this.prefs.setProgrammerModeDefault(value as number)
+  }
+
+  // ==================== Issue #29 模式状态机 ====================
+  // aid-workflow 20260618: 模式按钮点击 → cycleMode → swpController.changeIndex → onChange 兜底更新
+  // 单向数据流: 任何入口都走 onSwiperChange 完成 currentMode / scientific / 持久化同步
+  cycleMode(): void {
+    const next: KeyboardMode = modeCycle(this.currentMode)
+    this.swpController.changeIndex(next, false)
+  }
+
+  // aid-workflow 20260618: Swiper onChange 回调, 单一可信源
+  // 非法 index (负数/越界) → console.warn, 兜底 BASIC, 不动 currentMode
+  onSwiperChange(idx: number): void {
+    const next: KeyboardMode | null = applySwiperIndex(idx)
+    if (next === null) {
+      console.warn('CalculatorPage.onSwiperChange invalid index=' + idx)
+      return
+    }
+    this.currentMode = next
+    this.scientific = (next === KeyboardMode.SCIENTIFIC)
+    // 持久化: 互斥写, 一次只写一个为 1
+    void this.savePref('scientific', next === KeyboardMode.SCIENTIFIC ? 1 : 0)
+    void this.savePref('programmer', next === KeyboardMode.PROGRAMMER ? 1 : 0)
+  }
+
+  // aid-workflow 20260618: 当前模式显示标签 (基础/科学/程序员)
+  getCurrentModeLabel(): string {
+    if (this.currentMode === KeyboardMode.SCIENTIFIC) return '科学'
+    if (this.currentMode === KeyboardMode.PROGRAMMER) return '程序员'
+    return '基础'
   }
 
   // ==================== 按钮事件 ====================
@@ -878,24 +919,13 @@ export struct CalculatorPage {
   }
 
   // ==================== 模式切换栏（仅竖屏显示） ====================
+  // aid-workflow 20260618 Issue #29: 模式按钮三态循环 (基础 → 科学 → 程序员 → 基础)
   @Builder ToggleRow() {
     Row() {
-      Text(this.scientific ? '科学' : '基础').fontSize(12).fontColor(this.getOp())
+      Text(this.getCurrentModeLabel()).fontSize(12).fontColor(this.getOp())
         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
         .border({ width: 1, color: this.getOp(), radius: 8 })
-        .onClick((): void => { this.scientific = !this.scientific })
-      // aid-workflow 20260617 Issue #22: 程序员模式切换按钮
-      Text(this.mode === CalculatorMode.PROGRAMMER ? '程序员' : '标准')
-        .fontSize(12)
-        .fontColor(this.mode === CalculatorMode.PROGRAMMER ? this.getOp() : this.getT2())
-        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-        .border({
-          width: 1,
-          color: this.mode === CalculatorMode.PROGRAMMER ? this.getOp() : this.getT2(),
-          radius: 8
-        })
-        .margin({ left: 8 })
-        .onClick((): void => { this.onModeToggle() })
+        .onClick((): void => { this.cycleMode() })
       Blank()
       // aid-workflow 20260617 Issue #26: 绘图入口按钮
       Text('📈').fontSize(14).fontColor(this.getT2()).padding(8)
@@ -919,6 +949,7 @@ export struct CalculatorPage {
   }
 
   // ==================== 按钮网格 ====================
+  // aid-workflow 20260618 Issue #29: 竖屏 Swiper 包裹三页键盘, 横屏沿用原单页科学模式
   @Builder ButtonGrid() {
     Column() {
       // aid-workflow 20260617 Issue #28: 记忆行（MR + 激活指示）
@@ -936,6 +967,67 @@ export struct CalculatorPage {
           .onClick((): void => { this.onMRClick() })
       }.width('100%').margin({ bottom: 4 })
 
+      if (this.isLandscape) {
+        // 横屏: 沿用原单页布局, 强制 scientific=true
+        this.LandscapeGrid()
+      } else {
+        // 竖屏: Swiper 包裹三页
+        Swiper(this.swpController) {
+          this.BasicGrid()
+          this.ScientificGrid()
+          this.ProgrammerGrid()
+        }
+        .index(this.currentMode)
+        .loop(false)
+        .indicator(new DotIndicator())
+        .onChange((idx: number): void => { this.onSwiperChange(idx) })
+        .width('100%').layoutWeight(1)
+      }
+    }
+    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+  }
+
+  // aid-workflow 20260618 Issue #29: 基础键盘页
+  @Builder BasicGrid() {
+    Column() {
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 科学键盘页
+  @Builder ScientificGrid() {
+    Column() {
+      Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
+      Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 程序员键盘页 (HEX/DEC/OCT/BIN + 位运算)
+  // 本期 UI-only, 数字/位运算按键复用 onDigit / onOp 通道, 后续 issue 接入 CalcEngine
+  @Builder ProgrammerGrid() {
+    Column() {
+      Row() { this.BtnBase('HEX'); this.BtnBase('DEC'); this.BtnBase('OCT'); this.BtnBase('BIN') }
+      Row() { this.BtnFunc('AND'); this.BtnFunc('OR'); this.BtnFunc('NOT'); this.BtnFunc('XOR') }
+      Row() { this.BtnOp('<<'); this.BtnOp('>>'); this.BtnAct('⌫'); this.BtnAct('AC') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('-') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('+') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('×') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnFunc('MOD'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 横屏单页布局 (保留 scientific 切换, 不渲染 Swiper)
+  @Builder LandscapeGrid() {
+    Column() {
       if (this.scientific) {
         Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
         // Issue #21: 阶乘按钮 — 6 列布局,所有按钮 width 18%→16%
@@ -946,8 +1038,15 @@ export struct CalculatorPage {
       Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
       Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
       Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
-    }
-    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+    }.width('100%')
+  }
+
+  // aid-workflow 20260618 Issue #29: 基数按钮 (HEX/DEC/OCT/BIN)
+  // 本期点击仅提示用户, 后续 issue 接入 CalcEngine 切换数字基数
+  @Builder BtnBase(l: string) {
+    Text(l).fontSize(13).fontColor(this.getT1()).width('23%').height(40)
+      .textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(2)
+      .onClick((): void => { promptAction.showToast({ message: l + ' (本期仅 UI 展示)' }) })
   }
 
   /** 数字按钮 */
