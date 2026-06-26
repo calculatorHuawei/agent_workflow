@@ -528,7 +528,7 @@ export struct CalculatorPage {
     animateTo({ duration: 220, curve: Curve.EaseInOut }, (): void => {
       this.mode = m
     })
-    if (this.prefs) this.prefs.setProgrammerModeDefault(m === CalculatorMode.PROGRAMMER)
+    if (this.prefs) this.prefs.setProgrammerModeDefault(m === CalculatorMode.PROGRAMMER ? 1 : 0)
   }
 
   /**
