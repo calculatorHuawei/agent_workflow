@@ -13,9 +13,9 @@ const MIN_SAMPLES: number = 50
 const MAX_SAMPLES: number = 1000
 /** 默认采样数 */
 const DEFAULT_SAMPLES: number = 200
-/** 默认 xMin ( -2π ) */
+/** aid-workflow 20260626: 默认 xMin ( -2π ≈ -6.28 ),让 sin/cos 完整周期可见 */
 const DEFAULT_X_MIN: number = -2 * Math.PI
-/** 默认 xMax ( 2π ) */
+/** aid-workflow 20260626: 默认 xMax ( 2π ≈ 6.28 ) */
 const DEFAULT_X_MAX: number = 2 * Math.PI
 
 @Observed

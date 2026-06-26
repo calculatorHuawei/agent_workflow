@@ -25,9 +25,11 @@ const PAD_B: number = 30
 struct GraphPage {
   @State vm: GraphViewModel = new GraphViewModel()
   @State curveColor: string = THEME_COLORS[0]
+  // aid-workflow 20260626: 默认显示 sin(x) 完整周期 (-2π ~ 2π),而非 -2~2
+  // 之前 -2~2 太窄,sin 在这个范围近似一条直线,容易被误判为"画错"
   @State expressionInput: string = 'sin(x)'
-  @State xMinInput: string = '-2'
-  @State xMaxInput: string = '2'
+  @State xMinInput: string = '-6.28'
+  @State xMaxInput: string = '6.28'
   @State samplesInput: string = '200'
   @State isLandscape: boolean = false
   @State canvasReady: boolean = false
