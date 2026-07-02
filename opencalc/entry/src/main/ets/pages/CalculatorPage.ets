@@ -14,6 +14,8 @@ import { UnitConverter } from '../common/UnitConverter'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
 import { LongPressMenu, MENU_WIDTH_RATIO, MENU_MAX_WIDTH, MENU_ITEM_HEIGHT, MENU_FONT_SIZE, MENU_BORDER_RADIUS, MENU_MASK_COLOR, MENU_MASK_OPACITY, MENU_PADDING } from './LongPressMenu'
+// aid-workflow 20260617 Issue #28: 记忆槽 (M1-M6 + MR)
+import { MemorySlots, MemorySlotsState, MemorySlot } from '../calculator/MemorySlots'
 
 @Entry
 @Component
@@ -45,6 +47,10 @@ export struct CalculatorPage {
   // aid-workflow 20260616: 长按候选菜单状态 (FMEA C2: 状态独立, 任何关闭路径置 false)
   @State showLongPressMenu: boolean = false
   @State longPressSource: string = ''
+
+  // aid-workflow 20260617 Issue #28: 记忆槽 (M1-M6 + MR) 状态
+  @State memorySlots: MemorySlotsState = MemorySlots.empty()
+  @State showMemoryPicker: boolean = false
 
   // ==================== 内部状态 ====================
   private nextId: number = 0
@@ -514,6 +520,8 @@ export struct CalculatorPage {
       if (this.showShare) this.SharePanel()
       // aid-workflow 20260616: Issue #16 长按候选菜单 (FR-1/FR-2, 顶层遮罩盖全屏)
       if (this.showLongPressMenu) this.LongPressMenuPanel()
+      // aid-workflow 20260617 Issue #28: 记忆槽选择面板 (顶层遮罩盖全屏)
+      if (this.showMemoryPicker) this.MemoryPickerPanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -600,6 +608,95 @@ export struct CalculatorPage {
     .width('85%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
   }
 
+  // aid-workflow 20260617 Issue #28: 数字键长按手势构造器（仅 1-6 触发存槽；0/7/8/9 noop）
+  // 返回类型推断为 LongPressGesture；显式标 GestureConfig 在 ArkTS 严格模式下未导出
+  private buildDigitLongPressGesture(l: string) {
+    if (l < '1' || l > '6') {
+      return LongPressGesture().onAction((): void => {})
+    }
+    return LongPressGesture().onAction((): void => { this.onLongPressDigit(l) })
+  }
+
+  // aid-workflow 20260617 Issue #28: 派生记忆激活指示文案
+  private getMemoryActiveLabel(): string {
+    return MemorySlots.lastUsedLabel(this.memorySlots)
+  }
+
+  // aid-workflow 20260617 Issue #28: 派生 MR 按钮是否可用
+  private getMRButtonEnabled(): boolean {
+    return MemorySlots.anyHasValue(this.memorySlots)
+  }
+
+  // aid-workflow 20260617 Issue #28: 数字键 1-6 长按 → 存槽 + toast
+  private onLongPressDigit(d: string): void {
+    // 解析 display（剥千分位逗号），非有限值拒绝
+    const raw: string = this.result.replace(/,/g, '')
+    const value: number = Number.parseFloat(raw)
+    if (!Number.isFinite(value)) {
+      promptAction.showToast({ message: '无法存入', duration: 1500 })
+      return
+    }
+    const idx: number = Number(d)
+    this.memorySlots = MemorySlots.save(this.memorySlots, idx, value)
+    promptAction.showToast({ message: `已存入 M${idx}`, duration: 1500 })
+  }
+
+  // aid-workflow 20260617 Issue #28: MR 按钮点击 → 打开/关闭面板
+  private onMRClick(): void {
+    if (!MemorySlots.anyHasValue(this.memorySlots)) return  // FMEA-FM-04 兜底
+    this.showMemoryPicker = !this.showMemoryPicker
+    // FMEA-FM-06: 互斥关闭 LongPressMenu
+    if (this.showLongPressMenu) this.showLongPressMenu = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 选槽调出 → 写入输入流
+  private onPickSlot(idx: 1 | 2 | 3 | 4 | 5 | 6): void {
+    const value: number | null = MemorySlots.recall(this.memorySlots, idx)
+    if (value === null) return  // FMEA 兜底：空槽不应被点中
+    this.expression = this.expression + String(value)
+    this.errorMsg = ''
+    this.showMemoryPicker = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 面板遮罩点击 → 关闭
+  private onMemoryMaskClick(): void {
+    this.showMemoryPicker = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 6 槽选择面板 (与 LongPressMenuPanel 风格一致)
+  @Builder MemoryPickerPanel() {
+    Stack() {
+      // 遮罩
+      Column().width('100%').height('100%')
+        .backgroundColor(MENU_MASK_COLOR).opacity(MENU_MASK_OPACITY)
+        .onClick((): void => { this.onMemoryMaskClick() })
+
+      // 居中浮层
+      Column() {
+        ForEach(this.memorySlots.slots, (slot: MemorySlot) => {
+          Row() {
+            Text(`M${slot.slotIndex}`)
+              .fontSize(MENU_FONT_SIZE)
+              .fontColor(slot.isEmpty() ? this.getT2() : this.getT1())
+              .width(50)
+            Text(slot.isEmpty() ? '—' : String(slot.value))
+              .fontSize(MENU_FONT_SIZE)
+              .fontColor(slot.isEmpty() ? this.getT2() : this.getT1())
+              .layoutWeight(1)
+          }
+          .width('100%').height(MENU_ITEM_HEIGHT)
+          .opacity(slot.isEmpty() ? 0.4 : 1.0)
+          .enabled(!slot.isEmpty())
+          .onClick((): void => { this.onPickSlot(slot.slotIndex) })
+        }, (slot: MemorySlot): string => String(slot.slotIndex))
+      }
+      .width('60%').constraintSize({ maxWidth: MENU_MAX_WIDTH })
+      .backgroundColor(this.getPanelBg()).borderRadius(MENU_BORDER_RADIUS)
+      .padding(MENU_PADDING)
+    }
+    .width('100%').height('100%')
+  }
+
   // ==================== 模式切换栏（仅竖屏显示） ====================
   @Builder ToggleRow() {
     Row() {
@@ -629,6 +726,21 @@ export struct CalculatorPage {
   // ==================== 按钮网格 ====================
   @Builder ButtonGrid() {
     Column() {
+      // aid-workflow 20260617 Issue #28: 记忆行（MR + 激活指示）
+      Row() {
+        Text('M').fontSize(12).fontColor(this.getT2())
+          .width('17%').height(24).textAlign(TextAlign.Center)
+        Text(this.getMemoryActiveLabel()).fontSize(12).fontColor(this.getT2())
+          .layoutWeight(1).height(24).textAlign(TextAlign.Start)
+        Text('MR').fontSize(14).fontColor(this.getMRButtonEnabled() ? this.getT1() : this.getT2())
+          .width('17%').height(28).textAlign(TextAlign.Center)
+          .backgroundColor(this.getBtnBg()).borderRadius(50)
+          .margin({ left: 4, right: 4 })
+          .enabled(this.getMRButtonEnabled())
+          .opacity(this.getMRButtonEnabled() ? 1.0 : 0.4)
+          .onClick((): void => { this.onMRClick() })
+      }.width('100%').margin({ bottom: 4 })
+
       if (this.scientific) {
         Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
         Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
@@ -643,7 +755,11 @@ export struct CalculatorPage {
   }
 
   /** 数字按钮 */
-  @Builder BtnDig(l: string) { Text(l).fontSize(this.isLandscape ? 16 : 22).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) }) }
+  @Builder BtnDig(l: string) {
+    Text(l).fontSize(this.isLandscape ? 16 : 22).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) })
+      // aid-workflow 20260617 Issue #28: 仅 1-6 数字键挂长按手势（0/7/8/9 不存槽）
+      .gesture(this.buildDigitLongPressGesture(l))
+  }
 
   /** 运算符按钮（含 %） */
   @Builder BtnOp(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
