@@ -117,6 +117,74 @@ export default function expressionPercentTest() {
       e.getCleanExpression('50+10%%', '.', ',')
       expect(ErrorFlags.syntax_error).assertEqual(true)
     })
+
+    // ================================================================
+    // aid-workflow 20260617-requirement-add-factorial-button (Issue #21) 新增测试
+    // 8 个阶乘用例 + 阶乘+百分号联动
+    // ================================================================
+
+    it('ISSUE21_F1_five_factorial_is_120', 15, () => {
+      // F-1: 基本用法
+      const e = new Expression()
+      const got = e.getCleanExpression('5!', '.', ',')
+      expect(got).assertContain('factorial')
+      expect(got).assertContain('5')
+    })
+
+    it('ISSUE21_F2_zero_factorial_is_1', 16, () => {
+      // F-2: 边界 0! = 1
+      const e = new Expression()
+      const got = e.getCleanExpression('0!', '.', ',')
+      expect(got).assertContain('factorial')
+      expect(got).assertContain('0')
+    })
+
+    it('ISSUE21_F3_one_factorial_is_1', 17, () => {
+      // F-3: 边界 1! = 1
+      const e = new Expression()
+      const got = e.getCleanExpression('1!', '.', ',')
+      expect(got).assertContain('factorial')
+    })
+
+    it('ISSUE21_F4_parenthesized_factorial', 18, () => {
+      // F-4: (2+3)! 解析为 factorial((2+3)) 或 factorial(2+3),数值=120
+      const e = new Expression()
+      const got = e.getCleanExpression('(2+3)!', '.', ',')
+      expect(got).assertContain('factorial')
+      expect(got).assertContain('2+3')
+    })
+
+    it('ISSUE21_F5_two_factorials_summed', 19, () => {
+      // F-5: 2!+3! = 8
+      const e = new Expression()
+      const got = e.getCleanExpression('2!+3!', '.', ',')
+      // 应有 2 个 factorial(...) 子串
+      const count: number = (got.match(/factorial/g) || []).length
+      expect(count).assertLarger(1)
+    })
+
+    it('ISSUE21_F6_factorial_with_percent', 20, () => {
+      // F-6: 5!+10% 兼容百分号
+      const e = new Expression()
+      const got = e.getCleanExpression('5!+10%', '.', ',')
+      expect(got).assertContain('factorial')
+      expect(got).assertContain('(10/100)')
+    })
+
+    it('ISSUE21_F7_implicit_multiply_after_factorial', 21, () => {
+      // F-7: 3!4 → factorial(3)*4 (addMultiply 隐式乘)
+      const e = new Expression()
+      const got = e.getCleanExpression('3!4', '.', ',')
+      expect(got).assertContain('factorial')
+      expect(got).assertContain('*4')
+    })
+
+    it('ISSUE21_F8_lone_factorial_sets_syntax_error', 22, () => {
+      // F-8: 空 ! 触发 syntax_error
+      const e = new Expression()
+      e.getCleanExpression('!', '.', ',')
+      expect(ErrorFlags.syntax_error).assertEqual(true)
+    })
   })
 
   // ================================================================

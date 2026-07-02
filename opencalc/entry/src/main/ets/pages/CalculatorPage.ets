@@ -1,19 +1,28 @@
 // OpenCalc — 主计算器页面（横竖屏自适应 + Android 配色）
 // 移植自：MainActivity.kt（1447行）
 import { promptAction } from '@kit.ArkUI'
+import { router } from '@kit.ArkUI'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import { DisplayMode, NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
+import { KeyboardMode, cycleMode as modeCycle, applySwiperIndex, resolveStartupMode } from '../model/ModeController'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { NaturalLanguageParser, ParseResult } from '../common/NaturalLanguageParser'
 import { UnitConverter } from '../common/UnitConverter'
+import { FractionUtil } from '../common/FractionUtil'
 import { QrCodeBuilder } from '../qrcode/QrCodeBuilder'
 import { groupHistoryByDate, HistorySection, HistoryGroupKey } from '../history/HistoryGroup'
+import { filterHistoryByQuery } from '../history/HistorySearch'
 import { LongPressMenu, MENU_WIDTH_RATIO, MENU_MAX_WIDTH, MENU_ITEM_HEIGHT, MENU_FONT_SIZE, MENU_BORDER_RADIUS, MENU_MASK_COLOR, MENU_MASK_OPACITY, MENU_PADDING } from './LongPressMenu'
+import { NumberBase, CalculatorMode, ProgrammerDisplayState } from '../model/ModeModel'
+import { BaseConverter } from '../calculator/BaseConverter'
+import { ProgrammerPanel } from './ProgrammerPanel'
+// aid-workflow 20260617 Issue #28: 记忆槽 (M1-M6 + MR)
+import { MemorySlots, MemorySlotsState, MemorySlot } from '../calculator/MemorySlots'
 
 @Entry
 @Component
@@ -26,7 +35,11 @@ export struct CalculatorPage {
   @State errorMsg: string = ''
   @State nlConversionResult: string = ''  // aid-workflow 20260615: NL 单位换算结果(空=未识别 NL,降级到原计算)
   @State scientific: boolean = false
+  // aid-workflow 20260618 Issue #29: 三态键盘模式 (BASIC=0 / SCIENTIFIC=1 / PROGRAMMER=2)
+  @State currentMode: KeyboardMode = KeyboardMode.BASIC
   @State history: HistoryItem[] = []
+  // aid-workflow 20260617 Issue #24: 历史搜索关键字 (空=不过滤)
+  @State searchQuery: string = ''
   @State showHistory: boolean = false
   @State showSettings: boolean = false
   @State showAbout: boolean = false
@@ -46,11 +59,29 @@ export struct CalculatorPage {
   @State showLongPressMenu: boolean = false
   @State longPressSource: string = ''
 
+  // aid-workflow 20260617: Issue #22 程序员模式状态
+  @State mode: CalculatorMode = CalculatorMode.STANDARD
+  @State activeBase: NumberBase = NumberBase.DEC
+  @State showModeSheet: boolean = false
+  @State programmerDisplay: ProgrammerDisplayState = new ProgrammerDisplayState()
+
+  // aid-workflow 20260617: Issue #27 分数/小数显示模式
+  @State displayMode: DisplayMode = DisplayMode.DECIMAL
+
+  // aid-workflow 20260617: Issue #27 缓存最近一次原始计算结果(用于分数模式重格式化)
+  @State lastRawResult: number = 0
+
+  // aid-workflow 20260617 Issue #28: 记忆槽 (M1-M6 + MR) 状态
+  @State memorySlots: MemorySlotsState = MemorySlots.empty()
+  @State showMemoryPicker: boolean = false
+
   // ==================== 内部状态 ====================
   private nextId: number = 0
   private engine: CalcEngine = new CalcEngine()
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
+  // aid-workflow 20260618 Issue #29: Swiper 控制器, 模式按钮通过 changeIndex 触发滑动
+  private swpController: SwiperController = new SwiperController()
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
@@ -64,7 +95,15 @@ export struct CalculatorPage {
     this.preventSleep = await this.prefs.getPreventSleep()
     this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
-    this.scientific = (await this.prefs.getScientificModeDefault()) === 1
+    // aid-workflow 20260618 Issue #29: 启动优先级 SCIENTIFIC > PROGRAMMER > BASIC
+    const sci: number = await this.prefs.getScientificModeDefault()
+    const prog: number = await this.prefs.getProgrammerModeDefault()
+    this.currentMode = resolveStartupMode(sci, prog)
+    this.scientific = (this.currentMode === KeyboardMode.SCIENTIFIC)
+    // aid-workflow 20260617 Issue #22: 程序员模式持久化 (use prog from above)
+    this.mode = (prog === 1) ? CalculatorMode.PROGRAMMER : CalculatorMode.STANDARD
+    // aid-workflow 20260617: Issue #27 加载结果显示模式
+    this.displayMode = await this.prefs.getResultDisplayMode()
   }
 
   async loadHistory(): Promise<void> {
@@ -73,13 +112,47 @@ export struct CalculatorPage {
     if (this.history.length > 0) this.nextId = this.history[0].id + 1
   }
 
-  async savePref(key: string, value: boolean | number): Promise<void> {
+  async savePref(key: string, value: boolean | number | string): Promise<void> {
     if (!this.prefs) return
     if (key === 'vibrateOn') await this.prefs.setVibrationEnabled(value as boolean)
     else if (key === 'preventSleep') await this.prefs.setPreventSleep(value as boolean)
     else if (key === 'radianMode') await this.prefs.setRadiansDefault(value as boolean)
     else if (key === 'themeIdx') await this.prefs.setTheme(value as number)
     else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
+    // aid-workflow 20260617: Issue #27 持久化显示模式
+    else if (key === 'resultDisplayMode') await this.prefs.setResultDisplayMode(value as DisplayMode)
+    // aid-workflow 20260618 Issue #29: 程序员模式持久化
+    else if (key === 'programmer') await this.prefs.setProgrammerModeDefault(value as number)
+  }
+
+  // ==================== Issue #29 模式状态机 ====================
+  // aid-workflow 20260618: 模式按钮点击 → cycleMode → swpController.changeIndex → onChange 兜底更新
+  // 单向数据流: 任何入口都走 onSwiperChange 完成 currentMode / scientific / 持久化同步
+  cycleMode(): void {
+    const next: KeyboardMode = modeCycle(this.currentMode)
+    this.swpController.changeIndex(next, false)
+  }
+
+  // aid-workflow 20260618: Swiper onChange 回调, 单一可信源
+  // 非法 index (负数/越界) → console.warn, 兜底 BASIC, 不动 currentMode
+  onSwiperChange(idx: number): void {
+    const next: KeyboardMode | null = applySwiperIndex(idx)
+    if (next === null) {
+      console.warn('CalculatorPage.onSwiperChange invalid index=' + idx)
+      return
+    }
+    this.currentMode = next
+    this.scientific = (next === KeyboardMode.SCIENTIFIC)
+    // 持久化: 互斥写, 一次只写一个为 1
+    void this.savePref('scientific', next === KeyboardMode.SCIENTIFIC ? 1 : 0)
+    void this.savePref('programmer', next === KeyboardMode.PROGRAMMER ? 1 : 0)
+  }
+
+  // aid-workflow 20260618: 当前模式显示标签 (基础/科学/程序员)
+  getCurrentModeLabel(): string {
+    if (this.currentMode === KeyboardMode.SCIENTIFIC) return '科学'
+    if (this.currentMode === KeyboardMode.PROGRAMMER) return '程序员'
+    return '基础'
   }
 
   // ==================== 按钮事件 ====================
@@ -208,7 +281,18 @@ export struct CalculatorPage {
     return false
   }
 
-  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
+  onDigit(d: string): void {
+    // aid-workflow 20260617 Issue #22: 程序员模式下校验字符合法性
+    if (this.mode === CalculatorMode.PROGRAMMER) {
+      // 数字与 A-F 允许; BIN 下 '2'-'9' 拒绝, OCT 下 '8'-'9' 拒绝, DEC 下 'A'-'F' 拒绝
+      if (!BaseConverter.isValidChar(d, this.activeBase)) {
+        promptAction.showToast({ message: this.activeBase.label + ' 不支持字符 ' + d, duration: 1500 })
+        return
+      }
+    }
+    this.expression = this.expression + d
+    this.errorMsg = ''
+  }
   onOp(op: string): void {
     // aid-workflow 20260612: 错误状态恢复（SR-09）
     // 用户决策：清空 expression 和 errorMsg
@@ -225,7 +309,18 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.preview = ''; this.nlConversionResult = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void {
+    this.expression = ''
+    this.result = ''
+    this.preview = ''
+    this.nlConversionResult = ''
+    this.errorMsg = ''
+    // aid-workflow 20260617 Issue #22: 程序员模式下重置 activeBase
+    if (this.mode === CalculatorMode.PROGRAMMER) this.activeBase = NumberBase.DEC
+    // aid-workflow 20260617: Issue #27 清空最近原始结果
+    this.lastRawResult = 0
+    ErrorFlags.reset()
+  }
 
   onEquals(): void {
     if (this.expression.length === 0) return
@@ -254,7 +349,10 @@ export struct CalculatorPage {
       else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = '' }
       else {
         const fmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
-        this.result = fmt; this.errorMsg = ''
+        this.result = fmt
+        // aid-workflow 20260617: Issue #27 缓存 raw 数值, 用于分数模式重格式化
+        this.lastRawResult = raw
+        this.errorMsg = ''
         const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
         this.nextId = this.nextId + 1
         const nh: HistoryItem[] = [item]
@@ -263,6 +361,35 @@ export struct CalculatorPage {
         if (this.prefs) this.prefs.setHistory(this.history)
       }
     } catch (_e) { this.errorMsg = '计算错误' }
+  }
+
+  // ==================== Issue #27 分数/小数显示切换 ====================
+  // aid-workflow 20260617: 切换显示模式(小数 ↔ 分数) 并持久化
+  onToggleDisplayMode(): void {
+    if (this.errorMsg.length > 0) return  // 错误态禁用
+    if (this.result.length === 0) return  // 无结果时禁用
+    if (this.displayMode === DisplayMode.DECIMAL) {
+      this.displayMode = DisplayMode.FRACTION
+    } else {
+      this.displayMode = DisplayMode.DECIMAL
+    }
+    this.savePref('resultDisplayMode', this.displayMode)
+  }
+
+  // aid-workflow 20260617: Issue #27 根据 displayMode 重新格式化结果显示
+  // 不修改 this.result 本身(那是历史记录用的小数), 只在 UI 渲染时按模式格式化
+  // 历史记录保持小数显示, 与 resultDisplayMode 解耦
+  private formatResultForDisplay(): string {
+    if (this.displayMode === DisplayMode.FRACTION) {
+      const frac = FractionUtil.toFraction(this.lastRawResult)
+      if (frac !== null) {
+        return FractionUtil.format(frac.numerator, frac.denominator)
+      }
+    }
+    // 小数模式或分数化简失败时回退
+    return NumberFormatter.format(
+      this.lastRawResult.toString(), '.', ',', NumberingSystem.INTERNATIONAL
+    )
   }
 
   onCopy(): void {
@@ -323,6 +450,18 @@ export struct CalculatorPage {
     this.onPaste()  // 异步 fire-and-forget; onPaste 内部 await
   }
 
+  // aid-workflow 20260617 Issue #26: 跳转到函数图像绘制页
+  // 传当前 expression (若含 x 变量,GraphPage 复用;否则用默认 sin(x))
+  onGraphClick(): void {
+    router.pushUrl({
+      url: 'pages/GraphPage',
+      params: { expression: this.expression }
+    }).catch((err: Error): void => {
+      // 路由失败不弹窗,仅 log
+      console.error('[GraphPage] pushUrl failed: ' + err.message)
+    })
+  }
+
   // aid-workflow 20260617 Issue #17: 从剪贴板粘贴并自动计算
   // - 复用 onEquals()（push history）
   // - 复用 computePreview()（校验）
@@ -371,7 +510,7 @@ export struct CalculatorPage {
     return (h ^ text.length) | 0
   }
 
-  onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
+  onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false; this.searchQuery = '' }
   onHistoryDelete(item: HistoryItem): void {
     const keep: HistoryItem[] = []
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
@@ -379,10 +518,76 @@ export struct CalculatorPage {
     if (this.prefs) this.prefs.setHistory(this.history)
   }
 
+  // ==================== 程序员模式 (Issue #22) ====================
+
+  /**
+   * aid-workflow 20260617 Issue #22: 模式切换
+   * 持久化偏好 + 触发 animateTo 220ms 平滑过渡
+   */
+  setMode(m: CalculatorMode): void {
+    animateTo({ duration: 220, curve: Curve.EaseInOut }, (): void => {
+      this.mode = m
+    })
+    if (this.prefs) this.prefs.setProgrammerModeDefault(m === CalculatorMode.PROGRAMMER ? 1 : 0)
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 弹出模式选择 ActionSheet
+   */
+  onModeToggle(): void {
+    // 简化方案: 直接在 STANDARD ↔ PROGRAMMER 之间切换(无需 ActionSheet 模态,避免阻塞)
+    // 完整 ActionSheet 方案需要 promptAction.showActionSheet 异步回调
+    const next: CalculatorMode = (this.mode === CalculatorMode.STANDARD)
+      ? CalculatorMode.PROGRAMMER
+      : CalculatorMode.STANDARD
+    this.setMode(next)
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 跨进制接续
+   * 用户点击 BIN/OCT/HEX 行 → 解析该行字符串 → 设为新 expression → 切换 activeBase
+   */
+  onProgrammerBaseTap(b: NumberBase): void {
+    this.activeBase = b
+    const rep: ProgrammerDisplayState = this.programmerDisplay
+    let s: string = ''
+    if (b === NumberBase.BIN) s = rep.bin
+    else if (b === NumberBase.OCT) s = rep.oct
+    else if (b === NumberBase.DEC) s = rep.dec
+    else if (b === NumberBase.HEX) s = rep.hex
+    if (s.length === 0) return
+    const n: number = BaseConverter.fromBase(s, b)
+    if (isNaN(n)) return
+    // expression 用纯 DEC 数字(不带千分位),确保 CalcEngine 可解析
+    this.expression = n.toString()
+    this.errorMsg = ''
+    this.onProgrammerRecompute()
+  }
+
+  /**
+   * aid-workflow 20260617 Issue #22: 四进制展示重算
+   * 从 expression 解析 number → BaseConverter.getRepresentations
+   */
+  onProgrammerRecompute(): void {
+    const trimmed: string = this.expression.replace(/[^0-9A-Fa-f\-]/g, '')
+    if (trimmed.length === 0) {
+      this.programmerDisplay = new ProgrammerDisplayState()
+      return
+    }
+    const n: number = BaseConverter.fromBase(trimmed, this.activeBase)
+    if (isNaN(n)) {
+      this.programmerDisplay = new ProgrammerDisplayState()
+      return
+    }
+    this.programmerDisplay = BaseConverter.getRepresentations(n)
+  }
+
   // aid-workflow 20260616: 按日期分组 (今天/昨天/更早)
+  // aid-workflow 20260617 Issue #24: 过滤后分组,空 query 透传 (FR-24-08)
   // 每次 build 时即时计算, 无缓存, 无副作用
   getHistorySections(): HistorySection[] {
-    return groupHistoryByDate(this.history, Date.now())
+    const filtered: HistoryItem[] = filterHistoryByQuery(this.history, this.searchQuery)
+    return groupHistoryByDate(filtered, Date.now())
   }
 
   // ==================== 主题颜色（对齐 Android 原版） ====================
@@ -492,6 +697,10 @@ export struct CalculatorPage {
         Row() {
           Column() {
             this.DisplayPanel()
+            // aid-workflow 20260617 Issue #22: 程序员模式分支
+            if (this.mode === CalculatorMode.PROGRAMMER) {
+              this.ProgrammerSection()
+            }
             this.ButtonGrid()
           }
           .layoutWeight(this.showHistory ? 3 : 1).height('100%')
@@ -503,7 +712,13 @@ export struct CalculatorPage {
         Column() {
           this.DisplayPanel()
           this.ToggleRow()
-          this.ButtonGrid()
+          // aid-workflow 20260617 Issue #22: 程序员模式分支
+          if (this.mode === CalculatorMode.PROGRAMMER) {
+            this.ProgrammerSection()
+            this.ProgrammerKeyboard()
+          } else {
+            this.ButtonGrid()
+          }
           if (this.showHistory) this.HistoryPanel()
         }
         .width('100%').height('100%').backgroundColor(this.getBg())
@@ -514,6 +729,8 @@ export struct CalculatorPage {
       if (this.showShare) this.SharePanel()
       // aid-workflow 20260616: Issue #16 长按候选菜单 (FR-1/FR-2, 顶层遮罩盖全屏)
       if (this.showLongPressMenu) this.LongPressMenuPanel()
+      // aid-workflow 20260617 Issue #28: 记忆槽选择面板 (顶层遮罩盖全屏)
+      if (this.showMemoryPicker) this.MemoryPickerPanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -556,9 +773,21 @@ export struct CalculatorPage {
         Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       } else {
-        Text(this.result.length > 0 ? this.result : '0')
-          .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
-          .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+        // aid-workflow 20260617: Issue #27 用 Stack 包裹结果 Text + 模式切换按钮
+        // 横屏隐藏按钮(节省空间, 仿 ToggleRow 策略)
+        Stack({ alignContent: Alignment.TopEnd }) {
+          Text(this.result.length > 0 ? this.formatResultForDisplay() : '0')
+            .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+            .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+          if (!this.isLandscape && this.result.length > 0) {
+            Text(this.displayMode === DisplayMode.FRACTION ? '0.5' : '1/2')
+              .fontSize(11).fontColor(this.displayMode === DisplayMode.FRACTION ? this.getOp() : this.getT2())
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .border({ width: 1, color: this.displayMode === DisplayMode.FRACTION ? this.getOp() : this.getT2(), radius: 4 })
+              .margin({ right: 12, top: 6 })
+              .onClick((): void => { this.onToggleDisplayMode() })
+          }
+        }.width('100%')
       }
     }
     .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 16, bottom: 8 })
@@ -600,14 +829,107 @@ export struct CalculatorPage {
     .width('85%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
   }
 
+  // aid-workflow 20260617 Issue #28: 数字键长按手势构造器（仅 1-6 触发存槽；0/7/8/9 noop）
+  // 返回类型推断为 LongPressGesture；显式标 GestureConfig 在 ArkTS 严格模式下未导出
+  private buildDigitLongPressGesture(l: string) {
+    if (l < '1' || l > '6') {
+      return LongPressGesture().onAction((): void => {})
+    }
+    return LongPressGesture().onAction((): void => { this.onLongPressDigit(l) })
+  }
+
+  // aid-workflow 20260617 Issue #28: 派生记忆激活指示文案
+  private getMemoryActiveLabel(): string {
+    return MemorySlots.lastUsedLabel(this.memorySlots)
+  }
+
+  // aid-workflow 20260617 Issue #28: 派生 MR 按钮是否可用
+  private getMRButtonEnabled(): boolean {
+    return MemorySlots.anyHasValue(this.memorySlots)
+  }
+
+  // aid-workflow 20260617 Issue #28: 数字键 1-6 长按 → 存槽 + toast
+  private onLongPressDigit(d: string): void {
+    // 解析 display（剥千分位逗号），非有限值拒绝
+    const raw: string = this.result.replace(/,/g, '')
+    const value: number = Number.parseFloat(raw)
+    if (!Number.isFinite(value)) {
+      promptAction.showToast({ message: '无法存入', duration: 1500 })
+      return
+    }
+    const idx: number = Number(d)
+    this.memorySlots = MemorySlots.save(this.memorySlots, idx, value)
+    promptAction.showToast({ message: `已存入 M${idx}`, duration: 1500 })
+  }
+
+  // aid-workflow 20260617 Issue #28: MR 按钮点击 → 打开/关闭面板
+  private onMRClick(): void {
+    if (!MemorySlots.anyHasValue(this.memorySlots)) return  // FMEA-FM-04 兜底
+    this.showMemoryPicker = !this.showMemoryPicker
+    // FMEA-FM-06: 互斥关闭 LongPressMenu
+    if (this.showLongPressMenu) this.showLongPressMenu = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 选槽调出 → 写入输入流
+  private onPickSlot(idx: 1 | 2 | 3 | 4 | 5 | 6): void {
+    const value: number | null = MemorySlots.recall(this.memorySlots, idx)
+    if (value === null) return  // FMEA 兜底：空槽不应被点中
+    this.expression = this.expression + String(value)
+    this.errorMsg = ''
+    this.showMemoryPicker = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 面板遮罩点击 → 关闭
+  private onMemoryMaskClick(): void {
+    this.showMemoryPicker = false
+  }
+
+  // aid-workflow 20260617 Issue #28: 6 槽选择面板 (与 LongPressMenuPanel 风格一致)
+  @Builder MemoryPickerPanel() {
+    Stack() {
+      // 遮罩
+      Column().width('100%').height('100%')
+        .backgroundColor(MENU_MASK_COLOR).opacity(MENU_MASK_OPACITY)
+        .onClick((): void => { this.onMemoryMaskClick() })
+
+      // 居中浮层
+      Column() {
+        ForEach(this.memorySlots.slots, (slot: MemorySlot) => {
+          Row() {
+            Text(`M${slot.slotIndex}`)
+              .fontSize(MENU_FONT_SIZE)
+              .fontColor(slot.isEmpty() ? this.getT2() : this.getT1())
+              .width(50)
+            Text(slot.isEmpty() ? '—' : String(slot.value))
+              .fontSize(MENU_FONT_SIZE)
+              .fontColor(slot.isEmpty() ? this.getT2() : this.getT1())
+              .layoutWeight(1)
+          }
+          .width('100%').height(MENU_ITEM_HEIGHT)
+          .opacity(slot.isEmpty() ? 0.4 : 1.0)
+          .enabled(!slot.isEmpty())
+          .onClick((): void => { this.onPickSlot(slot.slotIndex) })
+        }, (slot: MemorySlot): string => String(slot.slotIndex))
+      }
+      .width('60%').constraintSize({ maxWidth: MENU_MAX_WIDTH })
+      .backgroundColor(this.getPanelBg()).borderRadius(MENU_BORDER_RADIUS)
+      .padding(MENU_PADDING)
+    }
+    .width('100%').height('100%')
+  }
+
   // ==================== 模式切换栏（仅竖屏显示） ====================
+  // aid-workflow 20260618 Issue #29: 模式按钮三态循环 (基础 → 科学 → 程序员 → 基础)
   @Builder ToggleRow() {
     Row() {
-      Text(this.scientific ? '科学' : '基础').fontSize(12).fontColor(this.getOp())
+      Text(this.getCurrentModeLabel()).fontSize(12).fontColor(this.getOp())
         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
         .border({ width: 1, color: this.getOp(), radius: 8 })
-        .onClick((): void => { this.scientific = !this.scientific })
+        .onClick((): void => { this.cycleMode() })
       Blank()
+      // aid-workflow 20260617 Issue #26: 绘图入口按钮
+      Text('📈').fontSize(14).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onGraphClick() })
       // aid-workflow 20260617 Issue #17: 粘贴按钮（手动触发粘贴）
       Text('📋').fontSize(14).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.onPaste() })
@@ -627,23 +949,159 @@ export struct CalculatorPage {
   }
 
   // ==================== 按钮网格 ====================
+  // aid-workflow 20260618 Issue #29: 竖屏 Swiper 包裹三页键盘, 横屏沿用原单页科学模式
   @Builder ButtonGrid() {
+    Column() {
+      // aid-workflow 20260617 Issue #28: 记忆行（MR + 激活指示）
+      Row() {
+        Text('M').fontSize(12).fontColor(this.getT2())
+          .width('17%').height(24).textAlign(TextAlign.Center)
+        Text(this.getMemoryActiveLabel()).fontSize(12).fontColor(this.getT2())
+          .layoutWeight(1).height(24).textAlign(TextAlign.Start)
+        Text('MR').fontSize(14).fontColor(this.getMRButtonEnabled() ? this.getT1() : this.getT2())
+          .width('17%').height(28).textAlign(TextAlign.Center)
+          .backgroundColor(this.getBtnBg()).borderRadius(50)
+          .margin({ left: 4, right: 4 })
+          .enabled(this.getMRButtonEnabled())
+          .opacity(this.getMRButtonEnabled() ? 1.0 : 0.4)
+          .onClick((): void => { this.onMRClick() })
+      }.width('100%').margin({ bottom: 4 })
+
+      if (this.isLandscape) {
+        // 横屏: 沿用原单页布局, 强制 scientific=true
+        this.LandscapeGrid()
+      } else {
+        // 竖屏: Swiper 包裹三页
+        Swiper(this.swpController) {
+          this.BasicGrid()
+          this.ScientificGrid()
+          this.ProgrammerGrid()
+        }
+        .index(this.currentMode)
+        .loop(false)
+        .indicator(new DotIndicator())
+        .onChange((idx: number): void => { this.onSwiperChange(idx) })
+        .width('100%').layoutWeight(1)
+      }
+    }
+    .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
+  }
+
+  // aid-workflow 20260618 Issue #29: 基础键盘页
+  @Builder BasicGrid() {
+    Column() {
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 科学键盘页
+  @Builder ScientificGrid() {
+    Column() {
+      Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
+      Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+      Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 程序员键盘页 (HEX/DEC/OCT/BIN + 位运算)
+  // 本期 UI-only, 数字/位运算按键复用 onDigit / onOp 通道, 后续 issue 接入 CalcEngine
+  @Builder ProgrammerGrid() {
+    Column() {
+      Row() { this.BtnBase('HEX'); this.BtnBase('DEC'); this.BtnBase('OCT'); this.BtnBase('BIN') }
+      Row() { this.BtnFunc('AND'); this.BtnFunc('OR'); this.BtnFunc('NOT'); this.BtnFunc('XOR') }
+      Row() { this.BtnOp('<<'); this.BtnOp('>>'); this.BtnAct('⌫'); this.BtnAct('AC') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('-') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('+') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('×') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnFunc('MOD'); this.BtnEq() }
+    }.width('100%').layoutWeight(1).justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  // aid-workflow 20260618 Issue #29: 横屏单页布局 (保留 scientific 切换, 不渲染 Swiper)
+  @Builder LandscapeGrid() {
     Column() {
       if (this.scientific) {
         Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
-        Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+        // Issue #21: 阶乘按钮 — 6 列布局,所有按钮 width 18%→16%
+        Row() { this.BtnFunc16('arcsi'); this.BtnFunc16('arcco'); this.BtnFunc16('arcta'); this.BtnConst16('π'); this.BtnConst16('e'); this.BtnOpPct16('!') }
       }
       Row() { this.BtnActPct('AC'); this.BtnOpPct('%'); this.BtnOpPct('('); this.BtnOpPct(')'); this.BtnOpPct('÷') }
       Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
       Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
       Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+') }
       Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnAct('⌫'); this.BtnEq() }
+    }.width('100%')
+  }
+
+  // aid-workflow 20260618 Issue #29: 基数按钮 (HEX/DEC/OCT/BIN)
+  // 本期点击仅提示用户, 后续 issue 接入 CalcEngine 切换数字基数
+  @Builder BtnBase(l: string) {
+    Text(l).fontSize(13).fontColor(this.getT1()).width('23%').height(40)
+      .textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(2)
+      .onClick((): void => { promptAction.showToast({ message: l + ' (本期仅 UI 展示)' }) })
+  }
+
+  /** 数字按钮 */
+  @Builder BtnDig(l: string) {
+    Text(l).fontSize(this.isLandscape ? 16 : 22).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) })
+      // aid-workflow 20260617 Issue #28: 仅 1-6 数字键挂长按手势（0/7/8/9 不存槽）
+      .gesture(this.buildDigitLongPressGesture(l))
+  }
+
+  // ==================== 程序员模式 (Issue #22) ====================
+
+  /** 程序员模式四进制展示区 */
+  @Builder ProgrammerSection() {
+    ProgrammerPanel({
+      decimalValue: this.parseExpressionAsNumber(),
+      activeBase: this.activeBase,
+      themeIdx: this.themeIdx
+    })
+  }
+
+  /** 程序员模式键盘:0-9 A-F + 运算符 + AC/=/⌫ */
+  @Builder ProgrammerKeyboard() {
+    Column() {
+      Row() { this.BtnActPct('AC'); this.BtnProg('A'); this.BtnProg('B'); this.BtnProg('C'); this.BtnOpPct('÷') }
+      Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×'); this.BtnAct('⌫') }
+      Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-'); this.BtnProg('D') }
+      Row() { this.BtnDig('1'); this.BtnDig('2'); this.BtnDig('3'); this.BtnOp('+'); this.BtnProg('E') }
+      Row() { this.BtnDig('0'); this.BtnOp('.'); this.BtnProg('F'); this.BtnEq() }
     }
     .width('100%').padding({ left: 8, right: 8 }).layoutWeight(this.isLandscape ? 0 : 1)
   }
 
-  /** 数字按钮 */
-  @Builder BtnDig(l: string) { Text(l).fontSize(this.isLandscape ? 16 : 22).fontColor(this.getT1()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onDigit(l) }) }
+  /** 程序员模式十六进制字母按钮 */
+  @Builder BtnProg(l: string) {
+    Text(l)
+      .fontSize(this.isLandscape ? 14 : 18)
+      .fontColor(this.getT1())
+      .width('17%')
+      .height(this.isLandscape ? 36 : 56)
+      .textAlign(TextAlign.Center)
+      .backgroundColor(this.getFuncBg())
+      .borderRadius(50)
+      .margin(this.isLandscape ? 1 : 4)
+      .onClick((): void => { this.onDigit(l) })
+  }
+
+  /** 解析 expression 为 number(按 activeBase 解释) */
+  private parseExpressionAsNumber(): number {
+    const trimmed: string = this.expression.trim()
+    if (trimmed.length === 0) return 0
+    const cleaned: string = trimmed.replace(/[^0-9A-Fa-f\-]/g, '')
+    if (cleaned.length === 0) return 0
+    const n: number = BaseConverter.fromBase(cleaned, this.activeBase)
+    return isNaN(n) ? 0 : n
+  }
 
   /** 运算符按钮（含 %） */
   @Builder BtnOp(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
@@ -668,6 +1126,15 @@ export struct CalculatorPage {
   /** 运算符按钮 - 5列布局版 */
   @Builder BtnOpPct(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
 
+  /** Issue #21: 阶乘按钮 (6 列布局版) */
+  @Builder BtnOpPct16(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('16%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
+
+  /** Issue #21: 6 列布局版科学函数按钮 (width 18%→16%) */
+  @Builder BtnFunc16(l: string) { Text(l).fontSize(this.isLandscape ? 11 : 14).fontColor(this.getT1()).width('16%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onFunc(l) }) }
+
+  /** Issue #21: 6 列布局版常量按钮 (width 18%→16%) */
+  @Builder BtnConst16(l: string) { Text(l).fontSize(this.isLandscape ? 13 : 18).fontColor(this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()).width('16%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onConst(l) }) }
+
   /** 动作按钮 - 5列布局版 */
   @Builder BtnActPct(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('17%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(l === 'AC' ? this.getClr() : this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { if (l === 'AC') this.onAC(); else this.onBS() }) }
 
@@ -681,10 +1148,16 @@ export struct CalculatorPage {
         Text('').width(40).height(4).backgroundColor(this.getT2()).borderRadius(2)
       }
       .width('100%').height(24).justifyContent(FlexAlign.Center)
-      .onClick((): void => { this.showHistory = false })
+      .onClick((): void => { this.showHistory = false; this.searchQuery = '' })
+
+      // aid-workflow 20260617 Issue #24: 搜索框 (FR-24-01)
+      this.SearchBox()
 
       if (this.history.length === 0) {
         Text('暂无计算记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
+      } else if (this.searchQuery.length > 0 && this.getHistorySections().every((s: HistorySection): boolean => s.items.length === 0)) {
+        // aid-workflow 20260617 Issue #24: 无匹配占位 (FR-24-07)
+        Text('无匹配记录').fontSize(13).fontColor(this.getT2()).width('100%').textAlign(TextAlign.Center).padding(20)
       } else {
         List() {
           // aid-workflow 20260616: 按日期分组 (今天/昨天/更早), 每段组内 newest-first
@@ -729,6 +1202,28 @@ export struct CalculatorPage {
   @Builder DelBtn(item: HistoryItem) {
     Text('删除').fontSize(14).fontColor(this.getT1()).padding(16).backgroundColor(this.getErr()).height('100%')
       .onClick((): void => { this.onHistoryDelete(item) })
+  }
+
+  // aid-workflow 20260617 Issue #24: 搜索框 (FR-24-01 / FR-24-02)
+  // TextInput + ✕ 清除按钮; 背景随主题 getPanelBg
+  @Builder SearchBox() {
+    Row() {
+      TextInput({ placeholder: '搜索算式或结果', text: this.searchQuery })
+        .layoutWeight(1)
+        .fontSize(14)
+        .fontColor(this.getT1())
+        .backgroundColor('transparent')
+        .placeholderColor(this.getT2())
+        .onChange((value: string): void => { this.searchQuery = value })
+      if (this.searchQuery.length > 0) {
+        Text('✕').fontSize(16).fontColor(this.getT2())
+          .padding(8)
+          .onClick((): void => { this.searchQuery = '' })
+      }
+    }
+    .width('100%').height(this.isLandscape ? 36 : 40)
+    .padding({ left: 12, right: 12 })
+    .backgroundColor(this.getPanelBg())
   }
 
   // ==================== 设置面板 ====================

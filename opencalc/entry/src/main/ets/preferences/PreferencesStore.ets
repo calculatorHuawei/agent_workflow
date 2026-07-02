@@ -7,6 +7,7 @@ import { common } from '@kit.AbilityKit'
 import {
   CalculatorPreferences,
   DEFAULT_PREFERENCES,
+  DisplayMode,
   HistoryItem,
   ScientificModeType
 } from '../model/Models'
@@ -147,6 +148,21 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== 程序员模式 (Issue #29) ====================
+
+  /** aid-workflow 20260618: 获取默认程序员模式状态 */
+  async getProgrammerModeDefault(): Promise<number> {
+    if (!this.store) return DEFAULT_PREFERENCES.programmerModeDefault
+    return await this.store.get('programmerModeDefault', DEFAULT_PREFERENCES.programmerModeDefault) as number
+  }
+
+  /** aid-workflow 20260618: 设置默认程序员模式 */
+  async setProgrammerModeDefault(value: number): Promise<void> {
+    if (!this.store) return
+    await this.store.put('programmerModeDefault', value)
+    await this.store.flush()
+  }
+
   // ==================== 弧度/角度 ====================
 
   /** 获取默认弧度模式 */
@@ -205,6 +221,26 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
+  // ==================== 结果显示模式（Issue #27） ====================
+
+  /**
+   * aid-workflow 20260617: Issue #27 分数/小数显示模式
+   * 获取结果显示模式,失败/未设置时返回默认 DECIMAL
+   */
+  async getResultDisplayMode(): Promise<DisplayMode> {
+    if (!this.store) return DEFAULT_PREFERENCES.resultDisplayMode
+    const raw: string = await this.store.get('resultDisplayMode', DEFAULT_PREFERENCES.resultDisplayMode) as string
+    if (raw === DisplayMode.FRACTION) return DisplayMode.FRACTION
+    return DisplayMode.DECIMAL
+  }
+
+  /** 设置结果显示模式, 写入并立即 flush */
+  async setResultDisplayMode(mode: DisplayMode): Promise<void> {
+    if (!this.store) return
+    await this.store.put('resultDisplayMode', mode)
+    await this.store.flush()
+  }
+
   // ==================== 批量读取 ====================
 
   /** 一次性读取所有偏好设置 */
@@ -216,10 +252,16 @@ export class PreferencesStore {
       preventSleep: await this.getPreventSleep(),
       historySize: await this.getHistorySize(),
       scientificModeDefault: await this.getScientificModeDefault(),
+      programmerModeDefault: await this.getProgrammerModeDefault(),
       radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),
-      groupingSeparatorSymbol: await this.getGroupingSeparator()
+      groupingSeparatorSymbol: await this.getGroupingSeparator(),
+      // aid-workflow 20260617: Issue #27
+      resultDisplayMode: await this.getResultDisplayMode()
     }
   }
+
+  // ==================== 程序员模式 (Issue #22) ====================
+  // Note: Issue #29 版本 (返回 number 0/1) 在 154/160 行已定义,这里不再重复
 }
