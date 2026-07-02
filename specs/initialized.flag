@@ -1,4 +1,4 @@
 initialized: true
-date: 2026-06-15
-worktree: issue-13
+date: 2026-06-29
+worktree: issue-27
 dispatcher: dispatch_issues.py (no_agent mode)
