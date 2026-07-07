@@ -24,6 +24,13 @@ export enum ScientificModeType {
   OFF = 2          // 强制关闭
 }
 
+/** 键盘模式 (aid-workflow 20260617 Issue #29 竖屏三页 Swiper) */
+export enum KeyboardMode {
+  BASIC = 0,        // 基础
+  SCIENTIFIC = 1,   // 科学
+  PROGRAMMER = 2    // 程序员
+}
+
 /** 历史记录条目 */
 export interface HistoryItem {
   id: number           // 唯一标识
@@ -40,6 +47,7 @@ export interface CalculatorPreferences {
   preventSleep: boolean            // 防休眠开关
   historySize: number              // 历史记录最大条数
   scientificModeDefault: number    // 默认科学模式状态
+  programmerModeDefault: number    // aid-workflow 20260617 Issue #29: 默认程序员模式状态 (0=关闭 1=开启)
   radiansDefault: boolean          // 默认弧度模式
   numberPrecision: number          // 数字精度
   decimalSeparatorSymbol: string   // 小数点符号
@@ -54,6 +62,7 @@ export const DEFAULT_PREFERENCES: CalculatorPreferences = {
   preventSleep: false,
   historySize: 100,
   scientificModeDefault: ScientificModeType.NOT_ACTIVE,
+  programmerModeDefault: ScientificModeType.NOT_ACTIVE,
   radiansDefault: false,
   numberPrecision: 12,
   decimalSeparatorSymbol: '.',
