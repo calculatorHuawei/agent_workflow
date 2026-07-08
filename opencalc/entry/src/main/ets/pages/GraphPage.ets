@@ -53,12 +53,23 @@ struct GraphPage {
         this.expressionInput = expr
       }
     }
-    // 读取偏好
+    // aid-workflow 20260708: Issue #37 修复 isDegree 时序竞态
+    // 原因: 原代码 prefs.init().then(loadPrefs) 是微任务,setTimeout(compute, 0) 是宏任务。
+    //       ArkTS 事件循环规则: 微任务先于宏任务 → loadPrefs 先跑 (setRadianMode(true)) →
+    //       但 setTimeout(compute) 反而先跑(因为 prefs.init() 是 5ms 异步) → vm.compute()
+    //       使用未污染的 isDegree=false,但 hilog 仍可能看到 deg=true 取决于 timing。
+    //       修复: 将 vm.compute() 移入 loadPrefs().then() 闭包,确保 isDegree 已稳定后再计算。
+    //       降级: prefs.init() 失败时直接 compute (使用 VM 默认 isDegree=false)。
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
     this.prefs = new PreferencesStore(ctx)
-    this.prefs.init().then((): void => { this.loadPrefs() })
-    // 首次计算
-    setTimeout((): void => { this.vm.compute() }, 0)
+    this.prefs.init()
+      .then((): void => {
+        this.loadPrefs()
+        this.vm.compute()
+      })
+      .catch((): void => {
+        this.vm.compute()
+      })
   }
 
   aboutToDisappear(): void {
@@ -95,8 +106,14 @@ struct GraphPage {
 
   async loadPrefs(): Promise<void> {
     if (!this.prefs) return
-    const radianMode = await this.prefs.getRadiansDefault()
-    this.vm.setRadianMode(!radianMode)  // radianMode=true → 弧度 → isDegree=false
+    // aid-workflow 20260708: Issue #37 扩展修复 (Task 5.3)
+    // 历史代码 setRadianMode(!radianMode) 跟随用户偏好,但用户默认 radiansDefault=false
+    // (角度制)→ isDegree=true → sin(x) 在 x∈[-6.28, 6.28] 范围被当成角度计算 →
+    // 小角近似 sin(x°)≈x*π/180 → 渲染成直线。
+    // 修复: GraphPage 强制使用弧度制 (数学绘图惯例,不受用户一般偏好影响)。
+    // 如果未来要支持"绘图用角度"功能,应单独加 graphUseDegrees 偏好,不要复用
+    // radiansDefault。
+    this.vm.setRadianMode(false)
     const themeIdx = await this.prefs.getTheme()
     if (themeIdx >= 0 && themeIdx < THEME_COLORS.length) {
       this.curveColor = THEME_COLORS[themeIdx]

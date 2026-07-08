@@ -1,0 +1,257 @@
+07-08 10:37:08.397  1393  1393 I A01b09/RECENT: RecentPanelViewModel: containerFillingWhenTerminate recentInnerState not isInRecentView return
+07-08 10:37:08.398  1393  1393 I A01b00/SCB: HiSysEventUtil: updateGameEngineValidStatus, not game engine bundle: com.darkempire78.opencalculator
+07-08 10:37:08.444  1393  1393 I A04200/WINDOW: SCBSingleHandController: unregisterAppShouldShowSingleButtonCallback: 31
+07-08 10:37:08.498  1393  1393 I A01b01/HOME: AppModel: launcher abilityInfos: [{"appIconId":16777234,"bundleName":"com.darkempire78.opencalculator","abilityName":"EntryAbility","appIndex":0,"shortcutId":"","downloadProgress":0,"appName":"OpenCalc","oldBundleNames":[],"isAppLocked":false,"appDistributionType":"none","appInstanceKey":"","hashCode":"29fb4dac-33b2-46e8-995f-8cf7c3dfca02_1783478228492","isSystemApp":false,"isUninstallAble":true,"applicationIconId":16777234,"appLabelId":16777217,"applicationLabelId":16777217,"codePath":"/data/app/el1/bundle/public/com.darkempire78.opencalculator","kindId":-1,"moduleName":"entry","installSource":"unknown","installTime":"Tue Jul 07 2026 20:08:37 GMT+0800","areaType":2,"bundleType":0,"appStatus":0,"keyName":"com.darkempire78.opencalculatorEntryAbilityentry0","typeId":0}]
+07-08 10:37:08.498  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:37:08.498  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:37:08.499  1393  1393 I A01b01/HOME: FormManager: getAllFormsInfo length:0, isOnline:true
+07-08 10:37:08.499  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:37:08.500  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:37:08.500  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:37:08.500  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:37:08.501  1393  1393 I A01b01/HOME: FormManager: getAllFormsInfo length:0, isOnline:true
+07-08 10:37:08.501  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:37:08.509  1393  1393 E A01b01/HOME: FormManager: getFormsInfoByApp error, 16500050: IPC connection error.
+07-08 10:37:08.509  1393  1393 I A01b01/HOME: FormModel: updateSingleAppItemFormInfo
+07-08 10:37:08.509  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:37:08.509  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:37:08.513  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:37:08.514  1393  1393 I A01b01/HOME: FormModel: updateSingleAppItemFormInfoInDB
+07-08 10:37:08.518  1393 16756 W A01b00/SCB: GraphicUtils --> getHdsIcon bundleName: com.darkempire78.opencalculator
+07-08 10:37:08.518  1393 16756 W A01b00/SCB: GraphicUtils --> com.darkempire78.opencalculator - getHdsIcon, size: (16, 16), pixelFormat: 4, leftTopPixel is transparent: false, 156-188-26-255
+07-08 10:37:08.521  1393  1393 W A01b00/SCB: GraphicUtils --> com.darkempire78.opencalculator - getHdsIcon, size: (16, 16), pixelFormat: 4, leftTopPixel is transparent: false, 156-188-26-255
+07-08 10:37:08.558  1393 16756 W A01b00/SCB: GraphicUtils --> combinePic from HdsIcon, bundleName: com.darkempire78.opencalculator, iconSizeOfGrid: 58, hasBorder: false
+07-08 10:37:08.580  1393  1393 W A01b00/SCB: GraphicUtils --> combinePic from HdsIcon, bundleName: com.darkempire78.opencalculator, iconSizeOfGrid: 64, hasBorder: true
+07-08 10:37:08.596  1393  1393 E A01b0a/GESTURE: GestureDockActionAbilityStrategy --> expandDataByStrategy error, code: 17700003, msg: BusinessError 17700003: The specified ability is not found.
+07-08 10:37:08.597  1393  1393 I A01b01/HOME: appInstall_CacheManager --> updateNewInstalledApp: {"appIconId":16777234,"bundleName":"com.darkempire78.opencalculator","abilityName":"EntryAbility","appIndex":0,"shortcutId":"","downloadProgress":0,"appName":"OpenCalc","oldBundleNames":[],"isAppLocked":false,"appDistributionType":"none","appInstanceKey":"","hashCode":"29fb4dac-33b2-46e8-995f-8cf7c3dfca02_1783478228492","isSystemApp":false,"isUninstallAble":true,"applicationIconId":16777234,"appLabelId":16777217,"applicationLabelId":16777217,"codePath":"/data/app/el1/bundle/public/com.darkempire78.opencalculator","kindId":-1,"moduleName":"entry","installSource":"unknown","installTime":"Tue Jul 07 2026 20:08:37 GMT+0800","areaType":2,"bundleType":0,"appStatus":0,"keyName":"com.darkempire78.opencalculatorEntryAbilityentry0","typeId":0}
+07-08 10:37:08.612  1393  1393 I A01b01/HOME: PageDesktopViewModel --> gridAppsInfos: { integrateSwiper page:0,row:0,col:0,com.huawei.hmos.settings,typeid:0. appIndex: 0,uninstallable: false,{ integrateSwiper page:0,row:0,col:1,com.huawei.hmos.photos,typeid:0. appIndex: 0,uninstallable: false,{ integrateSwiper page:0,row:0,col:2,com.huawei.hmos.files,typeid:0. appIndex: 0,uninstallable: true,{ integrateSwiper page:0,row:0,col:3,com.huawei.hmos.calendar,typeid:0. appIndex: 0,uninstallable: true,
+07-08 10:37:08.612  1393  1393 I A01b01/HOME: PageDesktopViewModel --> gridAppsInfos: { integrateSwiper page:1,row:0,col:0,com.darkempire78.opencalculator,typeid:0. appIndex: 0,uninstallable: true,
+07-08 10:37:08.615  1393  1393 I A01b01/HOME: SwiperIndicator --> updateValues current: 0 updateValues: 0
+07-08 10:37:08.616  1393  1393 I A01b01/HOME: SwiperIndicator --> updateValues current: 0 updateValues: 0
+07-08 10:37:08.958  1393  1393 I A01b01/HOME: SCBTM: reduceStartExitAnimationCount reason:requestSceneContainerDestructionWithTransition end animationCount:0
+07-08 10:37:08.958  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:37:08.962  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:37:08.963  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:37:08.963  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:37:08.965  1393  1393 I A01b0a/GESTURE: SCBGestureNavBar --> isInExitLandScape is not change
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance full path:@normalized:N&appAssist4Developer&&@hw-ae-business/app-assist-4-developer/src/main/ets/impl/event/AppAssistInstallPackageEvent&
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance clazzName:AppAssistInstallPackageEvent
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance full path:@normalized:N&attribution&&@hw-ae-business/attribution/src/main/ets/attribution/event/AttrStaticPackageEventImpl&
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance clazzName:AttrStaticPackageEventImpl
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance full path:@normalized:N&ecologicalRuleControl&&@hw-ae-business/ecological-rule-control/src/main/ets/event/InstallStaticPackageEvent&
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance clazzName:InstallStaticPackageEvent
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance full path:@normalized:N&operationActivities&&@hw-ae-business/operation-activities/src/main/ets/impl/event/InstallPackageStaticEvent&
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance clazzName:InstallPackageStaticEvent
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance full path:@normalized:N&upgrade&&@hw-ae-business/upgrade/src/main/ets/impl/upgrademanager/commonevent/event/PackageChangedStaticEvent&
+07-08 10:37:09.488 12970 12970 I A00000/moduleframework: getConfigInstance clazzName:PackageChangedStaticEvent
+07-08 10:37:09.493 12970 12970 I A00000/moduleframework: getConfigInstance import:AppAssistInstallPackageEvent
+07-08 10:37:09.493 12970 12970 I A00000/moduleframework: getConfigInstance import:AttrStaticPackageEventImpl
+07-08 10:37:09.493 12970 12970 I A00000/moduleframework: getConfigInstance import:InstallStaticPackageEvent
+07-08 10:37:09.493 12970 12970 I A00000/moduleframework: getConfigInstance import:InstallPackageStaticEvento35
+07-08 10:37:09.493 12970 12970 I A00000/moduleframework: getConfigInstance import:PackageChangedStaticEvent
+07-08 10:37:09.501  1393  1393 W A01c06/ICON: NumBadgeManager --> onBadgeChangedCallBack, badge: 0, com.huawei.hmsapp.appgallery, uid: 20020010 ,appInstanceKey:
+07-08 10:37:09.501  1393  1393 I A01c06/ICON: NumBadgeManager --> add task, com.huawei.hmsapp.appgallery, uid: 20020010, badge: 0, appInstanceKey:
+07-08 10:37:20.779  1393  1393 W A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] startSceneFromOther:{persistentId:32, screenId: 0, bundleInfo:EntryAbility/com.darkempire78.opencalculator/entry/0, unclearableSession:undefined, callerPersistentId:0, callerAbilityName: , toPersistentId:0, launchType:0, isNewInstance:false, fullScreenStart:false, _windowMode:1, isAppUseControl:undefined, isUnclearableInRecent:undefined, focusedOnShow:true, isAtomicService:falseisStartupInstallFree:false, isNewAppInstance:false, appInstanceKey:}, startMode:1, forceStart:null, forceNewWant:null
+07-08 10:37:20.782  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] requestSceneSession using exist persistentId: 32
+07-08 10:37:20.784  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] [id:32][sceneInfo:com.darkempire78.opencalculator/entry/EntryAbility/0][screenId:0]requestSceneSession suceess, udpate persistentId from 32 to 32, udpate appInstanceKey from  to 
+07-08 10:37:20.784  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] getSingleHandCompatibleModeConfig
+07-08 10:37:20.789  1393  1393 W A04200/WINDOW: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] SCBSplitViewAnimationManager: BackAndOneSplitAnimationBreak containerSession is not availiable
+07-08 10:37:20.789  1393  1393 W A01b01/HOME: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:37:20.794  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] requestSceneSession using exist persistentId: 32
+07-08 10:37:20.795  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] requestSceneSession using exist persistentId: 32
+07-08 10:37:20.795  1393  1393 W A01b01/HOME: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:37:20.796  1393  1393 W A01b01/HOME: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:37:20.796  1393  1393 I A04223/SCBMain: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] requestSceneSession using exist persistentId: 32
+07-08 10:37:20.801  1393  1393 I A04200/WINDOW: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] SCBSSM: isInOutdoorExploreMode: false
+07-08 10:37:20.808  1393  1393 I A01b0a/GESTURE: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] FloatingNavigationManager --> sendFloatingIsInApp true
+07-08 10:37:20.808  1393  1393 I A01b0a/GESTURE: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] FloatingNavigationManager --> sendFloatingNavIsInApp switch is closed
+07-08 10:37:20.822  1393  1393 I A04200/WINDOW: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] SCBSingleHandController: registerAppShouldShowSingleButtonCallback: 32
+07-08 10:37:20.822  1393  1393 I A04200/WINDOW: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] SCBSingleHandController: getAppShouldShowSingleButton: bundleName=32, shouldShow=false, mapSize=0
+07-08 10:37:20.851  1393  1393 I A01a00/SYS_UI: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] OverlayStartAnimHelper: checkStartOverlayTransitionIn
+07-08 10:37:20.851  1393  1393 E A01a00/SYS_UI: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] OverlayStartAnimHelper: overlayCardInfo is invalid
+07-08 10:37:20.860  1393  1393 W A01b01/HOME: [a92ab1b7e0bbbd5, b699cd, 2faeb5b] StartAndExitUtil: get screenStateKey: F_portrait, responseType: 1, response: 0.3
+07-08 10:41:25.958  1393  1393 W A01b01/HOME: PageDesktopModel: buildAppExitInfo iconId: AppIcon_Image_com.darkempire78.opencalculatorEntryAbilityentry0_undefined_0, isInScreen: true
+07-08 10:41:25.960  1393  1393 I A01b01/HOME: SCBSPVM: AppExitRectInfo VP top: 70.85713958740234, left: 24.11428451538086, width: 58, type: null, pageIndex: 1, isInScreen: true
+07-08 10:41:25.961  1393  1393 I A01b01/HOME: SCBTM: addStartExitAnimationCount reason:requestSceneContainerDestructionWithTransition animationCount:1
+07-08 10:41:25.963  1393  1393 W A01b01/HOME: StartAndExitUtil: get screenStateKey: F_portrait, responseType: 2, response: 0.5
+07-08 10:41:25.964  1393  1393 I A01b0a/GESTURE: SCBGestureNavBar --> [AIBAR] receive EVENT_NAV_BAR_GESTURE_CANCEL event, params=undefined,this.isInNavBarGesture is false
+07-08 10:41:26.051  1393  1393 I A01b0a/GESTURE: FloatingNavigationManager --> sendFloatingIsInApp false
+07-08 10:41:26.051  1393  1393 I A01b0a/GESTURE: FloatingNavigationManager --> sendFloatingNavIsInApp switch is closed
+07-08 10:41:26.325  1393  1393 I A01b09/RECENT: RecentPanelViewModel: containerFillingWhenTerminate recentInnerState not isInRecentView return
+07-08 10:41:26.328  1393  1393 I A01b00/SCB: HiSysEventUtil: updateGameEngineValidStatus, not game engine bundle: com.darkempire78.opencalculator
+07-08 10:41:26.403  1393  1393 I A04200/WINDOW: SCBSingleHandController: unregisterAppShouldShowSingleButtonCallback: 32
+07-08 10:41:26.462  1393  1393 I A01b01/HOME: AppModel: launcher abilityInfos: [{"appIconId":16777234,"bundleName":"com.darkempire78.opencalculator","abilityName":"EntryAbility","appIndex":0,"shortcutId":"","downloadProgress":0,"appName":"OpenCalc","oldBundleNames":[],"isAppLocked":false,"appDistributionType":"none","appInstanceKey":"","hashCode":"78ae1fec-ccf2-4148-84a3-bf4c4f888698_1783478486435","isSystemApp":false,"isUninstallAble":true,"applicationIconId":16777234,"appLabelId":16777217,"applicationLabelId":16777217,"codePath":"/data/app/el1/bundle/public/com.darkempire78.opencalculator","kindId":-1,"moduleName":"entry","installSource":"unknown","installTime":"Tue Jul 07 2026 20:08:37 GMT+0800","areaType":2,"bundleType":0,"appStatus":0,"keyName":"com.darkempire78.opencalculatorEntryAbilityentry0","typeId":0}]
+07-08 10:41:26.465  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:41:26.465  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:41:26.587  1393  1393 W A01b00/SCB: GraphicUtils --> com.darkempire78.opencalculator - getHdsIcon, size: (16, 16), pixelFormat: 4, leftTopPixel is transparent: false, 156-188-26-255
+07-08 10:41:26.632  1393  1393 W A01b00/SCB: GraphicUtils --> combinePic from HdsIcon, bundleName: com.darkempire78.opencalculator, iconSizeOfGrid: 64, hasBorder: true
+07-08 10:41:26.632  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:41:26.632  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:41:26.632  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:41:26.632  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:41:26.633  1393  1393 I A01b01/HOME: FormManager: getAllFormsInfo length:0, isOnline:true
+07-08 10:41:26.634  1393  1393 I A01b01/HOME: FormManager: getAllFormsInfo length:0, isOnline:true
+07-08 10:41:26.639  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:41:26.640  1393  1393 E A01b01/HOME: FormManager: getFormsInfoByApp error, 16500050: IPC connection error.
+07-08 10:41:26.640  1393  1393 I A01b01/HOME: FormModel: updateSingleAppItemFormInfo
+07-08 10:41:26.640  1393  1393 I A01b01/HOME: FormModel: getFormsInfoByBundleName, bundleName:com.darkempire78.opencalculator, isNeedExpand:false
+07-08 10:41:26.640  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp bundle: com.darkempire78.opencalculator
+07-08 10:41:26.643  1393  1393 I A01b01/HOME: FormManager: getFormsInfoByApp, isOnline:false,formList.length:0, bundleName:com.darkempire78.opencalculator
+07-08 10:41:26.644  1393  1393 I A01b01/HOME: FormModel: updateSingleAppItemFormInfoInDB
+07-08 10:41:26.649  1393 20572 W A01b00/SCB: GraphicUtils --> getHdsIcon bundleName: com.darkempire78.opencalculator
+07-08 10:41:26.649  1393 20572 W A01b00/SCB: GraphicUtils --> com.darkempire78.opencalculator - getHdsIcon, size: (16, 16), pixelFormat: 4, leftTopPixel is transparent: false, 156-188-26-255
+07-08 10:41:26.747  1393 20572 W A01b00/SCB: GraphicUtils --> combinePic from HdsIcon, bundleName: com.darkempire78.opencalculator, iconSizeOfGrid: 58, hasBorder: false
+07-08 10:41:26.761  1393  1393 E A01b0a/GESTURE: GestureDockActionAbilityStrategy --> expandDataByStrategy error, code: 17700003, msg: BusinessError 17700003: The specified ability is not found.
+07-08 10:41:26.763  1393  1393 I A01b01/HOME: appInstall_CacheManager --> updateNewInstalledApp: {"appIconId":16777234,"bundleName":"com.darkempire78.opencalculator","abilityName":"EntryAbility","appIndex":0,"shortcutId":"","downloadProgress":0,"appName":"OpenCalc","oldBundleNames":[],"isAppLocked":false,"appDistributionType":"none","appInstanceKey":"","hashCode":"78ae1fec-ccf2-4148-84a3-bf4c4f888698_1783478486435","isSystemApp":false,"isUninstallAble":true,"applicationIconId":16777234,"appLabelId":16777217,"applicationLabelId":16777217,"codePath":"/data/app/el1/bundle/public/com.darkempire78.opencalculator","kindId":-1,"moduleName":"entry","installSource":"unknown","installTime":"Tue Jul 07 2026 20:08:37 GMT+0800","areaType":2,"bundleType":0,"appStatus":0,"keyName":"com.darkempire78.opencalculatorEntryAbilityentry0","typeId":0}
+07-08 10:41:26.772  1393  1393 I A01b01/HOME: SCBTM: reduceStartExitAnimationCount reason:requestSceneContainerDestructionWithTransition end animationCount:0
+07-08 10:41:26.773  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:41:26.773  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:41:26.775  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:41:26.775  1393  1393 I A01b01/HOME: SCBTM: getStartExitAnimationCount animationCount:0
+07-08 10:41:26.777  1393  1393 I A01b0a/GESTURE: SCBGestureNavBar --> isInExitLandScape is not change
+07-08 10:41:26.780  1393  1393 I A01b01/HOME: PageDesktopViewModel --> gridAppsInfos: { integrateSwiper page:0,row:0,col:0,com.huawei.hmos.settings,typeid:0. appIndex: 0,uninstallable: false,{ integrateSwiper page:0,row:0,col:1,com.huawei.hmos.photos,typeid:0. appIndex: 0,uninstallable: false,{ integrateSwiper page:0,row:0,col:2,com.huawei.hmos.files,typeid:0. appIndex: 0,uninstallable: true,{ integrateSwiper page:0,row:0,col:3,com.huawei.hmos.calendar,typeid:0. appIndex: 0,uninstallable: true,
+07-08 10:41:26.781  1393  1393 I A01b01/HOME: PageDesktopViewModel --> gridAppsInfos: { integrateSwiper page:1,row:0,col:0,com.darkempire78.opencalculator,typeid:0. appIndex: 0,uninstallable: true,
+07-08 10:41:26.782  1393  1393 I A01b01/HOME: SwiperIndicator --> updateValues current: 0 updateValues: 0
+07-08 10:41:26.782  1393  1393 I A01b01/HOME: SwiperIndicator --> updateValues current: 0 updateValues: 0
+07-08 10:41:26.892  1393  1393 I A01c03/LM: SmartDockStyleConfig: updateDockStyle, isInPreviewMode:false, iconSizeScale:, mIconSize:58, mIconRadius:15.037037037037038, mDockRadius:27.037037037037038
+07-08 10:41:26.892  1393  1393 I A01c03/LM: SmartDockStyleConfig: updateDockStyle, isInPreviewMode:false, iconSizeScale:, mIconSize:58, mIconRadius:15.037037037037038, mDockRadius:27.037037037037038
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance full path:@normalized:N&appAssist4Developer&&@hw-ae-business/app-assist-4-developer/src/main/ets/impl/event/AppAssistInstallPackageEvent&
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance clazzName:AppAssistInstallPackageEvent
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance full path:@normalized:N&attribution&&@hw-ae-business/attribution/src/main/ets/attribution/event/AttrStaticPackageEventImpl&
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance clazzName:AttrStaticPackageEventImpl
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance full path:@normalized:N&ecologicalRuleControl&&@hw-ae-business/ecological-rule-control/src/main/ets/event/InstallStaticPackageEvent&
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance clazzName:InstallStaticPackageEvent
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance full path:@normalized:N&operationActivities&&@hw-ae-business/operation-activities/src/main/ets/impl/event/InstallPackageStaticEvent&
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance clazzName:InstallPackageStaticEvent
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance full path:@normalized:N&upgrade&&@hw-ae-business/upgrade/src/main/ets/impl/upgrademanager/commonevent/event/PackageChangedStaticEvent&
+07-08 10:41:27.543 16962 16962 I A00000/moduleframework: getConfigInstance clazzName:PackageChangedStaticEvent
+07-08 10:41:27.548 16962 16962 I A00000/moduleframework: getConfigInstance import:AppAssistInstallPackageEvent
+07-08 10:41:27.548 16962 16962 I A00000/moduleframework: getConfigInstance import:AttrStaticPackageEventImpl
+07-08 10:41:27.548 16962 16962 I A00000/moduleframework: getConfigInstance import:InstallStaticPackageEvent
+07-08 10:41:27.548 16962 16962 I A00000/moduleframework: getConfigInstance import:InstallPackageStaticEvento35
+07-08 10:41:27.548 16962 16962 I A00000/moduleframework: getConfigInstance import:PackageChangedStaticEvent
+07-08 10:41:27.554  1393  1393 W A01c06/ICON: NumBadgeManager --> onBadgeChangedCallBack, badge: 0, com.huawei.hmsapp.appgallery, uid: 20020010 ,appInstanceKey:
+07-08 10:41:27.554  1393  1393 I A01c06/ICON: NumBadgeManager --> add task, com.huawei.hmsapp.appgallery, uid: 20020010, badge: 0, appInstanceKey:
+07-08 10:41:27.698  1393  1393 W A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] startSceneFromOther:{persistentId:33, screenId: 0, bundleInfo:EntryAbility/com.darkempire78.opencalculator/entry/0, unclearableSession:undefined, callerPersistentId:0, callerAbilityName: , toPersistentId:0, launchType:0, isNewInstance:false, fullScreenStart:false, _windowMode:1, isAppUseControl:undefined, isUnclearableInRecent:undefined, focusedOnShow:true, isAtomicService:falseisStartupInstallFree:false, isNewAppInstance:false, appInstanceKey:}, startMode:1, forceStart:null, forceNewWant:null
+07-08 10:41:27.700  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] requestSceneSession using exist persistentId: 33
+07-08 10:41:27.701  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] [id:33][sceneInfo:com.darkempire78.opencalculator/entry/EntryAbility/0][screenId:0]requestSceneSession suceess, udpate persistentId from 33 to 33, udpate appInstanceKey from  to 
+07-08 10:41:27.702  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] getSingleHandCompatibleModeConfig
+07-08 10:41:27.706  1393 20525 I C02b61/ImageSource: [a92ab1b8d7a91b0, 1b993f5, 7893a2] CreatePixelMap success, id:1783478487705882,dSize:(0,0),srcSize: (16,16),dHdr:1,sHdr:1,memType: 2,cost 127 us
+07-08 10:41:27.706  1393  1393 W A04200/WINDOW: [a92ab1b8d7a91b0, 7893a2, 37fca8e] SCBSplitViewAnimationManager: BackAndOneSplitAnimationBreak containerSession is not availiable
+07-08 10:41:27.707  1393  1393 W A01b01/HOME: [a92ab1b8d7a91b0, 7893a2, 37fca8e] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:41:27.710  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] requestSceneSession using exist persistentId: 33
+07-08 10:41:27.710  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] requestSceneSession using exist persistentId: 33
+07-08 10:41:27.710  1393  1393 W A01b01/HOME: [a92ab1b8d7a91b0, 7893a2, 37fca8e] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:41:27.710  1393  1393 W A01b01/HOME: [a92ab1b8d7a91b0, 7893a2, 37fca8e] PageDesktopModel: findTransitionController bundleName: com.darkempire78.opencalculator, abilityName: EntryAbility, startType: 0, formCardId: undefined, cardId: undefined, extraId: undefined, appIndex: 0, shortcutId: undefined, appInstanceKey: %{public}s
+07-08 10:41:27.711  1393  1393 I A04223/SCBMain: [a92ab1b8d7a91b0, 7893a2, 37fca8e] requestSceneSession using exist persistentId: 33
+07-08 10:41:27.712  1393  1393 I A04200/WINDOW: [a92ab1b8d7a91b0, 7893a2, 37fca8e] SCBSSM: isInOutdoorExploreMode: false
+07-08 10:41:27.715   722  1115 I C01336/AMS: [a92ab1b8d7a91b0, 32ba8b2, 1075dff] [UALM215]StartUIAbility session:33. bundle:com.darkempire78.opencalculator, ability:EntryAbility, instanceKey:, requestId: 4, isCallBySCB: 0, reuseDelegator: 0, scenarios:0, requestCode:-1
+07-08 10:41:27.715  1393  1393 I A01b0a/GESTURE: [a92ab1b8d7a91b0, 7893a2, 37fca8e] FloatingNavigationManager --> sendFloatingIsInApp true
+07-08 10:41:27.715  1393  1393 I A01b0a/GESTURE: [a92ab1b8d7a91b0, 7893a2, 37fca8e] FloatingNavigationManager --> sendFloatingNavIsInApp switch is closed
+07-08 10:41:27.721  1393  1393 I A04200/WINDOW: [a92ab1b8d7a91b0, 7893a2, 37fca8e] SCBSingleHandController: registerAppShouldShowSingleButtonCallback: 33
+07-08 10:41:27.722  1393  1393 I A04200/WINDOW: [a92ab1b8d7a91b0, 7893a2, 37fca8e] SCBSingleHandController: getAppShouldShowSingleButton: bundleName=33, shouldShow=false, mapSize=0
+07-08 10:41:27.734  1393  1393 I A01a00/SYS_UI: [a92ab1b8d7a91b0, 7893a2, 37fca8e] OverlayStartAnimHelper: checkStartOverlayTransitionIn
+07-08 10:41:27.734  1393  1393 E A01a00/SYS_UI: [a92ab1b8d7a91b0, 7893a2, 37fca8e] OverlayStartAnimHelper: overlayCardInfo is invalid
+07-08 10:41:27.740  1393  1393 W A01b01/HOME: [a92ab1b8d7a91b0, 7893a2, 37fca8e] StartAndExitUtil: get screenStateKey: F_portrait, responseType: 1, response: 0.3
+07-08 10:41:27.741   271 20020 I C01706/ueaServer-FrameMsgIntf: [a92ab1b8d7a91b0, 161dd49, 3364a31] ReportProcessInfo pid is 20584, uid is 20020062
+07-08 10:41:27.741   271 20502 E C01704/TagSched: [a92ab1b8d7a91b0, b0fcc8, d8a6dd] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.742   271 20503 I C01706/ueaServer-IntelliSenseServer: [a92ab1b8d7a91b0, 2479efb, 18645c8] ProcessInfo NewAppRecord
+07-08 10:41:27.742   271   341 I C01718/StandbyService: [a92ab1b8d7a91b0, 18583d3, 1f80508] [OnProcessStatusChanged:938] process status change, uid: 20020062, pid: 20584, name: com.darkempire78.opencalculator, alive: 1
+07-08 10:41:27.749   271 20020 E C01704/TagSched: [a92ab1b8d7b701f] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.749   271 20503 E C01704/TagSched: [a92ab1b8d7a91b0, 1ca13a6, 1a00a00] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.750  1393  2043 I C03900/Ace: [(-1:100000:singleton)] [com.ohos.sceneboard][phone_sceneboard][100000]: window unfocus
+07-08 10:41:27.751   271 20502 E C01704/TagSched: [a92ab1b8d7a91b0, 15da30f, 578ffb] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.763   271 20494 I C01706/ueaServer-FrameMsgIntf: [a92ab4b8d7b9b51] ReportProcessInfo pid is 1393, uid is 20020011
+07-08 10:41:27.781 20584 20584 I C03f00/ArkCompiler: [ecmascript] JSNApi::NotifyDebugMode, tid = 20584, debugApp = 1, isDebugMode = 0, instanceId = 0
+07-08 10:41:27.877   271 20020 I C01706/ueaServer-FrameMsgIntf: [a92abbb8d7d61fa] ReportProcessInfo pid is 20584, uid is 20020062
+07-08 10:41:27.877 20584 20584 I C04204/WMSScb: RS multi-instance enabled: 1
+07-08 10:41:27.878 20584 20584 I C01406/OHOS::RS: multi-instance, create RSUIContextManager, isMultiInstanceOpen_ 1
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [ExecutorCheckTidIsInPid][Executor] ExecutorCheckTidIsInPid get reply is invalied
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.880   271 20504 E C01704/TagSched: [a92abdb8d7d6e8d] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.882   131   131 I C02c03/PARAM_WATCHER: SendLocalChange start keyPrefix persist.sys.graphic.animationscale remoteWatcherId 56
+07-08 10:41:27.883   233 20691 I C02699/MM: SwapInMemcg appId=20020062 userId=100 cost=253us
+07-08 10:41:27.889   131   131 I C02c03/PARAM_WATCHER: [watcher_manager.cpp:187]Add watcher persist.sys.graphic.animationscale remoteWatcherId: 56 groupId 77 success
+07-08 10:41:27.889 20584 20584 I C02c03/PARAM_WATCHER: Add watcher keyPrefix persist.sys.graphic.animationscale remoteWatcherId 56 success
+07-08 10:41:27.895   875 20715 I C04619/Publish: [service_publish_manager.cpp:3351]GetWinPublishListener# find using default windowId:-1
+07-08 10:41:27.895   875 20715 I C04619/Publish: [service_publish_manager.cpp:3351]GetWinPublishListener# find using default windowId:-1
+07-08 10:41:27.895   875 20715 I C04621/CFWKService: [dynamic_thread_pool.cpp:318]WorkInThread# end--->task 8835132474934943091 run in thread 139956774322073 cost 1 ms
+07-08 10:41:27.898   271 20494 E C01704/TagSched: [a92ab1b8d7db337] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.898   271 20494 E C01704/TagSched: [a92ab1b8d7db337] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.900  1393  2043 I C0393b/AceWindowScene: [(-1:100000:singleton)] isAbilityHook: 0
+07-08 10:41:27.901 20584 20688 W C04208/WMSLayout: NotifySingleHandTransformChange: id:33, uiContent is nullptr
+07-08 10:41:27.905 20584 20584 I C04208/WMSLayout: GetConfigurationFromAbilityInfo: windowId: 33, windowModeSupportType: 15, isAncoSupportFreeWindow: 0
+07-08 10:41:27.919   722 20560 I C01202/Subscriber: Subscribe com.darkempire78.opencalculator(userId = 100, subId = 20584_20020062_-1_572_1283250, ffrtCost 0 ms, taskCost 0 ms)
+07-08 10:41:27.919 20584 20584 E C04200/WMS: singleton_container.cpp GetSingleton: cant get OHOS::Rosen::WindowInfoReporter
+07-08 10:41:27.933   271 20503 E C01704/TagSched: [a92ab3b8d7e3bbb] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.933   271 20503 E C01704/TagSched: [a92ab3b8d7e3bbb] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.938 20584 20688 W C04208/WMSLayout: NotifySingleHandTransformChange: id:33, uiContent is nullptr
+07-08 10:41:27.943   271 20706 E C01704/TagSched: [a92ab7b8d7e631a] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.943   271 20706 E C01704/TagSched: [a92ab7b8d7e631a] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:27.944   271 20504 I C01706/ueaServer-FrameMsgIntf: [a92ab8b8d7e6a27] ReportProcessInfo pid is 20584, uid is 20020062
+07-08 10:41:27.978 20584 20584 I C03900/Ace: [(100000:100000:scope)] set translateManager to pipeline, instanceId:100000
+07-08 10:41:27.996   185  3164 I C01d00/accessibility: [(GetAccessibilityState:115)]EnabledState[0], TouchGuideState[0], KeyEventObserverState[0], GestureState[0], ScreenReaderState[0], SingleClickMode[0], AnimationOffState[0], AudioMonoState[0], FlashReminderSwitch[0]
+07-08 10:41:27.999   722 20560 I C01202/Subscriber: Subscribe com.darkempire78.opencalculator(userId = 100, subId = 20584_20020062_-1_573_1283330, ffrtCost 2 ms, taskCost 0 ms)
+07-08 10:41:28.000   131   131 I C02c03/PARAM_WATCHER: SendLocalChange start keyPrefix debug.graphic.frame remoteWatcherId 56
+07-08 10:41:28.001   131   131 I C02c03/PARAM_WATCHER: [watcher_manager.cpp:187]Add watcher debug.graphic.frame remoteWatcherId: 56 groupId 104 success
+07-08 10:41:28.001 20584 20584 I C02c03/PARAM_WATCHER: Add watcher keyPrefix debug.graphic.frame remoteWatcherId 56 success
+07-08 10:41:28.018 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: Initialize: pages/Index
+07-08 10:41:28.025 20584 20736 I C03951/InputKeyFlow: [(-1:100000:singleton)] Subscribe touch.events.pass.through Event
+07-08 10:41:28.025 20584 20584 I C04208/WMSLayout: SetUIContentInner: single hand, id:33, posX:0, posY:0, scaleX:1.000000, scaleY:1.000000
+07-08 10:41:28.026 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: UpdateWindowVisible: 1, hasDecor: 0
+07-08 10:41:28.026 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: NotifyWindowMode mode = 1
+07-08 10:41:28.027 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: window foreground
+07-08 10:41:28.027   722 20562 I C01202/Subscriber: Subscribe com.darkempire78.opencalculator(userId = 100, subId = 20584_20020062_-1_574_1283358, ffrtCost 0 ms, taskCost 0 ms)
+07-08 10:41:28.029 20584 20584 I C03959/AceLayout: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: UpdateViewportConfig Viewport config: size: (1320, 2856) orientation: 0 density: 3.500000 position: (0, 0) transformHint: 0 displayId: 0, windowSizeChangeReason 0, is rsTransaction nullptr 1, , keyboardInfo is null
+07-08 10:41:28.031   271 20494 E C01704/TagSched: [a92abeb8d807549] [ExecutorCheckTidIsInPid][Executor] ExecutorCheckTidIsInPid get reply is invalied
+07-08 10:41:28.032   271 20494 E C01704/TagSched: [a92abeb8d807549] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:28.032   271 20494 E C01704/TagSched: [a92abeb8d807549] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:28.032   271 20494 E C01704/TagSched: [a92abeb8d807549] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:28.032   271 20494 E C01704/TagSched: [a92abeb8d807549] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:28.032   271 20494 E C01704/TagSched: [a92abeb8d807549] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:28.036 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]: window focus
+07-08 10:41:28.037 20584 20584 I C03900/Ace: [(-2:100000:singleton)] [com.darkempire78.opencalculator][entry][100000]:window active
+07-08 10:41:28.059 20584 20584 I C03917/AceSafeArea: [(-2:100000:singleton)] SetIsFullScreen 1
+07-08 10:41:28.060 20584 20584 I C0392a/AceUiExtensionComponent: [(-2:100000:singleton)] NotifyWindowMode aliveUIExtensions = 0
+07-08 10:41:28.078 20584 20584 W C03926/AceTheme: [(100000:100000:scope)] style app_theme_pattern not contains app_theme_drag_distancethreshold!
+07-08 10:41:28.120 20584 20584 W C03900/Ace: [(100000:100000:scope)] FeatureParamManager feature is missing or invalid
+07-08 10:41:28.129 20584 20584 E C01402/2DGraphics: LoadFromTypeface: Drawing_Text [LoadFromTypeface] not variable font!
+07-08 10:41:28.156 20584 20584 E C01402/2DGraphics: LoadFromTypeface: Drawing_Text [LoadFromTypeface] not variable font!
+07-08 10:41:28.164 20584 20584 W C01408/Text: generatePaintRegion: Call generatePaintRegion when paragraph is not formatted
+07-08 10:41:28.171 20584 20584 W C03913/AceText: [(100000:100000:scope)] destroy TxtParagraph with placeholderCnt_ 0, textAlign_ 0, count 0
+07-08 10:41:28.180  1393  1427 I C0393b/AceWindowScene: [(-1:100000:singleton)] BufferAvailableCallback id:33
+07-08 10:41:28.180  1393  1427 I C0393b/AceWindowScene: [(-1:100000:singleton)] isAbilityHook: 0,BufferAvailableCallback id: 33,enableRemoveStartingWindow: 0, appBufferReady: 0
+07-08 10:41:29.953   307   357 I C01f0b/ConnCure: get isInPunishTime_: 0
+07-08 10:41:31.186 20484 20495 I C01122/BMSInstalld: critical_manager.cpp:operator():77 SetCritical false
+07-08 10:41:31.915 20814 20814 W C02c02/PARAM: Selinux check name persist.graphic.profiler.enabled in u:object_r:debug_param:s0 [20814 2000 2000] failed
+07-08 10:41:31.915 20814 20814 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.enabled
+07-08 10:41:31.915 20814 20814 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.enabled
+07-08 10:41:31.915 20814 20814 W C02c02/PARAM: Selinux check name persist.graphic.profiler.betarecording in u:object_r:debug_param:s0 [20814 2000 2000] failed
+07-08 10:41:31.915 20814 20814 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.betarecording
+07-08 10:41:31.915 20814 20814 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.betarecording
+07-08 10:41:32.026 20584 20584 I C03925/AceRouter: [js_router.cpp(382)-(100000:100000:scope)] call pushUrl with mode: 0, url: pages/GraphPage
+07-08 10:41:32.026 20584 20584 I C03925/AceRouter: [(100000:100000:scope)] Page router manager is creating page[3]: url: pages/GraphPage path: pages/GraphPage.js, recoverable: yes, namedRouter: no
+07-08 10:41:32.027   271 20020 I C01705/EXACT_PREREAD: [a92ab1b8dc06a57] [(HandlePushPageStart):511] Push page info <bundleName: com.darkempire78.opencalculator abilityName: EntryAbility pageUrl: pages.GraphPage>;
+07-08 10:41:32.027   271 20020 I C01705/EXACT_PREREAD: [a92ab1b8dc06a57] [(HandlePushPageStart):526] StartAppIntraPrereadCollectWork appIntraScene: com.darkempire78.opencalculator/EntryAbility.pages.GraphPage
+07-08 10:41:32.028   271 20504 I C01705/EXACT_PREREAD: [a92ab3b8dc06d6e] [(HandlePushPageComplete):558] Intra scene, SendDelayCollectTimeoutEvent uid: 20020062 pid: 20584 sceneName:com.darkempire78.opencalculator/EntryAbility.pages.GraphPage
+07-08 10:41:32.047   131   131 I C02c03/PARAM_WATCHER: SendLocalChange start keyPrefix sys.graphic.openTestModeTrace remoteWatcherId 56
+07-08 10:41:32.047   131   131 I C02c03/PARAM_WATCHER: [watcher_manager.cpp:187]Add watcher sys.graphic.openTestModeTrace remoteWatcherId: 56 groupId 80 success
+07-08 10:41:32.047 20584 20584 I C02c03/PARAM_WATCHER: Add watcher keyPrefix sys.graphic.openTestModeTrace remoteWatcherId 56 success
+07-08 10:41:32.465 20584 20584 I C03925/AceRouter: [(100000:100000:scope)] pages/GraphPage finish inPage transition.
+07-08 10:41:36.241 20869 20869 W C02c02/PARAM: Selinux check name persist.graphic.profiler.enabled in u:object_r:debug_param:s0 [20869 2000 2000] failed
+07-08 10:41:36.241 20869 20869 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.enabled
+07-08 10:41:36.241 20869 20869 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.enabled
+07-08 10:41:36.241 20869 20869 W C02c02/PARAM: Selinux check name persist.graphic.profiler.betarecording in u:object_r:debug_param:s0 [20869 2000 2000] failed
+07-08 10:41:36.241 20869 20869 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.betarecording
+07-08 10:41:36.241 20869 20869 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.betarecording
+07-08 10:41:36.245   721   830 I C01406/skia: RSScreenRenderNodeDrawable::DrawHardwareEnabledNodes:         process RSScreenRenderNode(id:[3100966387714])         using UniRender buffer with hwcNodes(0, 0)
+07-08 10:41:36.390 20869 20869 I C02b61/ImageCode: DoEncode:(1320, 2856) cost 62932 us
+07-08 10:41:42.438   271 20494 E C01704/TagSched: [a92abeb8e66b04b] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:42.440   271 20706 E C01704/TagSched: [a92ab0b8e66b5dd] [SetQosInternal]qosSetHandle open fail
+07-08 10:41:42.442   271 20494 I C01706/ueaServer-FrameMsgIntf: [a92ab3b8e66c1c4] ReportProcessInfo pid is 16962, uid is 20020010
+07-08 10:41:42.443   271 20504 I C01706/ueaServer-IntelliSenseServer: [a92ab4b8e66c41b] ProcessInfo NewDiedProcess
+07-08 10:41:42.444   271   341 I C01718/StandbyService: [OnProcessStatusChanged:938] process status change, uid: 20020010, pid: 16962, name: com.huawei.hmsapp.appgallery, alive: 0
+07-08 10:41:43.906   484 18166 I C02300/HifenceAbility: CheckIfDoingFenceBussiness: empty callback: 1

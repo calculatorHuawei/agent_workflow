@@ -1,0 +1,30 @@
+07-08 10:38:42.465 16712 16712 I C03925/AceRouter: [(100000:100000:scope)] Page router manager is creating page[3]: url: pages/GraphPage path: pages/GraphPage.js, recoverable: yes, namedRouter: no
+07-08 10:38:42.466   271 16664 I C01705/EXACT_PREREAD: [a92abeb83271c0b] [(HandlePushPageStart):511] Push page info <bundleName: com.darkempire78.opencalculator abilityName: EntryAbility pageUrl: pages.GraphPage>;
+07-08 10:38:42.466   271 16664 I C01705/EXACT_PREREAD: [a92abeb83271c0b] [(HandlePushPageStart):526] StartAppIntraPrereadCollectWork appIntraScene: com.darkempire78.opencalculator/EntryAbility.pages.GraphPage
+07-08 10:38:42.468   271 18191 I C01705/EXACT_PREREAD: [a92ab0b83272587] [(HandlePushPageComplete):558] Intra scene, SendDelayCollectTimeoutEvent uid: 20020062 pid: 16712 sceneName:com.darkempire78.opencalculator/EntryAbility.pages.GraphPage
+07-08 10:38:42.490   131   439 I C02c03/PARAM_WATCHER: SendLocalChange start keyPrefix sys.graphic.openTestModeTrace remoteWatcherId 52
+07-08 10:38:42.490   131   439 I C02c03/PARAM_WATCHER: [watcher_manager.cpp:187]Add watcher sys.graphic.openTestModeTrace remoteWatcherId: 52 groupId 80 success
+07-08 10:38:42.490 16712 16712 I C02c03/PARAM_WATCHER: Add watcher keyPrefix sys.graphic.openTestModeTrace remoteWatcherId 52 success
+07-08 10:38:42.936 16712 16712 I C03925/AceRouter: [(100000:100000:scope)] pages/GraphPage finish inPage transition.
+07-08 10:38:43.881   484 16516 I C02300/HifenceAbility: CheckIfDoingFenceBussiness: empty callback: 1
+07-08 10:38:45.658 18251 18251 W C02c02/PARAM: Selinux check name persist.graphic.profiler.enabled in u:object_r:debug_param:s0 [18251 2000 2000] failed
+07-08 10:38:45.658 18251 18251 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.enabled
+07-08 10:38:45.658 18251 18251 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.enabled
+07-08 10:38:45.658 18251 18251 W C02c02/PARAM: Selinux check name persist.graphic.profiler.betarecording in u:object_r:debug_param:s0 [18251 2000 2000] failed
+07-08 10:38:45.658 18251 18251 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.betarecording
+07-08 10:38:45.658 18251 18251 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.betarecording
+07-08 10:38:45.660   721   830 I C01406/skia: RSScreenRenderNodeDrawable::DrawHardwareEnabledNodes:         process RSScreenRenderNode(id:[3100966387714])         using UniRender buffer with hwcNodes(0, 0)
+07-08 10:38:45.755 18251 18251 I C02b61/ImageCode: DoEncode:(1320, 2856) cost 61652 us
+07-08 10:38:50.163 18316 18316 W C02c02/PARAM: Selinux check name persist.graphic.profiler.enabled in u:object_r:debug_param:s0 [18316 2000 2000] failed
+07-08 10:38:50.163 18316 18316 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.enabled
+07-08 10:38:50.163 18316 18316 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.enabled
+07-08 10:38:50.163 18316 18316 W C02c02/PARAM: Selinux check name persist.graphic.profiler.betarecording in u:object_r:debug_param:s0 [18316 2000 2000] failed
+07-08 10:38:50.163 18316 18316 E C02c02/PARAM: Forbid to read parameter persist.graphic.profiler.betarecording
+07-08 10:38:50.163 18316 18316 E C02c02/PARAM: Forbid to access parameter persist.graphic.profiler.betarecording
+07-08 10:38:50.220   185 18320 I C01d00/accessibility: [(GetAccessibilityState:115)]EnabledState[0], TouchGuideState[0], KeyEventObserverState[0], GestureState[0], ScreenReaderState[0], SingleClickMode[0], AnimationOffState[0], AudioMonoState[0], FlashReminderSwitch[0]
+07-08 10:38:50.229  1393  1393 I C0392a/AceUiExtensionComponent: [(-2:100000:singleton)] [@1869][ID: 1] treeId: 0, id: 132
+07-08 10:38:50.737 18316 18319 W C057c3/IPCObjectStub: SendRequestInner: Stub(desc:*.IAccessibleAbilityClient) code:500 cost:500ms
+07-08 10:38:50.748 18316 18316 I C03100/UiTestKit_Server: [system_ui_controller.cpp:(GetWidgetsInWindow)] End Get nodes from window by WindowId 32, node size is 24, appId: com.darkempire78.opencalculator
+07-08 10:38:50.753 18316 18316 I C03100/UiTestKit_Server: [system_ui_controller.cpp:(GetWidgetsInWindow)] End Get nodes from window by WindowId 21, node size is 43, appId: com.ohos.sceneboard
+07-08 10:38:50.789   185 18320 I C01d00/accessibility: [(GetAccessibilityState:115)]EnabledState[1], TouchGuideState[0], KeyEventObserverState[0], GestureState[0], ScreenReaderState[0], SingleClickMode[0], AnimationOffState[0], AudioMonoState[0], FlashReminderSwitch[0]
+07-08 10:38:50.799  1393  1393 I C0392a/AceUiExtensionComponent: [(-2:100000:singleton)] [@1879][ID: 1] deregister accessibility child tree
