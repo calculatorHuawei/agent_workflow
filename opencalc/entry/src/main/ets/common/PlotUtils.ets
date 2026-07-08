@@ -80,7 +80,16 @@ export class PlotUtils {
     const step: number = (xMax - xMin) / (samples - 1)
     for (let i: number = 0; i < samples; i++) {
       const x: number = xMin + i * step
-      const y: number | null = evaluator(expression, x)
+      let y: number | null = evaluator(expression, x)
+      // 采样到极端值时强制 null (奇点 / 求值爆炸),绘图层断线
+      // 任何有奇点的函数 (tan/cot/sec/csc 等) 都不会污染 Y 轴和视觉曲线
+      // 不做位置式渐近线检测 (如 |x - (π/2 + kπ)| < step * 0.5):
+      //   那样会误杀大步长下 sin/cos/线性等函数(AC-2.4 验证过)
+      if (y !== null) {
+        if (!isFinite(y) || Math.abs(y) > 1e6) {
+          y = null
+        }
+      }
       points[i] = { x, y }
     }
     const range: YRange = PlotUtils.computeYRange(points)
@@ -125,26 +134,35 @@ export class PlotUtils {
    * - 单值退化为 [-1, 1] 对称区间
    */
   static computeYRange(points: PlotPoint[]): YRange {
-    let min: number = Infinity
-    let max: number = -Infinity
+    // 收集所有有效 y 值
+    const ys: number[] = []
     for (let i: number = 0; i < points.length; i++) {
       const y: number | null = points[i].y
       if (y === null) continue
       if (!isFinite(y)) continue
-      if (y < min) min = y
-      if (y > max) max = y
+      // 丢掉远离主体的极端值 (奇点 / 求值爆炸)
+      // 任何有奇点的函数 (tan/cot/sec/csc/log(x-1) 等) 都不会再污染 Y 轴
+      if (Math.abs(y) > 1e6) continue
+      ys.push(y)
     }
-    if (!isFinite(min) || !isFinite(max)) {
+    if (ys.length === 0) {
       const r: YRange = { yMin: -1, yMax: 1 }
       return r
     }
-    if (min === max) {
-      min = min - 1
-      max = max + 1
+    // 排序后取 2% / 98% 百分位,稳健避开离群点
+    ys.sort((a: number, b: number): number => a - b)
+    const loIdx: number = Math.floor(ys.length * 0.02)
+    const hiIdx: number = Math.floor(ys.length * 0.98)
+    let lo: number = ys[loIdx]
+    let hi: number = ys[hiIdx]
+    // 兜底:单点 / 全相等时给一个对称区间
+    if (lo === hi) {
+      lo = lo - 1
+      hi = hi + 1
     }
-    const pad: number = (max - min) * 0.1
-    let yMin: number = min - pad
-    let yMax: number = max + pad
+    const pad: number = (hi - lo) * 0.1
+    let yMin: number = lo - pad
+    let yMax: number = hi + pad
     if (yMin < -Y_RANGE_CLAMP) yMin = -Y_RANGE_CLAMP
     if (yMax > Y_RANGE_CLAMP) yMax = Y_RANGE_CLAMP
     const result: YRange = { yMin, yMax }

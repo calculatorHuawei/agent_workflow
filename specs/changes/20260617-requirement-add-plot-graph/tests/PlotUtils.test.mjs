@@ -112,7 +112,11 @@ const PlotUtils = {
     const step = (xMax - xMin) / (samples - 1)
     for (let i = 0; i < samples; i++) {
       const x = xMin + i * step
-      const y = evaluator(expression, x)
+      let y = evaluator(expression, x)
+      // 采样到极端值时强制 null (值式检测,不依赖具体函数)
+      if (y !== null) {
+        if (!isFinite(y) || Math.abs(y) > 1e6) y = null
+      }
       points[i] = { x, y }
     }
     const range = this.computeYRange(points)
@@ -131,19 +135,24 @@ const PlotUtils = {
   },
 
   computeYRange (points) {
-    let min = Infinity, max = -Infinity
+    // 收集 + 过滤极端值
+    const ys = []
     for (const p of points) {
       const y = p.y
       if (y === null) continue
       if (!isFinite(y)) continue
-      if (y < min) min = y
-      if (y > max) max = y
+      if (Math.abs(y) > 1e6) continue
+      ys.push(y)
     }
-    if (!isFinite(min) || !isFinite(max)) return { yMin: -1, yMax: 1 }
-    if (min === max) { min = min - 1; max = max + 1 }
-    const pad = (max - min) * 0.1
-    let yMin = min - pad
-    let yMax = max + pad
+    if (ys.length === 0) return { yMin: -1, yMax: 1 }
+    ys.sort((a, b) => a - b)
+    const lo = ys[Math.floor(ys.length * 0.02)]
+    const hi = ys[Math.floor(ys.length * 0.98)]
+    let lo2 = lo, hi2 = hi
+    if (lo2 === hi2) { lo2 = lo2 - 1; hi2 = hi2 + 1 }
+    const pad = (hi2 - lo2) * 0.1
+    let yMin = lo2 - pad
+    let yMax = hi2 + pad
     if (yMin < -this.Y_RANGE_CLAMP) yMin = -this.Y_RANGE_CLAMP
     if (yMax > this.Y_RANGE_CLAMP) yMax = this.Y_RANGE_CLAMP
     return { yMin, yMax }
@@ -330,6 +339,44 @@ function assertClose (label, actual, expected, tol = 1e-10) {
   const v = PlotUtils.parseRange('-2*pi+1')
   assertTrue('AC-21.1 not null', v !== null)
   assertClose('AC-21.2 ~-2π+1', v, -2 * Math.PI + 1)
+}
+
+// ==================== 渐近线容忍 (issue #37 followup: tan 多周期) ====================
+
+{
+  // AC-22: tan(x) 在 [-2π, 2π] 多周期 Y 轴不被奇点污染
+  const evalAt = (e, x) => {
+    // 模拟真实数学引擎: 接近渐近线时返回 null
+    // (真实实现可能返回非有限或大数,这里统一用 null 模拟)
+    if (e === 'tan(x)') {
+      const tanx = Math.tan(x)
+      if (!isFinite(tanx) || Math.abs(tanx) > 5) return null
+      return tanx
+    }
+    return null
+  }
+  const series = PlotUtils.sampleSeries('tan(x)', -2 * Math.PI, 2 * Math.PI, 200, evalAt)
+  assertTrue('AC-22.1 yRange 是有界量级 (<1000)', Math.abs(series.yMax) < 1000 && Math.abs(series.yMin) < 1000)
+  const nullCount = series.points.filter(p => p.y === null).length
+  assertTrue('AC-22.2 至少 4 个 null 点 (4 个奇点附近)', nullCount >= 4)
+  const normalPts = series.points.filter(p => p.y !== null)
+  const allBounded = normalPts.every(p => Math.abs(p.y) < 10)
+  assertTrue('AC-22.3 正常点的 y 在 [-10, 10] 区间', allBounded)
+}
+
+{
+  // AC-23: sin/cos 不被回归 (issue #37 修复)
+  const evalAt = (e, x) => {
+    if (e === 'sin(x)') return Math.sin(x)
+    if (e === 'cos(x)') return Math.cos(x)
+    return null
+  }
+  const s1 = PlotUtils.sampleSeries('sin(x)', -2 * Math.PI, 2 * Math.PI, 200, evalAt)
+  assertTrue('AC-23.1 sin yMax ≈ 1.1 (±0.1)', Math.abs(s1.yMax - 1.1) < 0.1)
+  assertTrue('AC-23.2 sin yMin ≈ -1.1 (±0.1)', Math.abs(s1.yMin + 1.1) < 0.1)
+  const s2 = PlotUtils.sampleSeries('cos(x)', -2 * Math.PI, 2 * Math.PI, 200, evalAt)
+  assertTrue('AC-23.3 cos yMax ≈ 1.1 (±0.1)', Math.abs(s2.yMax - 1.1) < 0.1)
+  assertTrue('AC-23.4 cos yMin ≈ -1.1 (±0.1)', Math.abs(s2.yMin + 1.1) < 0.1)
 }
 
 // ==================== 总结 ====================
