@@ -1,0 +1,67 @@
+# Migbot-Increment Skill Bank - Initialization Flag
+
+## Init Date
+2026-10-22 (autonomous session, Issue #40)
+
+## Project Configuration
+PROJECT_ROOT: opencalc
+CHANGES_ROOT: specs/changes
+SPEC_GLOBAL: specs/spec.md
+ARCH_GLOBAL: specs/arch.md
+DESIGN_GLOBAL: specs/design.md
+TEST_ROOT: opencalc/entry/src/test
+
+## Build Configuration
+Build Tool: hvigorw (on PATH, DevEco Studio install)
+Build Version: 6.24.2
+Build Command: hvigorw assembleHap
+Build Status: success
+Build Evidence: baseline `hvigorw assembleHap` ran in opencalc/ at 2026-10-22, exit 0, "BUILD SUCCESSFUL in 6s 675ms"; output HAP at opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap (unsigned, no signingConfig — expected locally)
+Build Notes: checked-in wrappers opencalc/build-test.bat / run-build.bat / run-build-wt.bat encode the same env (DEVECO_SDK_HOME=D:\Program Files\Huawei\DevEco Studio\sdk, JAVA_HOME=D:\Program Files\Huawei\DevEco Studio\jbr); direct .bat execution is denied by the session permission policy, so the equivalent direct `hvigorw` invocation is used instead.
+
+## Test Configuration
+Test Command: hvigorw test@entry
+Test Available: fallback
+Test Framework: ArkTS local unit test (@ohos/hypium, entry/src/test List.test.ets)
+Test Skills:
+  - harmony-ui-test: skipped (no device UI test run by Developer; Tester owns on-device evidence)
+Test Paths:
+  Primary: opencalc/entry/src/test
+  Alternative: none yet (ohosTest not initialized)
+Test Notes: TEST_ROOT was absent at init; created default opencalc/entry/src/test/. Device/emulator coverage is the Tester phase responsibility; Developer claims no device/UI coverage.
+
+## SDK Configuration
+SDK_HOME: D:\Program Files\Huawei\DevEco Studio\sdk
+SDK Version: HarmonyOS SDK (DevEco Studio bundled, per wrapper scripts)
+hvigorw Path: D:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw (also on PATH)
+hvigorw Version: 6.24.2
+Java Path: D:\Program Files\Huawei\DevEco Studio\jbr\bin\java
+Java Version: per DevEco Studio JBR
+Platform: Windows
+Project Type: HarmonyOS
+
+## User Provided Paths
+SDK: from checked-in opencalc/run-build-wt.bat
+hvigorw: from PATH / wrapper scripts
+Java: from wrapper scripts
+
+## Directories & Global Files
+- [x] PROJECT_ROOT exists (opencalc/)
+- [x] specs/changes/ created
+- [x] specs/guidelines/ created
+- [x] specs/guidelines/incidents/ created
+- [x] specs/archives/ created
+- [x] specs/spec.md created
+- [x] specs/arch.md created
+- [x] specs/design.md created
+- [x] TEST_ROOT exists (opencalc/entry/src/test, created empty)
+
+## Git State
+Status: clean (only untracked .hvigor/ build cache at repo root, pre-existing)
+Branch: agent/issue-40-task-1
+
+## Session Recovery
+Last Session: none
+
+## Autonomous Confirmation Note
+Directory configuration (Step 5) confirmed autonomously with defaults per Issue #40 assignment authorization; no human choice was required: PROJECT_ROOT=opencalc (only HarmonyOS project in worktree), TEST_ROOT=default standard location.
