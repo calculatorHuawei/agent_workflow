@@ -74,6 +74,21 @@ export class Expression {
           cleanCalculation = this.insertChar(cleanCalculation, '*', i)
           i = i + 1
         }
+      } else if (ch === 'x' && cleanCalculation.substring(i, i + 2) !== 'xp') {
+        // Issue #40：变量 x 双向隐式乘法。'xp' 是 e^x 函数名，不作为变量拆分
+        //（其前邻乘法由下方 functionsList 通用路径处理）
+        if (i + 1 < cleanCalculation.length) {
+          const nx: string = cleanCalculation.charAt(i + 1)
+          // 后邻规则：数字/π/(/e/变量 x/小写函数名首字符 → 在 x 后插 '*'
+          if ('0123456789π(ex'.indexOf(nx) !== -1 || (nx >= 'a' && nx <= 'z')) {
+            cleanCalculation = this.insertChar(cleanCalculation, '*', i + 1)
+          }
+        }
+        // 前邻规则：数字/) /π/e/x → 在 x 前插 '*'（判定用原始前邻：后插在 i+1，不影响 i-1）
+        if (i >= 1 && '0123456789)πex'.indexOf(cleanCalculation.charAt(i - 1)) !== -1) {
+          cleanCalculation = this.insertChar(cleanCalculation, '*', i)
+          i = i + 1
+        }
       } else {
         if (i + 1 < cleanCalculation.length) {
           const functionsList: string[] = ['arcco', 'arcsi', 'arcta', 'cos', 'sin', 'tan', 'ln', 'log', 'xp']

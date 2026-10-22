@@ -18,15 +18,22 @@ export class CalcEngine {
   private c: number = 0
   /** 是否为角度模式（否则为弧度） */
   private deg: boolean = true
+  /** 是否启用绘图变量 x 绑定（Issue #40） */
+  private varXEnabled: boolean = false
+  /** 变量 x 当前值 */
+  private varXValue: number = 0
 
   /**
    * 主入口：计算表达式
    * @param equation 数学表达式字符串
    * @param isDegree true=角度模式，false=弧度模式
+   * @param varX 可选变量 x 绑定（绘图采样求值用；缺省时 x 走既有 syntax_error 路径）
    * @returns 计算结果
    */
-  evaluate(equation: string, isDegree: boolean): number {
+  evaluate(equation: string, isDegree: boolean, varX?: number): number {
     this.eq = equation; this.p = -1; this.c = 0; this.deg = isDegree
+    this.varXEnabled = varX !== undefined
+    this.varXValue = this.varXEnabled ? varX as number : 0
     this.nx(); return this.parseExpression()
   }
 
@@ -102,6 +109,13 @@ export class CalcEngine {
     else if (this.c >= 97 && this.c <= 122) {
       while (this.c >= 97 && this.c <= 122) this.nx()
       const fn: string = this.eq.substring(sp, this.p)
+      // 绘图变量绑定（Issue #40）：在函数参数解析前短路——裸 x 后可直接跟 ^ 或运算符；
+      // 未启用绑定时 fn==='x' 落入既有调度，走 syntax_error 路径（行为与基线一致）
+      if (fn === 'x' && this.varXEnabled) {
+        const xv: number = this.varXValue
+        if (this.eat(94)) return this.powx(xv, this.parseFactor())  // 94 = '^'
+        return xv
+      }
       // 解析函数参数
       if (this.eat(40)) { x = this.parseExpression(); if (!this.eat(41)) x = this.parseFactor() }
       else x = this.parseFactor()

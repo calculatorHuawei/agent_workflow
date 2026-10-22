@@ -9,6 +9,7 @@ import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import { FunctionPlotter, PlotResult, PlotSegment, PLOT_X_MIN, PLOT_X_MAX, PLOT_N } from '../plot/FunctionPlotter'
 
 @Entry
 @Component
@@ -24,6 +25,16 @@ export struct CalculatorPage {
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
 
+  // ==================== 绘图状态（Issue #40） ====================
+  @State showPlot: boolean = false
+  @State plotInput: string = ''
+  @State plotError: string = ''
+  @State plotSegments: PlotSegment[] = []
+  @State plotYMin: number = -1.2
+  @State plotYMax: number = 1.2
+  @State canvasW: number = 0
+  @State canvasH: number = 0
+
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
   @State preventSleep: boolean = false
@@ -35,6 +46,8 @@ export struct CalculatorPage {
   private engine: CalcEngine = new CalcEngine()
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
+  private plotter: FunctionPlotter = new FunctionPlotter()
+  private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
@@ -110,6 +123,111 @@ export struct CalculatorPage {
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
     this.history = keep
     if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  // ==================== 绘图（Issue #40 SR-02） ====================
+
+  /** 进入绘图面板：预填主界面表达式，清空错误提示 */
+  onOpenPlot(): void {
+    this.showPlot = true
+    this.plotInput = this.expression
+    this.plotError = ''
+  }
+
+  /** 触发绘制：空值拦截 → 采样分段 → 更新状态（全程 try/catch，CM-05） */
+  onPlot(): void {
+    const expr: string = this.plotInput.trim()
+    if (expr.length === 0) { this.plotError = '请输入表达式'; return }
+    try {
+      ErrorFlags.reset()
+      const res: PlotResult = this.plotter.plot(expr, PLOT_X_MIN, PLOT_X_MAX, PLOT_N)
+      if (res.totalValid === 0 || res.segments.length === 0) {
+        this.plotError = '无可绘制的有效数据点'
+        this.plotSegments = []
+        return
+      }
+      this.plotError = ''
+      this.plotSegments = res.segments
+      this.plotYMin = res.yMin
+      this.plotYMax = res.yMax
+      this.drawPlot()
+    } catch (_e) { this.plotError = '计算错误' }
+  }
+
+  /** 数学坐标 → Canvas 像素坐标（x∈[PLOT_X_MIN,PLOT_X_MAX]→[0,w]，y∈[plotYMin,plotYMax]→[h,0]） */
+  private mathToPx(x: number, y: number, w: number, h: number): number[] {
+    const px: number = (x - PLOT_X_MIN) / (PLOT_X_MAX - PLOT_X_MIN) * w
+    const py: number = h - (y - this.plotYMin) / (this.plotYMax - this.plotYMin) * h
+    const xy: number[] = [px, py]
+    return xy
+  }
+
+  /** 曲线色：浅色主题用强调蓝，暗色沿用 getOp()（与 BtnConst 既有取色惯例一致） */
+  private getCurveColor(): string {
+    return this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()
+  }
+
+  /** 清屏并重绘坐标轴与曲线（画布未就绪时跳过，仅保留数据） */
+  private drawPlot(): void {
+    if (this.canvasW <= 0 || this.canvasH <= 0) return
+    this.canvasCtx.clearRect(0, 0, this.canvasW, this.canvasH)
+    this.drawAxes(this.canvasW, this.canvasH)
+    this.drawCurve(this.canvasW, this.canvasH)
+  }
+
+  /** 坐标轴：x 轴（y=0）与 y 轴（x=0），x 轴刻度 -2π/-π/0/π/2π */
+  private drawAxes(w: number, h: number): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    const range: number = this.plotYMax - this.plotYMin
+    if (range <= 0) return
+    // x 轴位置：y=0 的映射行，夹持到画布内
+    const xy0: number[] = this.mathToPx(0, 0, w, h)
+    const axisY: number = Math.min(Math.max(xy0[1], 0), h)
+    const axisX: number = Math.min(Math.max(xy0[0], 0), w)
+    ctx.strokeStyle = this.getT2()
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, axisY)
+    ctx.lineTo(w, axisY)
+    ctx.moveTo(axisX, 0)
+    ctx.lineTo(axisX, h)
+    ctx.stroke()
+    // x 轴刻度与文字标签
+    ctx.font = '10px sans-serif'
+    ctx.fillStyle = this.getT2()
+    ctx.textAlign = 'center'
+    const ticks: number[] = [PLOT_X_MIN, -Math.PI, 0, Math.PI, PLOT_X_MAX]
+    const labels: string[] = ['-2π', '-π', '0', 'π', '2π']
+    for (let i: number = 0; i < ticks.length; i++) {
+      const tx: number[] = this.mathToPx(ticks[i], 0, w, h)
+      if (tx[0] < 0 || tx[0] > w) continue
+      ctx.beginPath()
+      ctx.moveTo(tx[0], axisY - 4)
+      ctx.lineTo(tx[0], axisY + 4)
+      ctx.stroke()
+      // 标签在轴下方；轴贴近底边时改画在上方
+      const ly: number = axisY + 14 > h ? axisY - 6 : axisY + 14
+      ctx.fillText(labels[i], tx[0], ly)
+    }
+  }
+
+  /** 分段曲线：仅绘制 PlotSegment 有效点（无效点已在段构建时断开，CM-01/SDR-02） */
+  private drawCurve(w: number, h: number): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    ctx.strokeStyle = this.getCurveColor()
+    ctx.lineWidth = 2
+    for (let s: number = 0; s < this.plotSegments.length; s++) {
+      const pts: PlotSegment = this.plotSegments[s]
+      if (pts.points.length === 0) continue
+      const p0: number[] = this.mathToPx(pts.points[0].x, pts.points[0].y, w, h)
+      ctx.beginPath()
+      ctx.moveTo(p0[0], p0[1])
+      for (let i: number = 1; i < pts.points.length; i++) {
+        const p: number[] = this.mathToPx(pts.points[i].x, pts.points[i].y, w, h)
+        ctx.lineTo(p[0], p[1])
+      }
+      ctx.stroke()
+    }
   }
 
   // ==================== 主题颜色（对齐 Android 原版） ====================
@@ -210,6 +328,7 @@ export struct CalculatorPage {
       }
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
+      if (this.showPlot) this.PlotPanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -260,6 +379,8 @@ export struct CalculatorPage {
         .border({ width: 1, color: this.getOp(), radius: 8 })
         .onClick((): void => { this.scientific = !this.scientific })
       Blank()
+      Text('绘图').fontSize(12).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onOpenPlot() })
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
       Text('⚙').fontSize(16).fontColor(this.getT2()).padding(8)
@@ -274,6 +395,7 @@ export struct CalculatorPage {
       if (this.scientific) {
         Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
         Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
+        Row() { this.BtnConst('x') }
       }
       Row() { this.BtnAct('AC'); this.BtnOp('('); this.BtnOp(')'); this.BtnOp('÷') }
       Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
@@ -405,5 +527,51 @@ export struct CalculatorPage {
       Button('关闭').margin({ top: 16 }).onClick((): void => { this.showAbout = false })
     }
     .width('80%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
+  }
+
+  // ==================== 绘图面板（Issue #40，全屏覆盖层，非新路由页） ====================
+  @Builder PlotPanel() {
+    Column() {
+      // 标题行：返回按钮始终可点（CM-05）
+      Row() {
+        Text('函数绘图').fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        Blank()
+        Text('✕ 返回').fontSize(16).fontColor(this.getT2()).padding(8)
+          .onClick((): void => { this.showPlot = false })
+      }
+      .width('100%').padding(16)
+
+      TextInput({ text: this.plotInput, placeholder: '输入含 x 的表达式，如 sin(x)' })
+        .width('100%').height(40).fontSize(14)
+        .onChange((value: string): void => { this.plotInput = value })
+
+      Row() {
+        Button('插入 x').fontSize(14).height(40).layoutWeight(1).margin({ right: 6 })
+          .backgroundColor(this.getBtnBg()).fontColor(this.getT1())
+          .onClick((): void => { this.plotInput = this.plotInput + 'x' })
+        Button('AC').fontSize(14).height(40).layoutWeight(1).margin({ right: 6 })
+          .backgroundColor(this.getClr()).fontColor(this.getBtnText())
+          .onClick((): void => { this.plotInput = ''; this.plotError = '' })
+        Button('绘制').fontSize(14).height(40).layoutWeight(1)
+          .backgroundColor(this.getOp()).fontColor(this.getBtnText())
+          .onClick((): void => { this.onPlot() })
+      }
+      .width('100%').margin({ top: 8 })
+
+      if (this.plotError.length > 0) {
+        Text(this.plotError).fontSize(14).fontColor(this.getErr()).width('100%').padding({ top: 8 })
+      }
+
+      Canvas(this.canvasCtx)
+        .width('100%').layoutWeight(1).margin({ top: 8 })
+        .backgroundColor(this.getPanelBg())
+        .onReady((): void => { this.drawPlot() })
+        .onAreaChange((_old: Area, newVal: Area): void => {
+          this.canvasW = newVal.width as number
+          this.canvasH = newVal.height as number
+          this.drawPlot()
+        })
+    }
+    .width('100%').height('100%').padding(16).backgroundColor(this.getPanelBg())
   }
 }
