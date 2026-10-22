@@ -208,7 +208,11 @@ export struct CalculatorPage {
     ctx.stroke()
   }
 
-  /** 坐标轴线：x 轴（y=0）与 y 轴（x=0），夹持到画布内 */
+  /**
+   * 坐标轴线：x 轴（y=0）与 y 轴（x=0），夹持到画布内。
+   * R5（CM-13）：主文字色 getT1 + 2px（曲线同宽），绘制于曲线之后——
+   * 轴/曲线/网格三方在三主题下两两可辨（原 plotLabelColor 1px 过弱）。
+   */
   private drawAxes(w: number, h: number): void {
     const ctx: CanvasRenderingContext2D = this.canvasCtx
     const range: number = this.plotYMax - this.plotYMin
@@ -216,8 +220,8 @@ export struct CalculatorPage {
     const xy0: number[] = this.mathToPx(0, 0, w, h)
     const axisY: number = Math.min(Math.max(xy0[1], 0), h)
     const axisX: number = Math.min(Math.max(xy0[0], 0), w)
-    ctx.strokeStyle = plotLabelColor(this.themeIdx)
-    ctx.lineWidth = 1
+    ctx.strokeStyle = this.getT1()
+    ctx.lineWidth = 2
     ctx.beginPath()
     ctx.moveTo(0, axisY)
     ctx.lineTo(w, axisY)
@@ -320,7 +324,11 @@ export struct CalculatorPage {
     else { ctx.textBaseline = 'middle' }
   }
 
-  /** 分段曲线：仅绘制 PlotSegment 有效点（无效点已在段构建时断开，CM-01/SDR-02） */
+  /**
+   * 分段曲线：仅绘制 PlotSegment 可绘制点（R5 视窗裁剪+断口阴影后各点均落在画布内，
+   * CM-01/SDR-02/CM-11）；像素坐标再经 [−2, w+2]×[−2, h+2] 超扫夹持（纵深防御，
+   * 防映射漂移导致折线重新冲出画布与轴线粘连）。
+   */
   private drawCurve(w: number, h: number): void {
     const ctx: CanvasRenderingContext2D = this.canvasCtx
     ctx.strokeStyle = this.getCurveColor()
@@ -330,13 +338,20 @@ export struct CalculatorPage {
       if (pts.points.length === 0) continue
       const p0: number[] = this.mathToPx(pts.points[0].x, pts.points[0].y, w, h)
       ctx.beginPath()
-      ctx.moveTo(p0[0], p0[1])
+      ctx.moveTo(this.clampPx(p0[0], w), this.clampPx(p0[1], h))
       for (let i: number = 1; i < pts.points.length; i++) {
         const p: number[] = this.mathToPx(pts.points[i].x, pts.points[i].y, w, h)
-        ctx.lineTo(p[0], p[1])
+        ctx.lineTo(this.clampPx(p[0], w), this.clampPx(p[1], h))
       }
       ctx.stroke()
     }
+  }
+
+  /** 像素坐标夹持到 [−2, max+2] 超扫矩形（drawCurve 纵深防御） */
+  private clampPx(v: number, max: number): number {
+    if (v < -2) return -2
+    if (v > max + 2) return max + 2
+    return v
   }
 
   // ==================== 主题颜色（对齐 Android 原版） ====================

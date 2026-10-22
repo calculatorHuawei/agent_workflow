@@ -166,3 +166,33 @@ opencalc/entry/src/main/ets/
 | 退化输入抛异常 | yMin≥yMax 或非有限 → 返回 [] | 单测：不抛异常且空数组 |
 | 三主题不可读 | 色值纯函数按 themeIdx 返回 | 单测：网格色/标签色/背景两两不同；字号常量 ≥14 |
 | 绘制顺序回归 | drawPlot 单一顺序入口 | Tester UI 截图（网格不遮挡曲线） |
+
+## 12. 补救轮代码仓理解（R5 渐近线视觉分离，2026-10-22 追加）
+
+### 12.1 基本信息
+- **需求类别**：缺陷修复（SR-01 绘制结果补救 + 持久化回归测试）
+- **分析范围**：plot/FunctionPlotter.ets 分段与 y 范围逻辑、pages/CalculatorPage.ets drawCurve/drawAxes、entry/src/test/
+- **约束边界**：不改 plot() 签名与返回语义；无缩放/平移/自定义范围；不改既有有效性（totalValid）语义
+
+### 12.2 缺陷机理定位（d905042 后残留，用户实测反馈）
+| 代码点 | 位置 | 现状 | R5 影响 |
+|--------|------|------|---------|
+| plot() 有效性判定 | FunctionPlotter.ets:58-75 | valid = 无错误标志 ∧ isFinite ∧ \|y\|≤1e6——1/x 在 x=±0.031 处 y=±31.8 仍为"有效点" | 有效性语义保留；新增"可绘制"层 |
+| yRange 稳健裁剪 | FunctionPlotter.ets:123-149 | 2%~98% 中心范围抑制渐近线极值压扁（1/x → [-4.2,4.2]） | 保留不变（截图证实主体可读） |
+| buildSegments | FunctionPlotter.ets:89-117 | 仅"无效点断段 + 跨零且 \|Δy\|>1.5×span 断段"——同号大跳变（如 1/x 左支 -15.9→-31.8）不断段且全部参与连线 | 收紧：视窗裁剪 + 断口阴影 |
+| drawCurve | CalculatorPage.ets:324-340 | moveTo/lineTo 无像素夹持（折线可达画布外 2×h 以上） | 增加 ±2px 超扫夹持（防御） |
+| drawAxes | CalculatorPage.ets:212-227 | plotLabelColor 1px、绘制于曲线之后 | 改 getT1 主文字色 2px（轴/曲线/网格三方可辨） |
+| 真实 UI 证据 | .agent-runtime/evidence/plot-asymptote-remediation/ | 02_1overx_committed.png：右支顶端/左支底端与 Y 轴汇聚粘连；03_logx.png：曲线贴轴冲出底边 | 修复靶点 |
+
+### 12.3 修改约束（FunctionPlotter 内部语义收紧）
+- 纯逻辑：不新增 import、不新增模块；PLOT_VIEW_INSET_RATIO 导出常量供测试引用
+- 兼容：sin(x)/x²/常数/sqrt 既有断言零回归（sin 峰值 ±1.0 距裁剪线 ±1.08 有浮点余量）
+- 可测试：视窗/阴影皆为纯数据判定，hypium 本地直接断言 segments 集合
+
+### 12.4 补救轮风险与测试策略
+| 风险 | 缓解 | 测试策略 |
+|------|------|---------|
+| 裁剪误伤连续函数 | inset=span/20（0.5×padding）；病态回退（全不可绘制→绘制全部有效点） | AC4 零回归断言（sin 401 点单段含峰、x² 含顶点） |
+| 断口阴影误伤 sqrt 顶点 | 已裁决接受 1 步长（≈3px）缩进（proposal §12.2 决策 2） | 断言绘制点 x ≥ 1 步长（既定语义） |
+| totalValid 语义漂移 | 有效性计数与可绘制性解耦，"无可绘制的有效数据点"路径不变 | 既有 1/x 400 有效用例不回归 |
+| 轴线样式三主题不可辨 | getT1 为既有主文字色（黑/#EFEFEF），对比度高于原标签灰 | Tester 三主题截图终验 |

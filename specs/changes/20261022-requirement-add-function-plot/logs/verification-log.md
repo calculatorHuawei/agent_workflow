@@ -105,3 +105,41 @@ Developer **未**执行任何设备/模拟器 UI 测试。三主题下网格/刻
 4. **远端分支头核查**：`git ls-remote origin agent/issue-40-task-1` → `1055417fdeb73da0e21dcc396e31507e9b99dc07  refs/heads/agent/issue-40-task-1` == 本地 HEAD。
 5. **PR #41 head 核查**（gh CLI 与 WebFetch 被会话策略拒绝，经 GitHub REST API 只读查询）：PR #41 `state=open`、`draft=false`、`mergeable_state=clean`、`head.ref=agent/issue-40-task-1`、`head.sha=1055417fdeb73da0e21dcc396e31507e9b99dc07` == 本地 HEAD == 远端分支头。
 6. **本条目提交说明**：本 V-R4-05 记录以新提交进入分支（fast-forward），推送后 PR head 将前进至该最终提交；移交报告（developer→tester JSON）以推送后再次校验的最终 HEAD 为准。
+
+---
+
+# 补救轮（R5 渐近线视觉分离）验证记录 — 2026-10-22 追加
+
+> 工作树：`D:\huawei\Demo\calculatorHuawei\.agent-runtime\worktrees\developer-pull_request-41-task-8`，分支 `agent/pull_request-41-task-8`（== 远端 PR #41 头分支 agent/issue-40-task-1 @ d905042，会话启动时 gh api 已核验）
+> 来源：用户 user_feedback（Issue #40 webhook：1/x、log(x) 曲线渐近线附近与 Y 轴粘连）。会话权限策略拒绝输出重定向/tee 落盘，以下 stdout 按原样转录自终端工具输出；测试结果以 hvigor 工具生成文件 `opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt` 末行为准。
+
+### V-R5-01 环境就绪（新检出工作树）
+- 命令：`hvigorw --version` → `6.24.2`（退出码 0）
+- 命令：`hvigorw --stop-daemon` → `Stopped 0 daemon in total.`（OOM 规避，同前轮惯例）
+- 命令：`ohpm install`（cwd: opencalc/）→ `install completed in 0s 131ms`（退出码 0；oh_modules 缺失已补）
+
+### V-R5-02 TDD RED（Task 5.1）
+- 命令：`hvigorw --no-daemon --mode module -p module=entry@default test`
+- 首跑：`BUILD FAILED in 5 s 679 ms`，`COMPILE RESULT:FAIL {ERROR:3}`——含 2 条错误：`Nested functions are not supported (arkts-no-nested-funcs)`（测试辅助函数误嵌套 describe，**非预期 RED**）+ `Module '"../main/ets/plot/FunctionPlotter"' has no exported member 'PLOT_VIEW_INSET_RATIO'`（预期 RED）
+- 修正测试辅助函数为模块级后复跑（干净 RED）：`BUILD FAILED in 5 s 154 ms`，`10505001 ArkTS Compiler Error: ... has no exported member 'PLOT_VIEW_INSET_RATIO'`（PlotFunction.test.ets:8:50），`COMPILE RESULT:FAIL {ERROR:2}`
+- 判定：AsymptoteSeparationTest 8 用例先于实现失败（编译级），SR-04 AC5"先行失败"达成
+- 转录证据：`logs/test-red-r5.txt`
+
+### V-R5-03 TDD GREEN + 测试侧修正（Task 5.2）
+- 实现 buildSegments 视窗裁剪 + 发散尾部断口阴影后首跑：`BUILD SUCCESSFUL in 8 s 250 ms`，1 失败 `asym_tanx_segments_within_pi_half_intervals`——定位为**测试自身两处几何错误**（实现无错）：
+  1. 最近渐近线误用 `round(x/halfPi)·halfPi`（把 x≈0 误判为距渐近线 0）；渐近线是**奇数倍** π/2 → 修正为 `nearestOdd = round((t−1)/2)·2+1`
+  2. 渐近线区间 id 误用 `floor(x/halfPi)`（在非渐近线的 t=0 处分段）→ 修正为 `floor((t+1)/2)`
+- 过程中发现**实现层同源缺陷**并修复：tan 极值在每个渐近线两侧各一份（4×2 对称多副本），原单档 2% 稳健修剪剔不掉 → tan 范围维持 ±38，支线以近垂直形态贴附渐近线；yRange 修剪比例改为 **2%→5%→10% 逐级尝试**后 tan 主体范围收敛 ±7.6（见 delta-design §12.2.2a）
+
+### V-R5-04 全量绿线（Task 5.2/5.4）
+- 命令（测试）：`hvigorw --no-daemon --mode module -p module=entry@default test`
+- 结果：`BUILD SUCCESSFUL in 7 s 58 ms`；test_result.txt 末行：**`Tests run: 51, Failure: 0, Error: 0, Pass: 51, Ignore: 0`**
+- 构成：既有 43（零回归：scaffold 1 + CalcEngineVarX 8 + ExpressionVarX 13 + FunctionPlotterTest 11 + PlotAxisTest 10）+ AsymptoteSeparationTest 8（全 Success）
+- 退出码：0
+- 命令（构建）：`hvigorw --no-daemon assembleHap` → `BUILD SUCCESSFUL`（退出码 0）；CompileArkTS **0 ERROR**；WARN 全部为既有基线文件（Index.ets / PreferencesStore.ets），本次修改文件（FunctionPlotter.ets / CalculatorPage.ets / PlotFunction.test.ets）**无新增 ERROR/WARN**；`No signingConfig found`（与基线一致）
+- 转录证据：`logs/test-green-r5.txt`
+
+### V-R5-05 分支推进与 PR head 校验（Task 5.5）
+1. 本会话变更（代码 3 文件 + 制品/日志）以提交进入当前分支，显式推送：`git push origin HEAD:agent/issue-40-task-1`（fast-forward，基点 d905042 == 会话启动时 PR #41 head）。
+2. 推送后校验：`git ls-remote origin agent/issue-40-task-1` 与 `gh pr view 41 --json headRefOid` 核验 **PR #41 head.sha == 远端分支头 == 本地 HEAD**；最终 SHA 以移交报告（developer→tester JSON）记录的推送后校验值为准。
+3. **不归档**：未调用 migbot-increment-archiving（用户明确要求：Reviewer 审核真实测试与 MigBot 过程后再议）。

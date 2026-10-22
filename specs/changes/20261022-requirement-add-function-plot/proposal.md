@@ -299,3 +299,48 @@ NumberFormatter（绘图不走数字格式化）、PreferencesStore（不新增�
 | entry/src/main/ets/plot/PlotAxis.ets | 无 | 新增（纯逻辑：刻度+标签布局+主题色） |
 | pages/CalculatorPage.ets | PlotPanel 渲染 | 修改（drawGrid/drawAxes 重写 + drawRangeText） |
 | entry/src/test/PlotFunction.test.ets | 既有套件 | 修改（新增 PlotAxisTest 套件） |
+
+## 12. 补救轮需求（R5：渐近线视觉分离与坐标轴可辨，PR #41 user_feedback）
+
+> 来源：用户 user_feedback（Issue #40 webhook，2026-10-22）：「1/x 与 log(x) 的曲线在渐近线附近看起来和 Y 轴连在一起；先做结果修复与持久化测试」。
+> 真实 UI 证据：`.agent-runtime/evidence/plot-asymptote-remediation/screenshots/02_1overx_committed.png`（右支在画布顶端、左支在底端与 Y 轴汇聚粘连）、`03_logx.png`（曲线贴 Y 轴冲出底边）。R4 后 d905042 已做"轴覆盖曲线+跨零跳变断段+稳健 y 范围"，但近渐近线大 |y| 采样点仍全部参与绘制，折线贴边冲角、视觉上与轴粘连。
+> 本节由补救轮 rq-parse 产出；继续沿用本变更目录，不新建目录、不归档（用户明确要求）。
+
+### 12.1 需求解析报告（补救轮 rq-parse）
+- **意图分类**：缺陷修复（SR-01 采样分段绘制结果补救 + 持久化回归测试）
+- **一句话概括**：不连续函数（1/x、log(x)、tan(x)）绘制时，近渐近线的大 |y| 有效采样点把折线推到画布边缘并与 Y 轴视觉粘连——需在采样分段层做"可绘制视窗裁剪 + 断口阴影"，使曲线在渐近线/定义域边界两侧留出可见间隔，且坐标轴相对曲线清晰可辨；回归测试持久化到 hypium 套件
+- **领域映射**：业务逻辑（采样分段纯逻辑）、UI/交互（轴线样式）、测试（持久化回归套件）
+- **影响层次**：业务层 modify（`plot/FunctionPlotter.ets` 分段可绘制判定）；表现层 modify（`pages/CalculatorPage.ets` drawAxes/drawCurve 防御性夹持）；测试 extend（`PlotFunction.test.ets` 新增 AsymptoteSeparationTest 套件）
+- **关键实体**：可绘制视窗（yMin/yMax 内收 inset）、断口阴影（断口后首采样点不绘制）、PlotSegment（语义扩展：仅含可绘制点）
+- **模糊点**：blocker/important 无（反馈与 Issue AC 明确）；nice-to-have 2 项按工程默认裁决（见 12.2）
+- **复杂度评估**：S——影响 2 模块、无数据模型变更、无架构变更、改动 <120 行
+
+### 12.2 补救轮已裁决决策（自主会话，无 blocker 级人工裁决项）
+| # | 问题 | 决策 | 来源 |
+|---|------|------|------|
+| 1 | 视窗内收比例 inset | span/20（= 0.5×10% padding；sin(x) 峰值 ±1.0 距裁剪线 ±1.08 仍有浮点安全余量，1/x 支线终点距轴 ≥10 采样步长） | 工程默认（对既有 sin/x²/常数用例零影响） |
+| 2 | 断口阴影是否影响 sqrt(x) 顶点 | 接受 1 采样步长（≈3px）的顶点缩进——定义域边界处统一留可见间隔的代价，视觉可忽略；既有 sqrt 用例为有效性断言不受影响 | 工程默认（统一规则优先于特例） |
+
+### 12.3 R5 需求规格
+- **R5: 渐近线视觉分离与坐标轴可辨（结果修复 + 持久化测试）**
+  - 描述：分段构建时仅保留"可绘制"采样点：①y 超出内收视窗 [yMin+inset, yMax−inset] 的点断段；②每个断口（无效点/视窗裁剪）后的首个可绘制点阴影化（不参与连线）。效果：1/x 两支距 Y 轴 ≥2 采样步长、log(x) 不再贴轴冲出底边、tan(x) 各渐近线两侧留出间隔、任何绘制点都在画布内收视窗中；坐标轴以主文字色 2px 绘制于曲线之上，与曲线/网格清晰区分
+  - 需求价值：用户实测反馈粘连未除；"不连续函数不跨渐近线连线"从数据层正确升级为视觉层可辨识
+  - 使用场景：绘制 1/x、log(x)、tan(x) 等含渐近线/定义域边界的函数
+  - 验收标准：
+    - AC1: 1/x 分段 ≥2，任一绘制点 \|y\| ≤ yMax−inset+ε；绘制点最小 \|x\| ≥ 2 采样步长（曲线与 Y 轴留出可见走廊）
+    - AC2: log(x) 仅绘制 x>0，绘制点最小 x ≥ 2 采样步长，最低绘制点不贴 y 下边（≥ yMin+inset−ε）
+    - AC3: tan(x) 各渐近线两侧留出间隔：每段所有点位于同一 π/2 区间，绘制点距最近渐近线 ≥2 采样步长
+    - AC4: 连续函数零回归：sin(x) 单段 401 点全绘制且峰值保留（maxY≥0.999）；x² 单段 401 点含顶点 (0,0)
+    - AC5: 回归测试持久化：以上断言进入 hypium 套件（AsymptoteSeparationTest）并先行失败（TDD RED 证据）
+    - AC6: 坐标轴清晰可辨：轴以主文字色（getT1）2px 绘制且在曲线之后（覆盖曲线），三主题下与曲线色/网格色可区分（代码审查 + Tester UI）
+  - 约束：不改 plot() 签名与 yMin/yMax 返回语义；不做缩放/平移/自定义范围（R4 既定排除）
+  - 优先级：P0
+  - 关联特性：F5（新）
+  - 关联 SR：SR-04（新）
+
+### 12.4 影响范围增量
+| 模块 | 现有功能 | 新增/修改 |
+|------|---------|-----------|
+| entry/src/main/ets/plot/FunctionPlotter.ets | 采样分段（无效断段+跨零跳变断段） | 修改（buildSegments 可绘制视窗裁剪+断口阴影；新增 PLOT_VIEW_INSET_RATIO 常量） |
+| pages/CalculatorPage.ets | drawAxes 用 plotLabelColor 1px | 修改（轴线 getT1 2px；drawCurve 像素级防御夹持） |
+| entry/src/test/PlotFunction.test.ets | 既有 4 套件 | 修改（新增 AsymptoteSeparationTest 套件） | |

@@ -98,6 +98,7 @@
 ```
 Task 1.1 → Task 2.1 → Task 2.2 → Task 2.3 → Task 3.1 → Task 3.2 → Task 3.3 → 完成
 （补救轮）Task 4.1 → Task 4.2 → Task 4.3 → Task 4.4 → 完成
+（补救轮 R5）Task 5.1 → Task 5.2 → Task 5.3 → Task 5.4 → Task 5.5 → 完成
 ```
 
 ## 补救轮任务（R4 可读坐标系，PR #41 changes_requested，2026-10-22 追加）
@@ -151,3 +152,54 @@ Task 1.1 → Task 2.1 → Task 2.2 → Task 2.3 → Task 3.1 → Task 3.2 → Ta
 | Task 3.1 | 代码审查 + 构建 | 2026-10-22 |
 | Task 3.2 | 代码审查 + 构建（UI 证据归 Tester） | 2026-10-22 |
 | Task 3.3 | 全量构建+测试绿线 | 2026-10-22 |
+
+## 补救轮任务（R5 渐近线视觉分离，PR #41 user_feedback，2026-10-22 追加）
+
+#### Task 5.1: 渐近线分离回归测试 TDD（RED）
+**描述**：先在 `entry/src/test/PlotFunction.test.ets` 新增 AsymptoteSeparationTest 套件（引用尚不存在的 PLOT_VIEW_INSET_RATIO 常量触发编译失败=RED），断言：1/x ≥2 段/全点在 [yMin+inset,yMax−inset] 窗内/最小 \|x\|≥2 步长/无跨正负号段；log(x) 全 x>0/最小 x≥2 步长/最低点≥yMin+inset−ε/单段；tan(x) 每段同一 π/2 区间/距最近渐近线 ≥2 步长；sin(x) 单段 401 点 maxY≥0.999 零回归；x² 单段 401 点含 (0,0) 零回归；sqrt(x) 绘制 x≥1 步长。运行留存 logs/test-red-r5.txt。
+**涉及文件**：
+- 测试：`opencalc/entry/src/test/PlotFunction.test.ets`（套件 AsymptoteSeparationTest，先写）
+**依赖任务**：Task 4.3（R4 绿线基线）
+**验收标准**：
+- RED：套件编译失败（Cannot find module/导出缺失），证据留存 logs/test-red-r5.txt
+**TDD**：[x] RED（logs/test-red-r5.txt：`has no exported member 'PLOT_VIEW_INSET_RATIO'`，BUILD FAILED）/ [x] GREEN（logs/test-green-r5.txt）/ [x] REFACTOR（不适用）
+
+#### Task 5.2: FunctionPlotter 视窗裁剪+断口阴影（GREEN）
+**描述**：实现 delta-design §12.2.3：导出 PLOT_VIEW_INSET_RATIO=1/20；buildSegments 单遍构建中 drawable = valid ∧ y∈[yMin+inset, yMax−inset]，断口（无效或窗外）后首个可绘制点若为发散尾部（\|y\|>span/2）阴影化（每断口 1 点）；可绘制总数为 0 且 totalValid>0 时回退绘制全部有效点。plot() 签名/返回/totalValid 语义不变。实现中发现并修复同源缺陷：yRange 稳健修剪对 tan 的对称成对极值失效，修剪比例改 2%→5%→10% 逐级（见偏差记录）。
+**涉及文件**：
+- 实现：`opencalc/entry/src/main/ets/plot/FunctionPlotter.ets`
+**依赖任务**：Task 5.1
+**验收标准**（delta-spec SR-04 AC1-AC5）：
+- 1/x：≥2 段、绘制点全在窗内、最小 \|x\|≥2 步长（实测 9 步长）
+- log(x)：单段、起点 x≥2 步长、不贴底边
+- tan(x)：各段同一 π/2 区间、距渐近线 ≥2 步长（实测 5 步长，范围 ±7.6）
+- sin(x)/x²：绘制集合零变化（401 点单段、峰值/顶点保留）
+- AsymptoteSeparationTest 全过 + 既有套件零回归，证据 logs/test-green-r5.txt
+**TDD**：[x] RED / [x] GREEN（51/51，0 失败）/ [x] REFACTOR（不适用——单遍纯函数）
+
+#### Task 5.3: 轴线可辨与像素防御夹持
+**描述**：drawAxes 轴线色 plotLabelColor→getT1（主文字色）、lineWidth 1→2（保持绘制于曲线之后）；drawCurve 对 mathToPx 结果做 [−2,w+2]×[−2,h+2] 超扫夹持（delta-design §12.3）。
+**涉及文件**：
+- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
+**依赖任务**：Task 5.2
+**验收标准**（delta-spec SR-04 AC6）：
+- CompileArkTS 0 ERROR；绘制顺序不回归（曲线→轴覆盖）
+- 三主题可辨由 Tester 截图终验（SC006-UC002 分工）
+**TDD**：[x] N/A（渲染层，由 Task 5.1 纯逻辑单测 + 构建 + Tester UI 证据覆盖）
+
+#### Task 5.4: 全量绿线验证（R5）
+**描述**：`hvigorw --no-daemon --mode module -p module=entry@default test` 全部通过（40+新增）且 `hvigorw --no-daemon assembleHap` BUILD SUCCESSFUL；先 ohpm install（新检出工作树）；证据写入 logs/。
+**涉及文件**：无新增（验证任务）
+**依赖任务**：Task 5.3
+**验收标准**：test 退出码 0、0 失败；assembleHap 退出码 0；无新增 ERROR/WARN 扩大
+**TDD**：[x] N/A（验证任务）——test 51/51（0 失败）+ assembleHap BUILD SUCCESSFUL（0 ERROR，WARN 全部既有基线），证据 logs/test-green-r5.txt
+
+#### Task 5.5: 补救轮 R5 APPLYING 与 PR 推进
+**描述**：更新 apply-report.md（R5 章节）与 logs/verification-log.md；提交 HEAD 并显式推送到 PR #41 头分支 agent/issue-40-task-1；校验 PR head SHA 与本地 HEAD 一致；产出 developer→tester 移交。
+**涉及文件**：`specs/changes/20261022-requirement-add-function-plot/apply-report.md`、`logs/*`
+**依赖任务**：Task 5.4
+**验收标准**：
+- apply-report.md 含 R5 验收对照与验证命令退出码
+- 远端 agent/issue-40-task-1 HEAD == 本地提交 SHA == PR #41 head SHA
+- 不归档（用户明确要求）
+**TDD**：[x] N/A（过程任务）

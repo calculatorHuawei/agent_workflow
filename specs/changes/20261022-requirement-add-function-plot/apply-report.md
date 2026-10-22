@@ -126,6 +126,8 @@
 
 # 缺陷修复轮应用报告（R5 渐近线与 Y 轴可读性，2026-10-22 追加）
 
+> **注（R5 补救轮追加）**：本节为 d905042 中间修复（稳健 y 范围 + 跨零跳变断段 + 轴覆盖曲线 + UI 用例记录）。用户复验后反馈**粘连仍在**（近渐近线大 \|y\| 有效采样点仍全部参与连线，折线在画布边角与 Y 轴汇聚）——后续结果修复见下方"补救轮 R5 应用报告"。
+
 ## 修复内容
 
 - `FunctionPlotter` 使用 2%~98% 中心样本估算稳健可视范围；仅当原始范围超过中心范围 3 倍时启用，避免影响 `sin(x)`、`x^2` 等正常函数。
@@ -140,3 +142,61 @@
 - 构建：`assembleHap` BUILD SUCCESSFUL。
 - 模拟器：hdc 3.2.0d，`127.0.0.1:5555`；`1/x`、`log(x)`、`tan(x)` 三条 UI 用例全部通过。
 - 运行证据：`.agent-runtime/evidence/plot-asymptote-remediation/`。
+
+---
+
+# 补救轮 R5 应用报告（渐近线视觉分离与坐标轴可辨，PR #41 user_feedback，2026-10-22 追加）
+
+> 来源：用户 user_feedback（Issue #40 webhook，2026-10-22）：「1/x 与 log(x) 的曲线在渐近线附近看起来和 Y 轴连在一起；先做结果修复与持久化测试，再由 Reviewer 审核真实测试和 MigBot 过程。」
+> 本轮继续使用本变更目录（不新建目录、**不归档**）；PLANNING 9 步补救轮产物见 proposal §12 / delta-spec R5+SC-006+SR-04+CM-11~13 / info §12 / delta-design §12 / design-review R5（结论=通过）。
+> 缺陷机理与真实 UI 证据：`.agent-runtime/evidence/plot-asymptote-remediation/screenshots/02_1overx_committed.png`（右支顶端/左支底端与 Y 轴汇聚）、`03_logx.png`（贴轴冲出底边）。
+
+## 补救轮 R5 代码完成情况
+
+| 任务 | 状态 | 完成时间 | 证据 |
+|------|------|----------|------|
+| Task 5.1: AsymptoteSeparationTest TDD（RED） | ✅ 完成 | 2026-10-22 | RED：logs/test-red-r5.txt（`has no exported member 'PLOT_VIEW_INSET_RATIO'`，BUILD FAILED；修正 1 处非预期 nested-funcs 后取得干净 RED） |
+| Task 5.2: FunctionPlotter 视窗裁剪+断口阴影（GREEN） | ✅ 完成 | 2026-10-22 | drawable = valid ∧ y∈[yMin+inset, yMax−inset]（inset=span/20）+ 发散尾部断口阴影（\|y\|>span/2，每断口 1 点）+ 病态回退；另修复 yRange 修剪对 tan 对称极值失效（2%→5%→10% 逐级）；GREEN：logs/test-green-r5.txt |
+| Task 5.3: 轴线可辨+像素防御夹持 | ✅ 完成 | 2026-10-22 | drawAxes 改主文字色 getT1 2px（绘制于曲线之后，轴/曲线/网格三方可辨）；drawCurve ±2px 超扫夹持（纵深防御）；CompileArkTS 0 ERROR |
+| Task 5.4: 全量绿线 | ✅ 完成 | 2026-10-22 | test 51/51、0 失败（exit 0）+ assembleHap BUILD SUCCESSFUL（exit 0，未签名与基线一致）；修改文件无新增 ERROR/WARN（logs/test-green-r5.txt、verification-log.md V-R5-04） |
+| Task 5.5: APPLYING 与 PR 推进 | ✅ 完成 | 2026-10-22 | 本节 + verification-log.md V-R5-01~05；HEAD 显式推送 PR #41 头分支 agent/issue-40-task-1 并校验 PR head SHA 一致；**不归档** |
+
+## 补救轮 R5 变更文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `opencalc/entry/src/main/ets/plot/FunctionPlotter.ets` | 修改 | 新增导出 PLOT_VIEW_INSET_RATIO=0.05；buildSegments 收紧为可绘制视窗（渐近线大 \|y\| 点不再连线，CM-11）+ 发散尾部断口阴影（log(x) 贴轴尾部抬离）+ 全不可绘制回退；旧"跨零跳变断段"由视窗裁剪取代（窗内 \|Δy\|≤span 恒成立，语义单一化）；yRange 稳健修剪逐级升级（tan 对称极值，CM-11 tan 形态） |
+| `opencalc/entry/src/main/ets/pages/CalculatorPage.ets` | 修改 | drawAxes：plotLabelColor 1px → getT1 主文字色 2px（CM-13，保持曲线→轴顺序覆盖）；drawCurve：像素坐标 ±2px 超扫夹持（纵深防御） |
+| `opencalc/entry/src/test/PlotFunction.test.ets` | 修改 | 新增 AsymptoteSeparationTest 套件 8 用例（inset 契约 / 1/x 窗内+轴走廊 / 1/x 无跨号段 / log(x) 尾部抬离 / tan(x) 区间不跨+渐近线间隔 / sin 零回归 / x² 顶点零回归 / sqrt 顶点保持）——**持久化回归测试（用户明确要求）** |
+| `specs/changes/20261022-requirement-add-function-plot/*` | 修改 | proposal §12、delta-spec R5/SC-006/SR-04/CM-11~13、info §12、delta-design §12（含 §12.2.2a yRange 精化）、design-review R5、tasks Task 5.1-5.5、todo.md、logs/test-red-r5.txt、logs/test-green-r5.txt、logs/verification-log.md V-R5 |
+
+## 补救轮 R5 测试结果
+
+- 单元测试：**通过**（51/51，0 失败 0 错误——`hvigorw --no-daemon --mode module -p module=entry@default test`，exit 0；AsymptoteSeparationTest 8 + 既有 43 零回归）
+- 集成测试：不涉及（无既有集成测试套件）
+- Lint 检查：**通过（等效口径）**——`hvigorw lint` 任务在本机 hvigor 6.24.2 不存在（同前轮 AdaptorError 00306054），以 CompileArkTS 诊断为 lint 门禁：0 ERROR、WARN 全部既有基线（Index.ets / PreferencesStore.ets）、修改文件无新增（V-R5-04）
+
+## 用户 user_feedback 逐条对照
+
+| # | 用户要求 | 处置 | 证据 |
+|---|---------|------|------|
+| 1 | 结果修复：1/x、log(x) 曲线渐近线附近不与 Y 轴粘连 | 视窗裁剪（inset=span/20）+ 发散尾部断口阴影：1/x 支线端点距 Y 轴 9 采样步长（≈27px）、距画布边 8% 高度；log(x) 起点抬离至 2 步长、离底边 21%；tan 同步受益（范围 ±38→±7.6，支线距渐近线 5 步长） | AsymptoteSeparationTest asym_one_over_x_separated_from_y_axis / asym_logx_tail_lifted_from_axis_and_bottom / asym_tanx_segments_within_pi_half_intervals（51/51） |
+| 2 | 不连续函数不得跨越渐近线连线 | 无效点断段（既有）+ 视窗裁剪断段 + 断口阴影；1/x 无跨正负号段、tan 每段限于同一渐近线区间 | asym_one_over_x_no_cross_sign_segment / asym_tanx_segments_within_pi_half_intervals |
+| 3 | 坐标轴必须清晰可辨 | 轴线主文字色 getT1 2px，绘制于曲线之后（覆盖）；与 2px 蓝色曲线、1px 浅灰网格三方可辨 | 代码审查 + 构建证据；三主题实际视觉由 Tester 截图终验（SC006-UC002 分工） |
+| 4 | 验证 1/x、log(x)、tan(x) | 三函数专项持久化单测 8 条 + 前轮真实设备用例 ui-tests/asymptote-regression.md 保留 | logs/test-green-r5.txt（51/51） |
+| 5 | 持久化回归测试 | 断言固化进 hypium 套件 AsymptoteSeparationTest（随仓库持久），TDD RED 先行 | logs/test-red-r5.txt → logs/test-green-r5.txt |
+| 6 | 不归档，Reviewer 审核真实测试与 MigBot 过程后处理 | 未调用 migbot-increment-archiving；全部制品/证据留痕于变更目录 | git 历史 + 本报告 |
+
+## 补救轮 R5 实现要点与偏差记录
+
+1. **断口阴影语义精化**（相对 delta-design 初版）：阴影仅作用于**发散尾部**（断口后首个可绘制点 \|y\| > span/2）——sqrt(x) 顶点（y=0，平滑边界）不受影响，既有用例 `pts[0].x < 1e-6` 契约零改动（proposal §12.2 决策 2 的"顶点缩进"代价由此消除，语义更优）。
+2. **yRange 稳健修剪逐级升级**（GREEN 阶段发现，delta-design §12.2.2a）：tan 每个渐近线两侧各一份对称极值，单档 2% 修剪失效 → 2%→5%→10% 逐级；仅 tan 范围变化（±38→±7.6），1/x/log/sin/x²/常数/√x 范围全部不变。
+3. **测试侧修正 3 处**（实现无回归）：①测试辅助函数嵌套 describe 违反 arkts-no-nested-funcs → 模块级函数；②tan 最近渐近线应为奇数倍 π/2；③渐近线区间 id 应为 floor((t+1)/2)。
+4. **环境事项**：新检出工作树 oh_modules 缺失 → `ohpm install`（V-R5-01）；daemon OOM 规避延续 `--no-daemon`。
+5. **UI 视觉项边界**：粘连消除与轴线可辨的**实际视觉效果**需模拟器确认；Developer 提供纯逻辑单测 + 构建证据，Tester 三主题截图终验（SC006-UC002 分工）。
+6. **签名**：本地无 signingConfig，产物为未签名 HAP（与基线一致）；Tester 侧签名安装流程不在 Developer 范围。
+
+## 补救轮 R5 下一步
+
+- Developer 产物就绪（ready_for_test）：等待独立 Tester 在模拟器验证 PR head SHA 构建的 HAP——重点：1/x 两支距 Y 轴可见间隔、log(x) 不贴轴冲边、tan(x) 各渐近线断开且有间隔、轴线三主题可辨；既有验收（sin(x) 曲线、x^2、返回无退化、R4 坐标系可读）不豁免。
+- **不归档**（用户明确要求：Reviewer 审核真实测试与 MigBot 过程后处理；归档留待 Tester 证据与双 Reviewer 闸门通过后）。

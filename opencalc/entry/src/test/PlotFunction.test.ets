@@ -1,14 +1,25 @@
 // OpenCalc — 函数绘图本地单元测试（Issue #40）
 // 覆盖：SR-00 变量求值 / SR-01 采样分段 / SR-03 可读坐标系逻辑（补救轮 R4，delta-spec §8）
+//       / SR-04 渐近线视觉分离（补救轮 R5，delta-spec §8，PR #41 user_feedback）
 import { describe, it, expect } from '@ohos/hypium'
 import { ErrorFlags } from '../main/ets/model/ErrorFlags'
 import { CalcEngine } from '../main/ets/calculator/Calculator'
 import { Expression } from '../main/ets/calculator/Expression'
-import { FunctionPlotter, PlotResult, PlotPoint } from '../main/ets/plot/FunctionPlotter'
+import { FunctionPlotter, PlotResult, PlotPoint, PLOT_VIEW_INSET_RATIO } from '../main/ets/plot/FunctionPlotter'
 import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../main/ets/plot/PlotAxis'
+
+/** 收集全部绘制点（模块级函数——ArkTS 禁止嵌套函数） */
+function collectDrawn(r: PlotResult): PlotPoint[] {
+  const out: PlotPoint[] = []
+  for (let s: number = 0; s < r.segments.length; s++) {
+    const pts: PlotPoint[] = r.segments[s].points
+    for (let i: number = 0; i < pts.length; i++) out.push(pts[i])
+  }
+  return out
+}
 
 export default function plotFunctionTest(): void {
   describe('scaffold', () => {
@@ -397,6 +408,141 @@ export default function plotFunctionTest(): void {
         expect(g !== c).assertTrue()
         expect(g !== panelBgs[t]).assertTrue()
         expect(c !== panelBgs[t]).assertTrue()
+      }
+    })
+  })
+
+  // ==================== SR-04：渐近线视觉分离（补救轮 R5） ====================
+  describe('AsymptoteSeparationTest', () => {
+    const plotter: FunctionPlotter = new FunctionPlotter()
+    const PI: number = Math.PI
+    const TWO_PI: number = 2 * Math.PI
+    const STEP: number = (2 * TWO_PI) / 400   // 401 点采样步长
+    const EPS: number = 1e-9
+
+    /** 收集全部绘制点 */
+    it('inset_ratio_contract', 0, (): void => {
+      // 视窗内收比例 = 0.5×padding（span/20）：sin 峰值 ±1.0 距裁剪线 ±1.08 有浮点余量
+      expect(PLOT_VIEW_INSET_RATIO > 0 && PLOT_VIEW_INSET_RATIO <= 0.1).assertTrue()
+    })
+
+    it('asym_one_over_x_separated_from_y_axis', 0, (): void => {
+      const r: PlotResult = plotter.plot('1/x', -TWO_PI, TWO_PI, 401)
+      expect(r.totalValid).assertEqual(400)
+      expect(r.segments.length >= 2).assertTrue()
+      const inset: number = (r.yMax - r.yMin) * PLOT_VIEW_INSET_RATIO
+      const lo: number = r.yMin + inset - EPS
+      const hi: number = r.yMax - inset + EPS
+      const drawn: PlotPoint[] = collectDrawn(r)
+      expect(drawn.length > 0).assertTrue()
+      let minAbsX: number = Infinity
+      for (let i: number = 0; i < drawn.length; i++) {
+        // AC1：绘制点全部在内收视窗中（不再冲出画布边缘）
+        if (drawn[i].y < lo || drawn[i].y > hi) { expect(false).assertTrue() }
+        if (Math.abs(drawn[i].x) < minAbsX) minAbsX = Math.abs(drawn[i].x)
+      }
+      // AC1：曲线与 Y 轴留出可见走廊（≥2 采样步长）
+      expect(minAbsX >= 2 * STEP - EPS).assertTrue()
+    })
+
+    it('asym_one_over_x_no_cross_sign_segment', 0, (): void => {
+      const r: PlotResult = plotter.plot('1/x', -TWO_PI, TWO_PI, 401)
+      for (let s: number = 0; s < r.segments.length; s++) {
+        const pts: PlotPoint[] = r.segments[s].points
+        let hasNegative: boolean = false
+        let hasPositive: boolean = false
+        for (let i: number = 0; i < pts.length; i++) {
+          if (pts[i].x < 0) hasNegative = true
+          if (pts[i].x > 0) hasPositive = true
+        }
+        expect(hasNegative && hasPositive).assertFalse()
+      }
+    })
+
+    it('asym_logx_tail_lifted_from_axis_and_bottom', 0, (): void => {
+      const r: PlotResult = plotter.plot('log(x)', -TWO_PI, TWO_PI, 401)
+      expect(r.segments.length).assertEqual(1)
+      const inset: number = (r.yMax - r.yMin) * PLOT_VIEW_INSET_RATIO
+      const drawn: PlotPoint[] = collectDrawn(r)
+      expect(drawn.length > 0).assertTrue()
+      let minX: number = Infinity
+      let minY: number = Infinity
+      for (let i: number = 0; i < drawn.length; i++) {
+        // AC2：仅绘制 x>0 定义域
+        if (drawn[i].x <= 0) { expect(false).assertTrue() }
+        if (drawn[i].x < minX) minX = drawn[i].x
+        if (drawn[i].y < minY) minY = drawn[i].y
+        if (drawn[i].y < r.yMin + inset - EPS) { expect(false).assertTrue() }
+      }
+      // AC2：发散尾部抬离 Y 轴（≥2 采样步长）且不贴 y 下边
+      expect(minX >= 2 * STEP - EPS).assertTrue()
+      expect(minY >= r.yMin + inset - EPS).assertTrue()
+    })
+
+    it('asym_tanx_segments_within_pi_half_intervals', 0, (): void => {
+      const r: PlotResult = plotter.plot('tan(x)', -TWO_PI, TWO_PI, 401)
+      // 渐近线 ±π/2、±3π/2 → 5 个连续分支
+      expect(r.segments.length).assertEqual(5)
+      const inset: number = (r.yMax - r.yMin) * PLOT_VIEW_INSET_RATIO
+      const halfPi: number = PI / 2
+      for (let s: number = 0; s < r.segments.length; s++) {
+        const pts: PlotPoint[] = r.segments[s].points
+        expect(pts.length > 0).assertTrue()
+        // AC3：每段所有点位于同一渐近线区间（区间以奇数倍 π/2 为界：floor((t+1)/2)，
+        // floor(x/halfPi) 会在非渐近线的 t=0 处误分段）
+        const k0: number = Math.floor((pts[0].x / halfPi + 1) / 2)
+        let minDist: number = Infinity
+        for (let i: number = 0; i < pts.length; i++) {
+          const k: number = Math.floor((pts[i].x / halfPi + 1) / 2)
+          if (k !== k0) { expect(false).assertTrue() }
+          // 最近渐近线 = 奇数倍 π/2（Math.round 取最近 π/2 倍数会把 x≈0 误判为距渐近线 0）
+          const t: number = pts[i].x / halfPi
+          const nearestOdd: number = Math.round((t - 1) / 2) * 2 + 1
+          const d: number = Math.abs(t - nearestOdd) * halfPi
+          if (d < minDist) minDist = d
+          if (pts[i].y < r.yMin + inset - EPS || pts[i].y > r.yMax - inset + EPS) { expect(false).assertTrue() }
+        }
+        // AC3：绘制点距最近渐近线 ≥2 采样步长
+        expect(minDist >= 2 * STEP - EPS).assertTrue()
+      }
+    })
+
+    it('asym_sinx_zero_regression_full_curve', 0, (): void => {
+      // AC4：视窗裁剪/断口阴影不得误伤连续函数（sin 峰值保留）
+      const r: PlotResult = plotter.plot('sin(x)', -TWO_PI, TWO_PI, 401)
+      expect(r.totalValid).assertEqual(401)
+      expect(r.segments.length).assertEqual(1)
+      expect(r.segments[0].points.length).assertEqual(401)
+      let maxY: number = -Infinity
+      let minY: number = Infinity
+      const pts: PlotPoint[] = r.segments[0].points
+      for (let i: number = 0; i < pts.length; i++) {
+        if (pts[i].y > maxY) maxY = pts[i].y
+        if (pts[i].y < minY) minY = pts[i].y
+      }
+      expect(maxY >= 0.999).assertTrue()
+      expect(minY <= -0.999).assertTrue()
+    })
+
+    it('asym_x2_zero_regression_vertex_kept', 0, (): void => {
+      // AC4：x² 单段全点绘制、顶点 (0,0) 保留
+      const r: PlotResult = plotter.plot('x^2', -TWO_PI, TWO_PI, 401)
+      expect(r.totalValid).assertEqual(401)
+      expect(r.segments.length).assertEqual(1)
+      expect(r.segments[0].points.length).assertEqual(401)
+      const pts: PlotPoint[] = r.segments[0].points
+      expect(Math.abs(pts[200].x) < 1e-12).assertTrue()
+      expect(Math.abs(pts[200].y) < 1e-9).assertTrue()
+    })
+
+    it('asym_sqrtx_vertex_still_drawn_at_domain_edge', 0, (): void => {
+      // 已裁决（proposal §12.2）：非发散的平滑边界（sqrt 顶点 y=0）不阴影化
+      const r: PlotResult = plotter.plot('sqrt(x)', -TWO_PI, TWO_PI, 401)
+      expect(r.segments.length).assertEqual(1)
+      const pts: PlotPoint[] = r.segments[0].points
+      expect(pts[0].x < 1e-6).assertTrue()
+      for (let i: number = 0; i < pts.length; i++) {
+        if (pts[i].x < -1e-12) { expect(false).assertTrue() }
       }
     })
   })

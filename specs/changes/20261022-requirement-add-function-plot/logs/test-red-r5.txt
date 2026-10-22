@@ -1,0 +1,15 @@
+R5 TDD RED 证据（Task 5.1）
+命令: hvigorw --no-daemon --mode module -p module=entry@default test
+日期: 2026-10-22
+预期: 编译失败——AsymptoteSeparationTest 引用尚不存在的导出 PLOT_VIEW_INSET_RATIO（先写测试，实现未落地）
+
+> hvigor Finished :entry:default@BuildUnitTestHook... after 1 ms
+> hvigor ERROR: Failed :entry:default@UnitTestArkTS...
+> hvigor ERROR: ArkTS Compiler Error
+1 ERROR: 10505001 ArkTS Compiler Error
+Error Message: Module '"../main/ets/plot/FunctionPlotter"' has no exported member 'PLOT_VIEW_INSET_RATIO'. At File: opencalc/entry/src/test/PlotFunction.test.ets:8:50
+COMPILE RESULT:FAIL {ERROR:2}
+> hvigor ERROR: BUILD FAILED in 5 s 154 ms
+
+结论: RED 成立（套件因 PLOT_VIEW_INSET_RATIO 导出缺失无法编译；实现转 GREEN 见 test-green-r5.txt）
+备注: 首轮 RED 曾出现 arkts-no-nested-funcs（测试辅助函数嵌套）非预期错误，已修正为模块级函数后取得本干净 RED。
