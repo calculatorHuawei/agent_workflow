@@ -17,7 +17,6 @@ export struct CalculatorPage {
   @State expression: string = ''
   @State result: string = ''
   @State errorMsg: string = ''
-  @State scientific: boolean = false
   @State history: HistoryItem[] = []
   @State showHistory: boolean = false
   @State showSettings: boolean = false
@@ -27,7 +26,6 @@ export struct CalculatorPage {
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
   @State preventSleep: boolean = false
-  @State radianMode: boolean = false
   @State themeIdx: number = 0
 
   // ==================== 内部状态 ====================
@@ -46,9 +44,7 @@ export struct CalculatorPage {
     if (!this.prefs) return
     this.vibrateOn = await this.prefs.getVibrationEnabled()
     this.preventSleep = await this.prefs.getPreventSleep()
-    this.radianMode = await this.prefs.getRadiansDefault()
     this.themeIdx = await this.prefs.getTheme()
-    this.scientific = (await this.prefs.getScientificModeDefault()) === 1
   }
 
   async loadHistory(): Promise<void> {
@@ -61,16 +57,12 @@ export struct CalculatorPage {
     if (!this.prefs) return
     if (key === 'vibrateOn') await this.prefs.setVibrationEnabled(value as boolean)
     else if (key === 'preventSleep') await this.prefs.setPreventSleep(value as boolean)
-    else if (key === 'radianMode') await this.prefs.setRadiansDefault(value as boolean)
     else if (key === 'themeIdx') await this.prefs.setTheme(value as number)
-    else if (key === 'scientific') await this.prefs.setScientificModeDefault(value as number)
   }
 
   // ==================== 按钮事件 ====================
   onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
   onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = '' }
-  onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
-  onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
   onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
 
@@ -79,7 +71,7 @@ export struct CalculatorPage {
     ErrorFlags.reset()
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
-      const raw: number = this.engine.evaluate(clean, !this.radianMode)
+      const raw: number = this.engine.evaluate(clean)
       if (ErrorFlags.division_by_0) { this.errorMsg = '除数不能为零'; this.result = '' }
       else if (ErrorFlags.domain_error) { this.errorMsg = '定义域错误'; this.result = '' }
       else if (ErrorFlags.syntax_error) { this.errorMsg = '表达式错误'; this.result = '' }
@@ -136,13 +128,6 @@ export struct CalculatorPage {
     if (this.themeIdx === 1) return '#0a0a0a'   // AMOLED: 稍亮于纯黑
     if (this.themeIdx === 2) return '#323232'
     return '#FFFFFF'
-  }
-
-  /** 功能/常量按钮背景（比普通按钮稍暗以区分层级） */
-  getFuncBg(): string {
-    if (this.themeIdx === 1) return '#111111'
-    if (this.themeIdx === 2) return '#333333'
-    return '#E8E8E8'
   }
 
   /** 运算符按钮色（默认浅蓝 #B4D2E4） */
@@ -216,8 +201,6 @@ export struct CalculatorPage {
       const w: number = newVal.width as number
       const h: number = newVal.height as number
       this.isLandscape = w > h
-      // 横屏时自动开启科学模式（但不强制显示历史）
-      if (this.isLandscape) this.scientific = true
     })
   }
 
@@ -252,13 +235,9 @@ export struct CalculatorPage {
     .gesture(LongPressGesture().onAction((): void => { this.onCopy() }))
   }
 
-  // ==================== 模式切换栏（仅竖屏显示） ====================
+  // ==================== 工具栏（仅竖屏显示） ====================
   @Builder ToggleRow() {
     Row() {
-      Text(this.scientific ? '科学' : '基础').fontSize(12).fontColor(this.getOp())
-        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-        .border({ width: 1, color: this.getOp(), radius: 8 })
-        .onClick((): void => { this.scientific = !this.scientific })
       Blank()
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
@@ -271,10 +250,6 @@ export struct CalculatorPage {
   // ==================== 按钮网格 ====================
   @Builder ButtonGrid() {
     Column() {
-      if (this.scientific) {
-        Row() { this.BtnFunc('sin'); this.BtnFunc('cos'); this.BtnFunc('tan'); this.BtnFunc('ln'); this.BtnFunc('log') }
-        Row() { this.BtnFunc('arcsi'); this.BtnFunc('arcco'); this.BtnFunc('arcta'); this.BtnConst('π'); this.BtnConst('e') }
-      }
       Row() { this.BtnAct('AC'); this.BtnOp('('); this.BtnOp(')'); this.BtnOp('÷') }
       Row() { this.BtnDig('7'); this.BtnDig('8'); this.BtnDig('9'); this.BtnOp('×') }
       Row() { this.BtnDig('4'); this.BtnDig('5'); this.BtnDig('6'); this.BtnOp('-') }
@@ -289,12 +264,6 @@ export struct CalculatorPage {
 
   /** 运算符按钮 */
   @Builder BtnOp(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('22%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(this.getOp()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { this.onOp(l) }) }
-
-  /** 科学函数按钮 */
-  @Builder BtnFunc(l: string) { Text(l).fontSize(this.isLandscape ? 11 : 14).fontColor(this.getT1()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onFunc(l) }) }
-
-  /** 常量按钮 */
-  @Builder BtnConst(l: string) { Text(l).fontSize(this.isLandscape ? 13 : 18).fontColor(this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()).width('18%').height(this.isLandscape ? 30 : 46).textAlign(TextAlign.Center).backgroundColor(this.getFuncBg()).borderRadius(50).margin(this.isLandscape ? 1 : 3).onClick((): void => { this.onConst(l) }) }
 
   /** 动作按钮（AC/退格） */
   @Builder BtnAct(l: string) { Text(l).fontSize(this.isLandscape ? 14 : 20).fontColor(this.getBtnText()).width('22%').height(this.isLandscape ? 36 : 56).textAlign(TextAlign.Center).backgroundColor(l === 'AC' ? this.getClr() : this.getBtnBg()).borderRadius(50).margin(this.isLandscape ? 1 : 4).onClick((): void => { if (l === 'AC') this.onAC(); else this.onBS() }) }
@@ -355,7 +324,6 @@ export struct CalculatorPage {
       List() {
         ListItem() { this.ToggleItem('振动反馈', this.vibrateOn, (v: boolean): void => { this.vibrateOn = v; this.savePref('vibrateOn', v) }) }
         ListItem() { this.ToggleItem('防休眠', this.preventSleep, (v: boolean): void => { this.preventSleep = v; this.savePref('preventSleep', v) }) }
-        ListItem() { this.ToggleItem('弧度模式', this.radianMode, (v: boolean): void => { this.radianMode = v; this.savePref('radianMode', v) }) }
         ListItem() { this.ThemeItem() }
         ListItem() {
           Row() { Text('关于 OpenCalc').fontSize(15).fontColor(this.getT2()); Blank(); Text('>').fontColor(this.getT2()) }

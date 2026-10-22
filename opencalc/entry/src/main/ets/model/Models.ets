@@ -17,13 +17,6 @@ export enum NumberingSystem {
   INDIAN = 1          // 印度制
 }
 
-/** 科学模式切换状态 */
-export enum ScientificModeType {
-  NOT_ACTIVE = 0,  // 默认关闭
-  ACTIVE = 1,      // 默认开启
-  OFF = 2          // 强制关闭
-}
-
 /** 历史记录条目 */
 export interface HistoryItem {
   id: number           // 唯一标识
@@ -39,8 +32,6 @@ export interface CalculatorPreferences {
   vibrationEnabled: boolean        // 振动反馈开关
   preventSleep: boolean            // 防休眠开关
   historySize: number              // 历史记录最大条数
-  scientificModeDefault: number    // 默认科学模式状态
-  radiansDefault: boolean          // 默认弧度模式
   numberPrecision: number          // 数字精度
   decimalSeparatorSymbol: string   // 小数点符号
   groupingSeparatorSymbol: string  // 千分位符号
@@ -53,8 +44,6 @@ export const DEFAULT_PREFERENCES: CalculatorPreferences = {
   vibrationEnabled: true,
   preventSleep: false,
   historySize: 100,
-  scientificModeDefault: ScientificModeType.NOT_ACTIVE,
-  radiansDefault: false,
   numberPrecision: 12,
   decimalSeparatorSymbol: '.',
   groupingSeparatorSymbol: ','

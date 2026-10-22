@@ -7,8 +7,7 @@ import { common } from '@kit.AbilityKit'
 import {
   CalculatorPreferences,
   DEFAULT_PREFERENCES,
-  HistoryItem,
-  ScientificModeType
+  HistoryItem
 } from '../model/Models'
 
 /** 偏好存储文件名 */
@@ -16,8 +15,8 @@ const PREF_NAME: string = 'opencalc_preferences'
 
 /**
  * 偏好设置管理器
- * 封装了主题、振动、防休眠、历史记录、科学模式、
- * 弧度/角度、数字精度、分隔符等配置的读写操作。
+ * 封装了主题、振动、防休眠、历史记录、数字精度、
+ * 分隔符等配置的读写操作。
  * 所有写操作都会立即 flush 到磁盘。
  */
 export class PreferencesStore {
@@ -132,36 +131,6 @@ export class PreferencesStore {
     await this.store.flush()
   }
 
-  // ==================== 科学模式 ====================
-
-  /** 获取默认科学模式状态 */
-  async getScientificModeDefault(): Promise<number> {
-    if (!this.store) return DEFAULT_PREFERENCES.scientificModeDefault
-    return await this.store.get('scientificModeDefault', DEFAULT_PREFERENCES.scientificModeDefault) as number
-  }
-
-  /** 设置默认科学模式 */
-  async setScientificModeDefault(value: number): Promise<void> {
-    if (!this.store) return
-    await this.store.put('scientificModeDefault', value)
-    await this.store.flush()
-  }
-
-  // ==================== 弧度/角度 ====================
-
-  /** 获取默认弧度模式 */
-  async getRadiansDefault(): Promise<boolean> {
-    if (!this.store) return DEFAULT_PREFERENCES.radiansDefault
-    return await this.store.get('radiansDefault', DEFAULT_PREFERENCES.radiansDefault) as boolean
-  }
-
-  /** 设置默认弧度模式 */
-  async setRadiansDefault(value: boolean): Promise<void> {
-    if (!this.store) return
-    await this.store.put('radiansDefault', value)
-    await this.store.flush()
-  }
-
   // ==================== 数字精度 ====================
 
   /** 获取数字精度 */
@@ -215,8 +184,6 @@ export class PreferencesStore {
       vibrationEnabled: await this.getVibrationEnabled(),
       preventSleep: await this.getPreventSleep(),
       historySize: await this.getHistorySize(),
-      scientificModeDefault: await this.getScientificModeDefault(),
-      radiansDefault: await this.getRadiansDefault(),
       numberPrecision: await this.getNumberPrecision(),
       decimalSeparatorSymbol: await this.getDecimalSeparator(),
       groupingSeparatorSymbol: await this.getGroupingSeparator()
