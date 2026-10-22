@@ -2,10 +2,14 @@
 
 This branch is the immutable starting point for automated incremental-development tests.
 
-- Product source: `D:\huawei\MigBot\opencalc_harmonyos-main_origin`
-- Product source commit: `62a1ba397319b12292934eefd24c1ec73346f7b1`
-- Source description: `snapshot: original opencalc baseline (pre-self-evolve)`
+- Product source: `C:\Users\26909\Downloads\opencalc_harmonyos-main\opencalc_harmonyos-main`
+- Product source form: downloaded snapshot without Git metadata
+- Source description: OpenCalc HarmonyOS scientific-calculator snapshot
 - Repository scaffold parent: `01b3773ebc7f4e2c85b2fd5de05722e2589beb85`
-- Visible percent button: absent
+- Scientific mode: present (`sin`, `cos`, `tan`, inverse trigonometric functions, logarithms, constants)
+- Angle modes: degrees and radians
+- Percent expression support: present in the expression engine
+- Visible percent button: absent from the keypad
+- Reproducibility fix: source resources are tracked so a clean worktree can build independently
 
 Only build wrappers were added to support execution from arbitrary Git worktrees. Feature work must branch from this ref; do not commit feature changes directly to this branch.
