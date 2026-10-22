@@ -121,3 +121,22 @@
 
 - Developer 产物就绪（ready_for_test）：等待独立 Tester 在模拟器验证 PR head SHA 构建的 HAP——重点：X 刻度五标签无裁切、Y ≥5 刻度、网格不遮挡曲线、轴名与范围文本、三主题 14px 可读；既有验收（sin(x) 曲线、x^2、返回无退化）不豁免。
 - **不归档**（用户明确要求；归档留待 Tester 证据与双 Reviewer 闸门通过后）。
+
+---
+
+# 缺陷修复轮应用报告（R5 渐近线与 Y 轴可读性，2026-10-22 追加）
+
+## 修复内容
+
+- `FunctionPlotter` 使用 2%~98% 中心样本估算稳健可视范围；仅当原始范围超过中心范围 3 倍时启用，避免影响 `sin(x)`、`x^2` 等正常函数。
+- 当相邻有效点跨过零值且跳变超过可视跨度 1.5 倍时断段，覆盖偶数采样没有恰好命中渐近线的 `1/x`。
+- 绘制顺序改为网格→曲线→坐标轴→标签，使渐近线曲线不再覆盖 Y 轴。
+- 持久化 `1/x`、`log(x)`、`tan(x)` UI 回归用例到 `ui-tests/asymptote-regression.md`。
+
+## TDD 与验证
+
+- RED：偶数 400 点采样的 `1/x` 原实现得到 1 段而非 2 段；原 Y 范围不满足主体可读性阈值。
+- GREEN：新增 4 条回归单测后完整 Hypium 套件通过，无失败输出。
+- 构建：`assembleHap` BUILD SUCCESSFUL。
+- 模拟器：hdc 3.2.0d，`127.0.0.1:5555`；`1/x`、`log(x)`、`tan(x)` 三条 UI 用例全部通过。
+- 运行证据：`.agent-runtime/evidence/plot-asymptote-remediation/`。

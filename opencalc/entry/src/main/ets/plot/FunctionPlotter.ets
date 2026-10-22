@@ -73,8 +73,8 @@ export class FunctionPlotter {
         ys.push(y)
         valid.push(ok)
       }
-      const segments: PlotSegment[] = this.buildSegments(xs, ys, valid)
       const range: number[] = this.yRange(ys, valid)
+      const segments: PlotSegment[] = this.buildSegments(xs, ys, valid, range[0], range[1])
       const result: PlotResult = { segments: segments, yMin: range[0], yMax: range[1], totalValid: totalValid }
       return result
     } catch (_e) {
@@ -82,13 +82,26 @@ export class FunctionPlotter {
     }
   }
 
-  /** 单遍分段：连续 valid 点成段（孤立有效点自成单点段） */
-  private buildSegments(xs: number[], ys: number[], valid: boolean[]): PlotSegment[] {
+  /**
+   * 单遍分段：无效点或相对当前可视范围的巨大跳变都会断段。
+   * 后者覆盖渐近线落在两个采样点之间、未恰好采到无效点的情况。
+   */
+  private buildSegments(xs: number[], ys: number[], valid: boolean[], yMin: number, yMax: number): PlotSegment[] {
     const segments: PlotSegment[] = []
     let current: PlotPoint[] = []
+    const visibleSpan: number = yMax - yMin
     for (let i: number = 0; i < xs.length; i++) {
       if (valid[i]) {
         const pt: PlotPoint = { x: xs[i], y: ys[i], valid: true }
+        if (current.length > 0 && visibleSpan > 0) {
+          const previous: PlotPoint = current[current.length - 1]
+          const crossesZero: boolean = pt.y * previous.y < 0
+          if (crossesZero && Math.abs(pt.y - previous.y) > visibleSpan * 1.5) {
+            const completed: PlotSegment = { points: current }
+            segments.push(completed)
+            current = []
+          }
+        }
         current.push(pt)
       } else if (current.length > 0) {
         const seg: PlotSegment = { points: current }
@@ -103,17 +116,32 @@ export class FunctionPlotter {
     return segments
   }
 
-  /** y 范围：仅统计有效且有限样本；min==max → ±1；再 +10% 对称 padding（CM-06） */
+  /**
+   * y 范围：默认使用完整有限样本；当两端少量极值把范围扩大到主体的 3 倍以上时，
+   * 使用 2%~98% 的稳健范围，避免渐近线附近样本把主体曲线压扁到坐标轴上。
+   */
   private yRange(ys: number[], valid: boolean[]): number[] {
-    let mn: number = NaN
-    let mx: number = NaN
+    const values: number[] = []
     for (let i: number = 0; i < ys.length; i++) {
       if (valid[i] && Number.isFinite(ys[i])) {
-        if (Number.isNaN(mn) || ys[i] < mn) mn = ys[i]
-        if (Number.isNaN(mx) || ys[i] > mx) mx = ys[i]
+        values.push(ys[i])
       }
     }
-    if (Number.isNaN(mn) || Number.isNaN(mx)) return [0, 1]
+    if (values.length === 0) return [0, 1]
+    values.sort((a: number, b: number): number => a - b)
+    let mn: number = values[0]
+    let mx: number = values[values.length - 1]
+    if (values.length >= 50) {
+      const trim: number = Math.floor(values.length * 0.02)
+      const centralMin: number = values[trim]
+      const centralMax: number = values[values.length - 1 - trim]
+      const rawSpan: number = mx - mn
+      const centralSpan: number = centralMax - centralMin
+      if (centralSpan > 0 && rawSpan > centralSpan * 3) {
+        mn = centralMin
+        mx = centralMax
+      }
+    }
     if (mn === mx) { mn = mn - 1; mx = mx + 1 }
     const pad: number = (mx - mn) * 0.1
     const range: number[] = [mn - pad, mx + pad]

@@ -171,7 +171,7 @@ export struct CalculatorPage {
     return this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()
   }
 
-  /** 清屏并重绘坐标系与曲线（画布未就绪时跳过，仅保留数据）；顺序固化为 网格→轴→刻度标签→轴名→范围→曲线，曲线恒最后（CM-10） */
+  /** 清屏并重绘坐标系与曲线；坐标轴最后覆盖曲线，保证渐近线不会遮住 Y 轴。 */
   private drawPlot(): void {
     if (this.canvasW <= 0 || this.canvasH <= 0) return
     const w: number = this.canvasW
@@ -180,11 +180,11 @@ export struct CalculatorPage {
     const yTks: AxisTick[] = yTicks(this.plotYMin, this.plotYMax, 5)
     this.canvasCtx.clearRect(0, 0, w, h)
     this.drawGrid(xTks, yTks, w, h)
+    this.drawCurve(w, h)
     this.drawAxes(w, h)
     this.drawTickLabels(xTks, yTks, w, h)
     this.drawAxisNames(w, h)
     this.drawRangeText()
-    this.drawCurve(w, h)
   }
 
   /** 网格线：每个 X/Y 刻度一条 1px 低对比线，先于轴与曲线绘制（CM-09/CM-10） */

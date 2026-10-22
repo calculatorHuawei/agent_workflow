@@ -211,6 +211,38 @@ export default function plotFunctionTest(): void {
       expect(Math.abs(neg[10].y * neg[10].x - 1) < 1e-12).assertTrue()
     })
 
+    it('plot_reciprocal_breaks_when_zero_is_between_samples', 0, (): void => {
+      // 偶数采样不会命中 x=0；仍不得把渐近线两侧连成一条折线。
+      const r: PlotResult = plotter.plot('1/x', -TWO_PI, TWO_PI, 400)
+      expect(r.segments.length).assertEqual(2)
+      for (let s: number = 0; s < r.segments.length; s++) {
+        const pts: PlotPoint[] = r.segments[s].points
+        let hasNegative: boolean = false
+        let hasPositive: boolean = false
+        for (let i: number = 0; i < pts.length; i++) {
+          if (pts[i].x < 0) hasNegative = true
+          if (pts[i].x > 0) hasPositive = true
+        }
+        expect(hasNegative && hasPositive).assertFalse()
+      }
+    })
+
+    it('plot_reciprocal_uses_robust_visible_range', 0, (): void => {
+      const r: PlotResult = plotter.plot('1/x', -TWO_PI, TWO_PI, 401)
+      // 靠近 x=0 的少数极端点不能把主体曲线压扁到坐标轴上。
+      expect(r.yMin > -10).assertTrue()
+      expect(r.yMax < 10).assertTrue()
+    })
+
+    it('plot_log_keeps_domain_on_positive_side', 0, (): void => {
+      const r: PlotResult = plotter.plot('log(x)', -TWO_PI, TWO_PI, 401)
+      expect(r.segments.length).assertEqual(1)
+      const pts: PlotPoint[] = r.segments[0].points
+      for (let i: number = 0; i < pts.length; i++) {
+        expect(pts[i].x > 0).assertTrue()
+      }
+    })
+
     it('plot_sqrt_domain_only_nonneg', 0, (): void => {
       const r: PlotResult = plotter.plot('sqrt(x)', -TWO_PI, TWO_PI, 401)
       // x=0 采样点受浮点表示影响（±1e-15），可能有效或无效
