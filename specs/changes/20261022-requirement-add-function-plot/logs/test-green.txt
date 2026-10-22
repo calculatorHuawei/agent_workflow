@@ -1,0 +1,39 @@
+# TDD GREEN 证据 — Task 4.1（补救轮 R4，2026-10-22）
+
+> 命令序列（cwd: opencalc/）：
+> 1. `ohpm install` → `install completed in 0s 138ms`（工作树首次补装 hypium 1.0.15，见 test-red.txt 附注）
+> 2. `hvigorw --no-daemon --mode module -p module=entry@default test`
+> 前置状态：plot/PlotAxis.ets 已实现（xAxisTicks/yTicks/hLabelLayout/vLabelLayout/plotGridColor/plotLabelColor/PLOT_LABEL_FONT_PX=14）。
+> 说明：会话权限策略拒绝输出重定向，以下为终端工具输出按原样转录（关键行）；用例级结果取自 hvigor 生成文件 entry/.test/default/intermediates/test/coverage_data/test_result.txt。
+
+## 构建输出（转录，关键行）
+
+> hvigor Finished :entry:default@UnitTestArkTS... after 2 s 869 ms
+> hvigor Finished :entry:default@GenerateUnitTestResult... after 874 ms
+> hvigor Finished :entry:test... after 1 ms
+> hvigor BUILD SUCCESSFUL in 6 s 237 ms
+
+- 工具退出码：0（无错误返回）
+
+## 用例级结果（test_result.txt 摘录）
+
+class=PlotAxisTest
+test=xaxis_default_range_five_pi_ticks        result=Success
+test=xaxis_generic_range_pi_multiples_ordered result=Success
+test=yaxis_sin_range_five_ticks_include_half_steps result=Success
+test=yaxis_constant_expr_range_still_five     result=Success
+test=yaxis_degenerate_range_empty             result=Success
+test=hlabel_left_edge_clamped                 result=Success
+test=hlabel_right_edge_clamped                result=Success
+test=hlabel_middle_centered                   result=Success
+test=vlabel_edges_clamped                     result=Success
+test=theme_colors_and_font_contract           result=Success
+
+既有套件（回归）：scaffold 1 + CalcEngineVarX 8 + ExpressionVarX 13 + FunctionPlotterTest 8 全部 Success。
+
+## 汇总行（test_result.txt 原文）
+Tests run: 40, Failure: 0, Error: 0, Pass: 40, Ignore: 0
+
+## 判定
+- GREEN 达成：PlotAxisTest 10/10 通过，既有 30 用例零回归，合计 40/40。
+- 覆盖：X π 刻度（-2π/-π/0/π/2π 及标签）、Y nice-number（[-1.2,1.2] 含 -1/-0.5/0/0.5/1；[0.8,3.2] ≥5 条）、退化输入空数组、水平/垂直边缘安全布局（左/右/中/上/下）、三主题网格/标签色两两不同、字号 ≥14。

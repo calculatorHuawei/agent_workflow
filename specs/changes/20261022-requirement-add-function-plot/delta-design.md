@@ -505,6 +505,88 @@ note right of CalculatorPage : PlotPanel 经 Stack 条件渲染，\n非 router �
 | Kit 一致性 | Canvas/TextInput ↔ ArkUI 既有 ✓ |
 
 ---
+
+## 11. 补救轮设计（R4 可读坐标系，2026-10-22 追加）
+
+> 追溯：proposal.md §11（R4）、delta-spec.md SC-005/SR-03/CM-07~CM-10、info.md §11。
+> 复杂度 S：无架构变更（PlotAxis 落在既有 plot/ 层），无数据模型变更，无新增页面/权限/Kit。
+
+### 11.1 功能清单增量
+| 功能名 | 说明 | 入口 | 优先级 |
+|--------|------|------|--------|
+| 可读坐标系逻辑（SR-03） | X π 刻度、Y nice-number 刻度、边缘安全标签布局、主题色/字号 | PlotAxis 纯逻辑（PlotPanel 消费） | P0 |
+| 坐标系渲染重写 | 网格线、刻度标签、轴名、X/Y 范围文本、绘制顺序固化 | PlotPanel Canvas | P0 |
+
+### 11.2 模块实现设计：plot/PlotAxis.ets（新增，纯逻辑）
+
+#### 11.2.1 模块介绍
+坐标系纯逻辑模块，无 ArkUI import（SDR-04 惯例同 FunctionPlotter），hypium 本地可测。身份：entry HAP 内 ets 模块。
+
+#### 11.2.2 接口设计（公开契约）
+| 导出 | 签名 | 返回 | 说明 |
+|------|------|------|------|
+| AxisTick | `interface AxisTick { value: number; label: string }` | - | 刻度值+显示标签 |
+| TickLabelLayout | `interface TickLabelLayout { pos: number; align: string }` | - | 夹持后锚点+对齐（水平: 'left'/'center'/'right'；垂直: 'top'/'middle'/'bottom'） |
+| PLOT_LABEL_FONT_PX | `const number = 14` | - | 标签字号常量（≥14，CM-09） |
+| PLOT_LABEL_EDGE_MARGIN | `const number = 4` | - | 标签与画布边缘最小间距 |
+| xAxisTicks | `(xMin: number, xMax: number): AxisTick[]` | 5~9 条 | π 倍数步长；[-2π,2π] → -2π/-π/0/π/2π；退化输入 [] |
+| yTicks | `(yMin: number, yMax: number, minCount: number): AxisTick[]` | ≥minCount（上限 9） | nice-number：步长 ∈ {1,2,5}×10^k；[-1.2,1.2],5 → -1/-0.5/0/0.5/1；退化输入 [] |
+| hLabelLayout | `(anchorPx: number, canvasW: number, halfTextW: number): TickLabelLayout` | - | 锚点±半宽越 [0,w] → 夹持到边距并改对齐（CM-07） |
+| vLabelLayout | `(anchorPy: number, canvasH: number, halfTextH: number): TickLabelLayout` | - | 同上，垂直方向 |
+| plotGridColor | `(themeIdx: number): string` | - | 浅色 #E0E0E0 / AMOLED #1E1E1E / 暗色 #474747（低对比但可见，CM-09；暗色从 #2A2A2A 修正为 #474747——面板 #323232 上 #2A2A2A 近似不可见） |
+| plotLabelColor | `(themeIdx: number): string` | - | 浅色 #595959 / 深色主题 #BDBDBD（与既有 getT2 语义一致） |
+
+#### 11.2.3 核心算法
+- **xAxisTicks**：π 倍数步长 s = max(1, ceil((xMax-xMin)/(π·8)))；从 ceil(xMin/(s·π))·s·π 起枚举 ≤ xMax+ε；标签：v=0→'0'，v/π=±1→'±π'，其余→'±Nπ'（N 为整数倍数）。
+- **yTicks**：span=yMax-yMin；rawStep=span/minCount；mag=10^⌊log10(rawStep)⌋；候选步长 {1,2,5,10}×mag，选取满足 count=⌊span/step⌋+1 ≥ minCount 的最大步长（保证 ≥minCount 条且条数最接近 minCount；规避 norm≥7.5 边界仅得 4 条的缺陷）；start=ceil(yMin/step)·step；枚举 ≤ yMax+ε；标签按 step 小数位 toFixed 后去尾零、防 '-0'。复杂度 O(刻度数)。
+- **hLabelLayout/vLabelLayout**：anchor-halfW < 0 → {pos: MARGIN, align:'left'}；anchor+halfW > w → {pos: w-MARGIN, align:'right'}；否则 {pos: anchor, align:'center'}（垂直对称）。
+
+#### 11.2.4 错误处理
+- 退化输入（xMin≥xMax、yMin≥yMax、非有限参数、minCount<1）→ 返回 []，不抛异常（CM-08 同源约束）。
+
+### 11.3 模块实现设计：CalculatorPage.ets 渲染重写（修改）
+
+#### 11.3.1 绘制顺序（CM-10 固化）
+```
+drawPlot(): clearRect → drawGrid → drawAxes → drawTickLabels → drawAxisNames → drawRangeText → drawCurve
+```
+曲线恒最后绘制，网格/轴/文字均不可遮挡曲线。
+
+#### 11.3.2 状态与映射
+- 复用既有 @State：plotYMin/plotYMax/canvasW/canvasH；复用 mathToPx。
+- 不新增 @State（刻度由绘制时纯函数计算，非状态）。
+
+#### 11.3.3 各绘制步骤
+| 步骤 | 数据来源 | 渲染 |
+|------|---------|------|
+| drawGrid | xAxisTicks(PLOT_X_MIN,PLOT_X_MAX) + yTicks(plotYMin,plotYMax,5) | 每 tick 一条 1px plotGridColor(themeIdx) 直线（CM-10） |
+| drawAxes | y=0 / x=0 映射 | 1px plotLabelColor 轴线（沿用既有夹持） |
+| drawTickLabels | 同 drawGrid | ctx.font=`${PLOT_LABEL_FONT_PX}px sans-serif`；X 标签 hLabelLayout，Y 标签 vLabelLayout（CM-07） |
+| drawAxisNames | 固定 'x'/'y' | x 名：x 轴右端上方；y 名：y 轴顶端右侧（均经布局函数夹持） |
+| drawRangeText | PLOT_X_MIN/MAX + plotYMin/plotYMax | 画布左上 14px：`x∈[-2π, 2π] y∈[-1.2, 1.2]`（y 一位小数） |
+| drawCurve | plotSegments | 既有分段折线（不变） |
+
+#### 11.3.4 状态管理设计
+无新增状态管理（沿用 V1 既有 @State）；纯函数在绘制调用时求值，不进入状态树。
+
+### 11.4 TDD 计划（SC005-UC001）
+| 轮次 | 动作 | 证据 |
+|------|------|------|
+| RED | PlotFunction.test.ets 新增 PlotAxisTest 套件（import 不存在的 PlotAxis → 编译失败）；断言：X 刻度 5 条及标签、Y 刻度 [-1.2,1.2] 含 ±1/±0.5/0、[0.8,3.2] ≥5 条、退化 []、四角布局不越界、三主题色两两不同、字号 ≥14 | logs/test-red.txt |
+| GREEN | 实现 PlotAxis.ets → 全套件通过 | logs/test-green.txt |
+| REFACTOR | 不适用（纯函数无重复） | - |
+
+### 11.5 自验证（补救轮交叉校验）
+| 校验项 | 结果 |
+|--------|------|
+| 功能一致性 | proposal §11 R4 ↔ delta-spec SR-03 ↔ 本节 11.2/11.3 ✓ |
+| 页面一致性 | 无新增页面 ✓ |
+| 数据一致性 | 无数据模型变更 ✓ |
+| 权限一致性 | 无新增权限 ✓ |
+| Kit 一致性 | 无新增 Kit（Canvas 既有）✓ |
+| TDD 一致性 | SC005-UC001 ↔ 11.4 计划 ✓ |
+
+---
 > 本文档由 mod-design skill 生成。
 > 标记 [推断] 的内容为基于设计推断，非确定性事实。
-> 生成时间: 2026-10-22
+> 生成时间: 2026-10-22（补救轮追加）

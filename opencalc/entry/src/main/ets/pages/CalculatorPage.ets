@@ -10,6 +10,10 @@ import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { FunctionPlotter, PlotResult, PlotSegment, PLOT_X_MIN, PLOT_X_MAX, PLOT_N } from '../plot/FunctionPlotter'
+import {
+  AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
+  xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
+} from '../plot/PlotAxis'
 
 @Entry
 @Component
@@ -167,24 +171,52 @@ export struct CalculatorPage {
     return this.getOp() === '#B4D2E4' ? '#4684E3' : this.getOp()
   }
 
-  /** 清屏并重绘坐标轴与曲线（画布未就绪时跳过，仅保留数据） */
+  /** 清屏并重绘坐标系与曲线（画布未就绪时跳过，仅保留数据）；顺序固化为 网格→轴→刻度标签→轴名→范围→曲线，曲线恒最后（CM-10） */
   private drawPlot(): void {
     if (this.canvasW <= 0 || this.canvasH <= 0) return
-    this.canvasCtx.clearRect(0, 0, this.canvasW, this.canvasH)
-    this.drawAxes(this.canvasW, this.canvasH)
-    this.drawCurve(this.canvasW, this.canvasH)
+    const w: number = this.canvasW
+    const h: number = this.canvasH
+    const xTks: AxisTick[] = xAxisTicks(PLOT_X_MIN, PLOT_X_MAX)
+    const yTks: AxisTick[] = yTicks(this.plotYMin, this.plotYMax, 5)
+    this.canvasCtx.clearRect(0, 0, w, h)
+    this.drawGrid(xTks, yTks, w, h)
+    this.drawAxes(w, h)
+    this.drawTickLabels(xTks, yTks, w, h)
+    this.drawAxisNames(w, h)
+    this.drawRangeText()
+    this.drawCurve(w, h)
   }
 
-  /** 坐标轴：x 轴（y=0）与 y 轴（x=0），x 轴刻度 -2π/-π/0/π/2π */
+  /** 网格线：每个 X/Y 刻度一条 1px 低对比线，先于轴与曲线绘制（CM-09/CM-10） */
+  private drawGrid(xTks: AxisTick[], yTks: AxisTick[], w: number, h: number): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    ctx.strokeStyle = plotGridColor(this.themeIdx)
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let i: number = 0; i < xTks.length; i++) {
+      const px: number[] = this.mathToPx(xTks[i].value, 0, w, h)
+      const cx: number = Math.min(Math.max(px[0], 0), w)
+      ctx.moveTo(cx, 0)
+      ctx.lineTo(cx, h)
+    }
+    for (let i: number = 0; i < yTks.length; i++) {
+      const py: number[] = this.mathToPx(0, yTks[i].value, w, h)
+      if (py[1] < 0 || py[1] > h) continue
+      ctx.moveTo(0, py[1])
+      ctx.lineTo(w, py[1])
+    }
+    ctx.stroke()
+  }
+
+  /** 坐标轴线：x 轴（y=0）与 y 轴（x=0），夹持到画布内 */
   private drawAxes(w: number, h: number): void {
     const ctx: CanvasRenderingContext2D = this.canvasCtx
     const range: number = this.plotYMax - this.plotYMin
     if (range <= 0) return
-    // x 轴位置：y=0 的映射行，夹持到画布内
     const xy0: number[] = this.mathToPx(0, 0, w, h)
     const axisY: number = Math.min(Math.max(xy0[1], 0), h)
     const axisX: number = Math.min(Math.max(xy0[0], 0), w)
-    ctx.strokeStyle = this.getT2()
+    ctx.strokeStyle = plotLabelColor(this.themeIdx)
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(0, axisY)
@@ -192,23 +224,100 @@ export struct CalculatorPage {
     ctx.moveTo(axisX, 0)
     ctx.lineTo(axisX, h)
     ctx.stroke()
-    // x 轴刻度与文字标签
-    ctx.font = '10px sans-serif'
-    ctx.fillStyle = this.getT2()
-    ctx.textAlign = 'center'
-    const ticks: number[] = [PLOT_X_MIN, -Math.PI, 0, Math.PI, PLOT_X_MAX]
-    const labels: string[] = ['-2π', '-π', '0', 'π', '2π']
-    for (let i: number = 0; i < ticks.length; i++) {
-      const tx: number[] = this.mathToPx(ticks[i], 0, w, h)
+  }
+
+  /** 刻度标签：14px 主题色文字；X 标签经 hLabelLayout 水平夹持、vLabelLayout 垂直夹持（CM-07），Y 标签画在 y 轴近侧 */
+  private drawTickLabels(xTks: AxisTick[], yTks: AxisTick[], w: number, h: number): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    const range: number = this.plotYMax - this.plotYMin
+    if (range <= 0) return
+    const xy0: number[] = this.mathToPx(0, 0, w, h)
+    const axisY: number = Math.min(Math.max(xy0[1], 0), h)
+    const axisX: number = Math.min(Math.max(xy0[0], 0), w)
+    ctx.font = PLOT_LABEL_FONT_PX + 'px sans-serif'
+    ctx.fillStyle = plotLabelColor(this.themeIdx)
+    // X 刻度标签：锚在轴下方（贴近底边时由布局函数夹持回画布内）
+    for (let i: number = 0; i < xTks.length; i++) {
+      const tx: number[] = this.mathToPx(xTks[i].value, 0, w, h)
       if (tx[0] < 0 || tx[0] > w) continue
-      ctx.beginPath()
-      ctx.moveTo(tx[0], axisY - 4)
-      ctx.lineTo(tx[0], axisY + 4)
-      ctx.stroke()
-      // 标签在轴下方；轴贴近底边时改画在上方
-      const ly: number = axisY + 14 > h ? axisY - 6 : axisY + 14
-      ctx.fillText(labels[i], tx[0], ly)
+      const halfW: number = xTks[i].label.length * PLOT_LABEL_FONT_PX * 0.6 / 2
+      const hl: TickLabelLayout = hLabelLayout(tx[0], w, halfW)
+      const vl: TickLabelLayout = vLabelLayout(axisY + 20, h, 5)
+      this.applyHAlign(hl.align)
+      this.applyVBaseline(vl.align)
+      ctx.fillText(xTks[i].label, hl.pos, vl.pos)
     }
+    // Y 刻度标签：默认画在 y 轴左侧（右对齐），轴线贴近左缘时改画右侧
+    for (let i: number = 0; i < yTks.length; i++) {
+      const ty: number[] = this.mathToPx(0, yTks[i].value, w, h)
+      if (ty[1] < 0 || ty[1] > h) continue
+      const vl: TickLabelLayout = vLabelLayout(ty[1], h, 8)
+      this.applyVBaseline(vl.align)
+      if (axisX >= 46) {
+        ctx.textAlign = 'right'
+        ctx.fillText(yTks[i].label, axisX - 6, vl.pos)
+      } else {
+        ctx.textAlign = 'left'
+        ctx.fillText(yTks[i].label, axisX + 6, vl.pos)
+      }
+    }
+  }
+
+  /** 轴名标签：'x' 在 x 轴右端上方，'y' 在 y 轴顶端右侧（均经边缘安全布局，CM-07） */
+  private drawAxisNames(w: number, h: number): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    const range: number = this.plotYMax - this.plotYMin
+    if (range <= 0) return
+    const xy0: number[] = this.mathToPx(0, 0, w, h)
+    const axisY: number = Math.min(Math.max(xy0[1], 0), h)
+    const axisX: number = Math.min(Math.max(xy0[0], 0), w)
+    ctx.font = PLOT_LABEL_FONT_PX + 'px sans-serif'
+    ctx.fillStyle = plotLabelColor(this.themeIdx)
+    const xl: TickLabelLayout = hLabelLayout(w - 2, w, 7)
+    const xv: TickLabelLayout = vLabelLayout(axisY - 12, h, 8)
+    this.applyHAlign(xl.align)
+    this.applyVBaseline(xv.align)
+    ctx.fillText('x', xl.pos, xv.pos)
+    const yv: TickLabelLayout = vLabelLayout(4, h, 8)
+    this.applyHAlign('left')
+    this.applyVBaseline(yv.align)
+    ctx.fillText('y', axisX + 8, yv.pos)
+  }
+
+  /** 范围文本：画布左上角显示当前 X/Y 范围（主文字色，三主题最可读） */
+  private drawRangeText(): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    ctx.font = PLOT_LABEL_FONT_PX + 'px sans-serif'
+    ctx.fillStyle = this.getT1()
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    const text: string = 'x∈[' + this.formatPi(PLOT_X_MIN) + ', ' + this.formatPi(PLOT_X_MAX) + ']'
+      + '  y∈[' + this.plotYMin.toFixed(1) + ', ' + this.plotYMax.toFixed(1) + ']'
+    ctx.fillText(text, 8, 6)
+  }
+
+  /** π 倍数格式化（范围文本用）：-2π/-π/0/π/2π */
+  private formatPi(v: number): string {
+    const k: number = Math.round(v / Math.PI)
+    if (k === 0) return '0'
+    if (Math.abs(k) === 1) return k > 0 ? 'π' : '-π'
+    return k.toString() + 'π'
+  }
+
+  /** 布局水平对齐 → 画布 textAlign（字面量分支赋值，规避 CanvasTextAlign 类型收窄） */
+  private applyHAlign(a: string): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    if (a === 'left') { ctx.textAlign = 'left' }
+    else if (a === 'right') { ctx.textAlign = 'right' }
+    else { ctx.textAlign = 'center' }
+  }
+
+  /** 布局垂直对齐 → 画布 textBaseline（同上） */
+  private applyVBaseline(a: string): void {
+    const ctx: CanvasRenderingContext2D = this.canvasCtx
+    if (a === 'top') { ctx.textBaseline = 'top' }
+    else if (a === 'bottom') { ctx.textBaseline = 'bottom' }
+    else { ctx.textBaseline = 'middle' }
   }
 
   /** 分段曲线：仅绘制 PlotSegment 有效点（无效点已在段构建时断开，CM-01/SDR-02） */

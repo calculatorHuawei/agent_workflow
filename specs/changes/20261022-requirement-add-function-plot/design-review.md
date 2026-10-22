@@ -38,3 +38,33 @@
 
 ## 5. 审视结论
 通过。PLANNING 阶段制品完整、一致、规范，可进入 IMPLEMENTING。
+
+---
+
+# 补救轮设计审视（R4，2026-10-22 追加）
+
+> 审视范围：R4 可读坐标系补救轮更新的章节（proposal §11、delta-spec R4/SC-005/SR-03/CM-07~10/§10/§11、info §11、delta-design §11）；首轮制品结论不变。
+
+## 1. 完整性评估
+- [x] 制品齐全性：通过——proposal/delta-spec/info/delta-design/design-review/todo 均含补救轮更新；new-arch 无需更新（无架构变更，PlotAxis 落在既有 plot/ 层，复杂度评估 S 记录于 delta-design §11 头注）
+- [x] 需求覆盖度：100%——changes_requested 9 条逐条映射：X 刻度边缘安全（SR-03 AC1/AC3、CM-07）、Y ≥5 条含 ±1/±0.5/0（SR-03 AC2、CM-08）、网格线（SR-03 §11.3 drawGrid、CM-10）、轴名+范围显示（SR-03 功能点⑤、11.3 drawAxisNames/drawRangeText）、三主题 ≥14px（SR-03 AC5、CM-09）、TDD 先行（SC005-UC001、delta-design §11.4）、不做缩放/平移/自定义范围（delta-spec §5 约束 7）、不归档（todo.md 补救轮范围声明）、推送 PR 分支（todo.md 下一步）
+
+## 2. 一致性评估
+- [x] proposal §11 → delta-spec：通过（R4 AC1-6 ↔ SR-03 AC1-6；约束 7/8 落 §5）
+- [x] delta-spec → delta-design：通过（SR-03 接口契约 ↔ §11.2.2 签名逐一对应；绘制顺序 ↔ CM-10；TDD 计划 ↔ SC005-UC001）
+- [x] delta-design ↔ info：通过（PlotAxis 纯逻辑约束 ↔ info §11.3 契约一致）
+
+## 3. 规范性评估
+- [x] 格式规范：通过（补救轮以追加章节方式更新，未删改首轮模板结构）
+- [x] 命名规范：通过
+- [x] 描述清晰：通过（PlotAxis 全部导出有签名/返回值/示例值）
+
+## 4. 遗留问题（补救轮）
+| # | 问题 | 处置 |
+|---|------|------|
+| 1 | Y 刻度上限 9 条与"至少五条"的区间行为（极小/极大范围步长跳档） | nice-number 算法业界标准行为，可接受；Tester UI 复验 sin(x)/x^2 两个代表范围 |
+| 2 | 范围文本/轴名的实际视觉位置 | 布局函数保证不越界；最终视觉呈现由 Tester 三主题截图裁决 |
+| 3 | 网格色值为设计推断值 | 单测断言"两两不同"的相对可读性；绝对色值 Tester 实测后如不足再调（闭环路径已写入 SC005-UC002 扩展路径） |
+
+## 5. 审视结论（补救轮）
+通过。R4 制品完整、一致、规范，可进入 IMPLEMENTING（TDD RED 先行）。

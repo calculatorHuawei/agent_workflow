@@ -1,0 +1,32 @@
+# TDD RED 证据 — Task 4.1（补救轮 R4，2026-10-22）
+
+> 命令：`hvigorw --no-daemon --mode module -p module=entry@default test`（cwd: opencalc/）
+> 前置状态：PlotFunction.test.ets 已加入 PlotAxisTest 套件（10 用例），plot/PlotAxis.ets 尚未实现。
+> 说明：本会话权限策略拒绝输出重定向/管道，以下为终端工具输出按原样转录（关键行）。
+> 结果：BUILD FAILED（非零退出）——预期的 TDD RED。
+
+## 关键输出（转录）
+
+> hvigor Finished :entry:default@BuildUnitTestHook... after 1 ms
+[@ohos/hypium] is imported by "entry/.test/testability/pages/Index.ets", but could not be resolved – treating it as an external dependency.
+[@ohos/hypium] is imported by "entry/src/test/PlotFunction.test.ets", but could not be resolved – treating it as an external dependency.
+> hvigor ERROR: Failed :entry:default@UnitTestArkTS...
+> hvigor ERROR: 00305015 Rollup Error
+Error Message: Could not resolve "../main/ets/plot/PlotAxis" from "entry/src/test/PlotFunction.test.ets". At file: D:\huawei\Demo\calculatorHuawei\.agent-runtime\worktrees\developer-pull_request-41-task-5\opencalc\entry\src\test\PlotFunction.test.ets
+1 ERROR: 10505001 ArkTS Compiler Error
+Error Message: Cannot find module '../main/ets/plot/PlotAxis' or its corresponding type declarations. At File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-41-task-5/opencalc/entry/src/test/PlotFunction.test.ets:11:8
+
+COMPILE RESULT:FAIL {ERROR:2}
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> hvigor ERROR: BUILD FAILED in 5 s 758 ms
+
+## 判定
+- 期望失败原因命中：`Cannot find module '../main/ets/plot/PlotAxis'`（PlotFunction.test.ets:11:8）
+- RED 达成：新套件先于实现失败（SC005-UC001 AC"先以失败状态运行"）。
+
+## 附注（环境事项，非 TDD 判定）
+- 本工作树为新检出，`ohpm install` 尚未执行；首次 GREEN 尝试以 `Failed to resolve OhmUrl for "@ohos/hypium"`（BUILD FAILED）暴露该缺依赖。
+- 处置：按工作流门禁执行 `ohpm install`（install completed in 0s 138ms）后重跑，见 test-green.txt。

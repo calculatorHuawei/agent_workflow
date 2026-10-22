@@ -133,3 +133,36 @@ opencalc/entry/src/main/ets/
 - 采样器做成纯逻辑类（无 @Component 依赖），先写单测再实现（TDD）
 - PlotPanel 保持与 Settings/About 相同的条件渲染 Builder 惯例，避免新增路由
 - 隐式乘法 'x' 规则的每个分支都配单测（2x、x2、x(x+1)、πx、ex、xx、xp 保护）
+
+## 11. 补救轮代码仓理解（R4 可读坐标系，2026-10-22 追加）
+
+### 11.1 基本信息
+- **需求类别**：功能变更（渲染可读性补救）
+- **分析范围**：plot/、pages/CalculatorPage.ets 绘图渲染路径、entry/src/test/
+- **约束边界**：无 UI 依赖的纯逻辑惯例；无缩放/平移/自定义范围；标签 ≥14px
+
+### 11.2 现有绘图渲染路径（FunctionPlotter → CalculatorPage）
+| 代码点 | 位置 | 现状 | R4 影响 |
+|--------|------|------|---------|
+| PlotPoint/PlotSegment/PlotResult | plot/FunctionPlotter.ets:9-29 | 采样分段数据契约 | 不变（R4 只消费） |
+| PLOT_X_MIN/MAX/N | plot/FunctionPlotter.ets:32-34 | -2π/2π/401 | 复用为刻度范围输入 |
+| mathToPx | CalculatorPage.ets:158 | 数学→像素映射 | 复用 |
+| drawPlot | CalculatorPage.ets:171 | clear→drawAxes→drawCurve | 改为 clear→drawGrid→drawAxes(刻度+标签+轴名)→drawRangeText→drawCurve |
+| drawAxes | CalculatorPage.ets:179 | x 轴+y 轴+10px center 标签（边缘必裁切）、无 Y 刻度 | 重写：PlotAxis 驱动刻度/标签/轴名 |
+| drawCurve | CalculatorPage.ets:215 | 分段折线最后绘制 | 保持最后绘制（网格不遮挡曲线） |
+| 主题色 | getT1/getT2/getOp/getPanelBg（CalculatorPage.ets:239-303） | themeIdx 0/1/2 | 标签色沿用 T2 语义；网格色新增低对比纯函数 |
+| 测试脚手架 | PlotFunction.test.ets（4 套件 30 用例） | hypium 本地 | 新增 PlotAxisTest 套件 |
+
+### 11.3 新增模块约束（PlotAxis）
+- 位置：entry/src/main/ets/plot/PlotAxis.ets（与 FunctionPlotter 同层同惯例）
+- 纯逻辑：不得 import ArkUI/@Component；输入输出皆为 number/string/接口数组 → hypium 本地可测
+- 契约：AxisTick{value,label}；xAxisTicks(xMin,xMax)（π 倍数步长，5~9 条）；yTicks(yMin,yMax,minCount)（{1,2,5}×10^k，退化输入返回 []）；水平/垂直标签布局函数返回夹持后锚点+对齐；PLOT_LABEL_FONT_PX≥14；plotGridColor(themeIdx)/plotLabelColor(themeIdx)
+
+### 11.4 补救轮风险与测试策略
+| 风险 | 缓解 | 测试策略 |
+|------|------|---------|
+| 边缘标签仍裁切 | 布局函数以"锚点±半宽不越 [0,w]"为契约 | 单测：左缘/右缘/顶缘/底缘/中部五点断言 |
+| Y 刻度数量/值错误 | nice-number 算法（业界标准） | 单测：[-1.2,1.2]→含 ±1/±0.5/0 五条；[0.8,3.2]→≥5 条整数 |
+| 退化输入抛异常 | yMin≥yMax 或非有限 → 返回 [] | 单测：不抛异常且空数组 |
+| 三主题不可读 | 色值纯函数按 themeIdx 返回 | 单测：网格色/标签色/背景两两不同；字号常量 ≥14 |
+| 绘制顺序回归 | drawPlot 单一顺序入口 | Tester UI 截图（网格不遮挡曲线） |

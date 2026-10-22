@@ -97,7 +97,48 @@
 
 ```
 Task 1.1 → Task 2.1 → Task 2.2 → Task 2.3 → Task 3.1 → Task 3.2 → Task 3.3 → 完成
+（补救轮）Task 4.1 → Task 4.2 → Task 4.3 → Task 4.4 → 完成
 ```
+
+## 补救轮任务（R4 可读坐标系，PR #41 changes_requested，2026-10-22 追加）
+
+#### Task 4.1: PlotAxis 纯逻辑 TDD（RED→GREEN）
+**描述**：先在 `entry/src/test/PlotFunction.test.ets` 新增 PlotAxisTest 套件（刻度计算 + 边缘安全标签布局 + 主题色/字号契约），运行确认失败（RED，模块未实现编译错）；再实现 `plot/PlotAxis.ets`（AxisTick/xAxisTicks/yTicks nice-number/hLabelLayout/vLabelLayout/PLOT_LABEL_FONT_PX≥14/plotGridColor/plotLabelColor，退化输入返回空数组）使全部用例通过（GREEN）。
+**涉及文件**：
+- 测试：`opencalc/entry/src/test/PlotFunction.test.ets`（套件 PlotAxisTest，先写）
+- 实现：`opencalc/entry/src/main/ets/plot/PlotAxis.ets`（后写）
+**依赖任务**：Task 3.3（首轮绿线基线）
+**验收标准**（delta-spec SR-03 AC1-6）：
+- RED：套件因 PlotAxis 缺失编译失败，证据留存 logs/test-red.txt
+- GREEN：X 刻度 [-2π,2π] 恰 5 条（-2π/-π/0/π/2π 及标签）；Y 刻度 [-1.2,1.2] ≥5 条含 -1/-0.5/0/0.5/1；[0.8,3.2] ≥5 条；退化输入空数组不抛异常；四角+中部标签布局不越界；三主题网格色/标签色/背景两两不同；字号常量 ≥14
+**TDD**：[x] RED（logs/test-red.txt，`Cannot find module '../main/ets/plot/PlotAxis'`）/ [x] GREEN（logs/test-green.txt，PlotAxisTest 10/10，全量 40/40；本会话恢复后复跑复核 40/40）/ [x] REFACTOR（不适用——纯函数）
+
+#### Task 4.2: CalculatorPage 坐标系渲染重写
+**描述**：drawPlot 固化绘制顺序 clear→drawGrid→drawAxes→drawTickLabels→drawAxisNames→drawRangeText→drawCurve；drawGrid 以 PlotAxis 刻度画 1px 低对比网格；drawAxes/drawTickLabels 以 14px+plotLabelColor 绘制并经 hLabelLayout/vLabelLayout 夹持；新增轴名 'x'/'y' 与范围文本 `x∈[-2π, 2π] y∈[-1.2, 1.2]`；不做缩放/平移/自定义范围。
+**涉及文件**：
+- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
+**依赖任务**：Task 4.1
+**验收标准**：
+- CompileArkTS 0 ERROR；既有 30 用例不回归
+- 绘制顺序保证网格不遮挡曲线（代码审查 + Tester UI 三主题截图）
+**TDD**：[x] N/A（渲染层，由 Task 4.1 纯逻辑单测 + Tester UI 证据覆盖）
+
+#### Task 4.3: 全量绿线验证
+**描述**：`hvigorw --mode module -p module=entry@default test` 全部通过（30+新增）且 `hvigorw assembleHap` BUILD SUCCESSFUL；证据写入 logs/。
+**涉及文件**：无新增（验证任务）
+**依赖任务**：Task 4.2
+**验收标准**：test 退出码 0、0 失败；assembleHap 退出码 0；无新增 ERROR/WARN 扩大
+**TDD**：[x] N/A（验证任务）
+
+#### Task 4.4: 补救轮 APPLYING 与 PR 推进
+**描述**：更新 apply-report.md（补救轮章节）与 logs/verification-log.md；提交 HEAD 并显式推送到 PR #41 头分支 agent/issue-40-task-1；校验 PR head SHA 与本地 HEAD 一致；产出 developer→tester 移交。
+**涉及文件**：`specs/changes/20261022-requirement-add-function-plot/apply-report.md`、`logs/*`
+**依赖任务**：Task 4.3
+**验收标准**：
+- apply-report.md 含补救轮验收对照与验证命令退出码
+- 远端 agent/issue-40-task-1 HEAD == 本地提交 SHA == PR #41 head SHA
+- 不归档（用户明确要求）
+**TDD**：[x] N/A（过程任务）
 
 ## 验收计划
 

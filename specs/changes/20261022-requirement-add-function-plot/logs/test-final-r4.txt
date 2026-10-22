@@ -1,0 +1,43 @@
+# 补救轮（R4）终态全量验证证据 — Task 4.3（2026-10-22，会话恢复复跑）
+
+> 工作树：`.agent-runtime/worktrees/developer-pull_request-41-task-5`，分支 `agent/pull_request-41-task-5`（HEAD 与 PR #41 头分支 `agent/issue-40-task-1` 同源 39b7661）
+> 说明：会话权限策略拒绝输出重定向/管道，以下为终端工具输出按原样转录（关键行）；
+> 用例级结果取自 hvigor 工具生成文件 `entry/.test/default/intermediates/test/coverage_data/test_result.txt`（该文件为工具生成，非手工编辑）。
+
+## 步骤 0：依赖安装（新检出工作树 oh_modules 缺失）
+
+- 命令：`ohpm install`（cwd: opencalc/）
+- 输出：`install completed in 0s 60ms`
+- 退出码：0
+
+## 步骤 1：全量单元测试
+
+- 命令：`hvigorw --no-daemon --mode module -p module=entry@default test`（cwd: opencalc/）
+- 构建输出（关键行转录）：
+  > hvigor Finished :entry:default@UnitTestArkTS... after 2 s 763 ms
+  > hvigor Finished :entry:default@GenerateUnitTestResult... after 1 s 154 ms
+  > hvigor Finished :entry:test... after 1 ms
+  > hvigor BUILD SUCCESSFUL in 6 s 711 ms
+- 退出码：0
+- 汇总行（test_result.txt 原文）：
+  > Tests run: 40, Failure: 0, Error: 0, Pass: 40, Ignore: 0
+- 套件构成：scaffold 1 + CalcEngineVarX 8 + ExpressionVarX 13 + FunctionPlotterTest 8（既有 30，零回归）
+  + PlotAxisTest 10（补救轮 R4 新增，全部 Success，见 test_result.txt class=PlotAxisTest 段）
+
+## 步骤 2：HAP 构建 + lint 等效诊断（CompileArkTS）
+
+- 命令：`hvigorw --no-daemon assembleHap`（cwd: opencalc/）
+- 构建输出（关键行转录）：
+  > hvigor Finished :entry:default@CompileArkTS... after 2 s 687 ms
+  > hvigor Finished :entry:default@PackageHap... after 325 ms
+  > hvigor WARN: No signingConfig found for product default（与基线一致，本地未签名）
+  > hvigor BUILD SUCCESSFUL in 5 s 914 ms
+- 退出码：0
+- lint 等效结论：CompileArkTS **0 ERROR**；WARN 全部为既有基线告警（Index.ets:7、PreferencesStore.ets 多处、CalculatorPage.ets:57 getContext / :120-121 pasteboard/showToast），
+  **无一条指向新增 PlotAxis.ets / CalculatorPage 绘图代码（:167 以后），既有 WARN 不扩大**
+
+## 判定
+
+- Task 4.3 AC 达成：test 退出码 0、0 失败（40/40）；assembleHap 退出码 0；无新增 ERROR、既有 WARN 不扩大
+- 覆盖 SR-03 AC1-6：X π 刻度（-2π/-π/0/π/2π 及标签）、Y nice-number ≥5 条（sin 范围含 -1/-0.5/0/0.5/1、常函数范围 ≥5 条）、
+  退化输入空数组、水平/垂直边缘安全布局、三主题网格/标签色两两不同、字号常量 ≥14

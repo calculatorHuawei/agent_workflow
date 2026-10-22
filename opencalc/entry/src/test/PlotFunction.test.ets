@@ -1,10 +1,14 @@
 // OpenCalc — 函数绘图本地单元测试（Issue #40）
-// 覆盖：SR-00 变量求值 / SR-01 采样分段（delta-spec §8）
+// 覆盖：SR-00 变量求值 / SR-01 采样分段 / SR-03 可读坐标系逻辑（补救轮 R4，delta-spec §8）
 import { describe, it, expect } from '@ohos/hypium'
 import { ErrorFlags } from '../main/ets/model/ErrorFlags'
 import { CalcEngine } from '../main/ets/calculator/Calculator'
 import { Expression } from '../main/ets/calculator/Expression'
 import { FunctionPlotter, PlotResult, PlotPoint } from '../main/ets/plot/FunctionPlotter'
+import {
+  AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
+  xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
+} from '../main/ets/plot/PlotAxis'
 
 export default function plotFunctionTest(): void {
   describe('scaffold', () => {
@@ -256,6 +260,112 @@ export default function plotFunctionTest(): void {
       const r: PlotResult = plotter.plot('qq(x)', -TWO_PI, TWO_PI, 401)
       expect(r.totalValid).assertEqual(0)
       expect(r.segments.length).assertEqual(0)
+    })
+  })
+
+  // ==================== SR-03：可读坐标系逻辑（补救轮 R4） ====================
+  describe('PlotAxisTest', () => {
+    const PI: number = Math.PI
+    const TWO_PI: number = 2 * Math.PI
+
+    it('xaxis_default_range_five_pi_ticks', 0, (): void => {
+      const ticks: AxisTick[] = xAxisTicks(-TWO_PI, TWO_PI)
+      expect(ticks.length).assertEqual(5)
+      const vals: number[] = [-TWO_PI, -PI, 0, PI, TWO_PI]
+      const labels: string[] = ['-2π', '-π', '0', 'π', '2π']
+      for (let i: number = 0; i < 5; i++) {
+        expect(Math.abs(ticks[i].value - vals[i]) < 1e-9).assertTrue()
+        expect(ticks[i].label).assertEqual(labels[i])
+      }
+    })
+
+    it('xaxis_generic_range_pi_multiples_ordered', 0, (): void => {
+      const ticks: AxisTick[] = xAxisTicks(-PI, PI)
+      expect(ticks.length >= 3).assertTrue()
+      for (let i: number = 1; i < ticks.length; i++) {
+        expect(ticks[i].value > ticks[i - 1].value).assertTrue()
+        const k1: number = ticks[i - 1].value / PI
+        const k2: number = ticks[i].value / PI
+        expect(Math.abs(k1 - Math.round(k1)) < 1e-9).assertTrue()
+        expect(Math.abs(k2 - Math.round(k2)) < 1e-9).assertTrue()
+      }
+    })
+
+    it('yaxis_sin_range_five_ticks_include_half_steps', 0, (): void => {
+      const ticks: AxisTick[] = yTicks(-1.2, 1.2, 5)
+      expect(ticks.length >= 5).assertTrue()
+      const vals: number[] = [-1, -0.5, 0, 0.5, 1]
+      const labels: string[] = ['-1', '-0.5', '0', '0.5', '1']
+      for (let i: number = 0; i < 5; i++) {
+        expect(Math.abs(ticks[i].value - vals[i]) < 1e-9).assertTrue()
+        expect(ticks[i].label).assertEqual(labels[i])
+      }
+    })
+
+    it('yaxis_constant_expr_range_still_five', 0, (): void => {
+      const ticks: AxisTick[] = yTicks(0.8, 3.2, 5)
+      expect(ticks.length >= 5).assertTrue()
+      expect(ticks[0].value >= 0.8).assertTrue()
+      expect(ticks[ticks.length - 1].value <= 3.2).assertTrue()
+      for (let i: number = 1; i < ticks.length; i++) {
+        expect(ticks[i].value > ticks[i - 1].value).assertTrue()
+      }
+    })
+
+    it('yaxis_degenerate_range_empty', 0, (): void => {
+      expect(yTicks(1.2, -1.2, 5).length).assertEqual(0)
+      expect(yTicks(0, 0, 5).length).assertEqual(0)
+      expect(yTicks(NaN, 1.2, 5).length).assertEqual(0)
+      expect(yTicks(-1.2, 1.2, 0).length).assertEqual(0)
+      expect(xAxisTicks(TWO_PI, -TWO_PI).length).assertEqual(0)
+      expect(xAxisTicks(NaN, TWO_PI).length).assertEqual(0)
+    })
+
+    it('hlabel_left_edge_clamped', 0, (): void => {
+      const l: TickLabelLayout = hLabelLayout(0, 500, 13)
+      expect(l.align).assertEqual('left')
+      expect(l.pos >= 4).assertTrue()
+    })
+
+    it('hlabel_right_edge_clamped', 0, (): void => {
+      const l: TickLabelLayout = hLabelLayout(500, 500, 13)
+      expect(l.align).assertEqual('right')
+      expect(l.pos <= 496).assertTrue()
+    })
+
+    it('hlabel_middle_centered', 0, (): void => {
+      const l: TickLabelLayout = hLabelLayout(250, 500, 13)
+      expect(l.align).assertEqual('center')
+      expect(l.pos).assertEqual(250)
+    })
+
+    it('vlabel_edges_clamped', 0, (): void => {
+      const top: TickLabelLayout = vLabelLayout(0, 400, 7)
+      expect(top.align).assertEqual('top')
+      expect(top.pos >= 4).assertTrue()
+      const bottom: TickLabelLayout = vLabelLayout(400, 400, 7)
+      expect(bottom.align).assertEqual('bottom')
+      expect(bottom.pos <= 396).assertTrue()
+      const mid: TickLabelLayout = vLabelLayout(200, 400, 7)
+      expect(mid.align).assertEqual('middle')
+      expect(mid.pos).assertEqual(200)
+    })
+
+    it('theme_colors_and_font_contract', 0, (): void => {
+      // 字号契约：≥14px（10px 判不可接受，PR #41 审查意见）
+      expect(PLOT_LABEL_FONT_PX >= 14).assertTrue()
+      // 浅色精确值
+      expect(plotGridColor(0)).assertEqual('#E0E0E0')
+      expect(plotLabelColor(0)).assertEqual('#595959')
+      // 三主题下 网格/标签/面板背景 两两不同
+      const panelBgs: string[] = ['#FFFFFF', '#0a0a0a', '#323232']
+      for (let t: number = 0; t < 3; t++) {
+        const g: string = plotGridColor(t)
+        const c: string = plotLabelColor(t)
+        expect(g !== c).assertTrue()
+        expect(g !== panelBgs[t]).assertTrue()
+        expect(c !== panelBgs[t]).assertTrue()
+      }
     })
   })
 }

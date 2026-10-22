@@ -64,3 +64,35 @@
 ## 设备/UI 覆盖声明
 
 Developer **未**执行任何设备/模拟器 UI 测试（无 hdc/模拟器调用）。设备端 sin(x) 绘制、x^2 抛物线、返回流程与三主题可读性由 Tester 在连接的 HarmonyOS 模拟器上验证。
+
+---
+
+# 补救轮（R4）验证记录 — 2026-10-22 追加
+
+> 工作树：`D:\huawei\Demo\calculatorHuawei\.agent-runtime\worktrees\developer-pull_request-41-task-5`（task-5 恢复会话），分支 `agent/pull_request-41-task-5`
+> 前序会话在本地已完成 TDD RED/GREEN（logs/test-red.txt、test-green.txt）；本会话为会话恢复后的**独立复跑验证**，环境重新就绪（ohpm install）后两条命令均现场重跑。
+
+### V-R4-01 依赖安装（会话恢复，新检出工作树）
+- 命令：`ohpm install`（cwd: opencalc/）
+- 结果：`install completed in 0s 60ms`
+- 退出码：0
+
+### V-R4-02 TDD RED 复核（Task 4.1，前序会话证据确认）
+- 证据：`logs/test-red.txt`——`Cannot find module '../main/ets/plot/PlotAxis'`（PlotFunction.test.ets:11:8），BUILD FAILED
+- 判定：PlotAxisTest 10 用例先于实现失败，SC005-UC001 AC"先以失败状态运行"达成（转录证据，权限策略拒绝重定向）
+
+### V-R4-03 全量单元测试复跑（Task 4.1 GREEN 复核 + Task 4.3）
+- 命令：`hvigorw --no-daemon --mode module -p module=entry@default test`
+- 结果：`BUILD SUCCESSFUL in 6 s 711 ms`；`Tests run: 40, Failure: 0, Error: 0, Pass: 40, Ignore: 0`
+- 退出码：0；时间 21:06:49
+- 构成：既有 30（零回归）+ PlotAxisTest 10（全 Success）
+- 工具生成结果：`opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`（转录见 `test-final-r4.txt`）
+
+### V-R4-04 HAP 构建 + lint 等效诊断（Task 4.2/4.3）
+- 命令：`hvigorw --no-daemon assembleHap`
+- 结果：`BUILD SUCCESSFUL in 5 s 914 ms`；CompileArkTS **0 ERROR**；WARN 全部为既有基线告警（Index.ets / PreferencesStore.ets / CalculatorPage.ets:57/:120-121 既有行），**无一条指向 PlotAxis.ets 或新增绘图渲染代码，既有 WARN 不扩大**
+- 退出码：0；`No signingConfig found`（与基线一致）
+
+## 补救轮设备/UI 覆盖声明
+
+Developer **未**执行任何设备/模拟器 UI 测试。三主题下网格/刻度标签/轴名/范围文本的实际可读性、网格不遮挡曲线、边缘不裁切的视觉效果，由 Tester 在模拟器截图验证（对应 SC005-UC002 的 Tester 责任部分）。
