@@ -8,6 +8,7 @@
 # Build artifacts
 .hvigor/
 entry/build/
+entry/.test/
 build/
 *.har
 *.hap

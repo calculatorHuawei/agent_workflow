@@ -1,0 +1,28 @@
+R5 TDD GREEN + 全量绿线证据（Task 5.2/5.4）
+命令: hvigorw --no-daemon --mode module -p module=entry@default test
+日期: 2026-10-22
+前置: ohpm install（新检出工作树缺 oh_modules，install completed in 0s 131ms）
+
+测试结果（opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt 末行）:
+Tests run: 51, Failure: 0, Error: 0, Pass: 51, Ignore: 0
+
+新增 AsymptoteSeparationTest 8/8（全部 Success）:
+- inset_ratio_contract
+- asym_one_over_x_separated_from_y_axis
+- asym_one_over_x_no_cross_sign_segment
+- asym_logx_tail_lifted_from_axis_and_bottom
+- asym_tanx_segments_within_pi_half_intervals
+- asym_sinx_zero_regression_full_curve
+- asym_x2_zero_regression_vertex_kept
+- asym_sqrtx_vertex_still_drawn_at_domain_edge
+
+既有 43 用例零回归（scaffold 1 + CalcEngineVarX 8 + ExpressionVarX 13 + FunctionPlotterTest 11 + PlotAxisTest 10）。
+
+构建绿线:
+命令: hvigorw --no-daemon assembleHap
+结果: BUILD SUCCESSFUL（exit 0）；CompileArkTS 0 ERROR；WARN 全部为既有基线文件（Index.ets / PreferencesStore.ets），本次修改文件（FunctionPlotter.ets / CalculatorPage.ets / PlotFunction.test.ets）无新增 ERROR/WARN。
+
+过程记录（TDD 修正，实现无回归）:
+1. 首轮 RED 曾含非预期 arkts-no-nested-funcs（测试辅助函数嵌套 describe），改为模块级函数后取得干净 RED（见 test-red-r5.txt）。
+2. asym_tanx 用例两处测试侧修正：①最近渐近线应为奇数倍 π/2（原 round(x/halfPi) 把 x≈0 误判距渐近线 0）；②渐近线区间 id 应为 floor((t+1)/2)（原 floor(x/halfPi) 在非渐近线 t=0 处误分段）。
+3. 过程中发现并修复实现层缺陷：yRange 稳健修剪对 tan 失效（每个渐近线两侧各一份对称极值，2% 单档修剪剔不掉），修剪比例改为 2%→5%→10% 逐级尝试——tan 主体范围由 ±38 收敛到 ±7.6，渐近线附近支线不再以近垂直线形态贴附渐近线（CM-11 同源问题的 tan 形态）。
