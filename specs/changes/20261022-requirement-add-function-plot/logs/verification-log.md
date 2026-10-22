@@ -96,3 +96,12 @@ Developer **未**执行任何设备/模拟器 UI 测试（无 hdc/模拟器调�
 ## 补救轮设备/UI 覆盖声明
 
 Developer **未**执行任何设备/模拟器 UI 测试。三主题下网格/刻度标签/轴名/范围文本的实际可读性、网格不遮挡曲线、边缘不裁切的视觉效果，由 Tester 在模拟器截图验证（对应 SC005-UC002 的 Tester 责任部分）。
+
+### V-R4-05 分支推进与 PR head 校验（Task 4.4，2026-10-22）
+
+1. **首次推送被拒（non-fast-forward）**：`git push origin HEAD:agent/issue-40-task-1` → `! [rejected] ... (non-fast-forward)`——远端分支已先于本地 HEAD（39b7661）前进。
+2. **远端状态核查**：`git fetch origin agent/issue-40-task-1` → FETCH_HEAD = `1055417`（"feat(plot): add readable coordinate system for function graph"，parent 39b7661，author littleleafccccc，2026-10-22 21:13:22 +0800）。该提交即本会话 remediation 全部 15 个文件（代码+制品，1039 insertions），由会话提交基础设施在暂存后创建并推送（本会话 `git add -A` 暂存内容与该提交文件清单一一对应）。
+3. **内容一致性核查**：本地曾对同一变更 amend 出 `26e5088`（仅补 Co-Authored-By 尾注）；`git diff 1055417 26e5088` 输出为空 → 两提交树完全一致。为不对公开 PR 分支做无意义改写（仅为尾注），放弃 force-push，`git reset --hard 1055417` 将本地分支对齐远端，工作树 clean。
+4. **远端分支头核查**：`git ls-remote origin agent/issue-40-task-1` → `1055417fdeb73da0e21dcc396e31507e9b99dc07  refs/heads/agent/issue-40-task-1` == 本地 HEAD。
+5. **PR #41 head 核查**（gh CLI 与 WebFetch 被会话策略拒绝，经 GitHub REST API 只读查询）：PR #41 `state=open`、`draft=false`、`mergeable_state=clean`、`head.ref=agent/issue-40-task-1`、`head.sha=1055417fdeb73da0e21dcc396e31507e9b99dc07` == 本地 HEAD == 远端分支头。
+6. **本条目提交说明**：本 V-R4-05 记录以新提交进入分支（fast-forward），推送后 PR head 将前进至该最终提交；移交报告（developer→tester JSON）以推送后再次校验的最终 HEAD 为准。
