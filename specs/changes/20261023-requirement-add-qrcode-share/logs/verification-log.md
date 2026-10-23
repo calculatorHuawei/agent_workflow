@@ -57,3 +57,15 @@
 - `gh auth status`：账号 `223556cy` 的现有 token 无效。
 - `gh pr list --head agent/issue-42-task-12`：访问 `api.github.com` 被网络策略拒绝。
 - 结论：未创建新 commit、未 push、未创建/更新 PR，无法执行 PR head SHA 一致性核验。当前本地 HEAD 仍为基线 `2500bf49d79b08b135059419c422a3d49dfb4a73`；不得将其冒充为功能提交或 PR head。
+
+## V-08 Tester feedback repair（task-14）
+
+- 基线：PR #43 原失败 SHA `964c83e77e0c558001dcff396c07d43b226deae4`；工作分支继承 `334f241` 的初步 QrLayout 修复。
+- Task 1.1 RED：`capacity_constants_contract` 与 `capacity_214_bytes_rejected_cm06` 失败；GREEN/REFACTOR 后 213/214 契约通过。
+- Task 1.2 RED：负尺寸返回 `-1`；GREEN/REFACTOR 后非法/非有限/静区不足统一返回 0。
+- Task 2.1 RED：分数网格断言失败；首次真实 light 原始截图也无法由 jsQR 解码。GREEN 关闭 QR Canvas 抗锯齿并补全白底/失败态；随后未处理的 light、dark、AMOLED 与更新 `2+3=5` 截图均由 jsQR 1.4.0 精确解码。
+- 终态 Local Test：`96/96` 通过；命令 `hvigorw --no-daemon --mode module -p module=entry@default test`。
+- 终态 HAP：`opencalc/build-test.bat` BUILD SUCCESSFUL；模拟器卸载、重装并启动成功。
+- CodeLinter：直接 launcher 返回已知 internal tool-start error；保存 task-14 失败日志且未冒充成功。真实 CompileArkTS 对当前源零 error；task-12 同 QR 源集成功 CodeLinter 记录为 0 error。
+- AC8 保护目录 diff：空。
+- 证据：`D:/huawei/Demo/calculatorHuawei/.agent-runtime/evidence/task-14/ui-smoke/`。

@@ -2,13 +2,14 @@
 
 > 来源：calculatorHuawei/agent_workflow#42（新增：将当前算式和结果一键生成二维码）
 > 开发基线：`agent-test/baseline-opencalc-source`，基线 merge commit `2500bf49d79b08b135059419c422a3d49dfb4a73`（PR #41 合并后版本）
+> 2026-10-23 Tester 反馈修订：本轮是对 PR #43 head `964c83e77e0c558001dcff396c07d43b226deae4` 的**缺陷修复规划**；沿用 orchestrator 指定的既有 change_dir，不重命名目录。
 
 ## 1. 需求概述
 
 ### 1.1 基本信息
 - **功能名称**：当前算式与结果一键生成二维码（二维码分享）
-- **需求类型**：新增功能
-  - 备注：orchestrator 任务元数据标注 `change_type: "refactor"`，与 Issue #42 标题"**新增**：……"及正文（全新二维码分享能力 + 持久化自动化测试）不一致。按 MigBot 意图触发词表（新增/增加/开发 → 新增功能），以需求内容为准定为**新增功能**，差异在此记录备查。
+- **需求类型**：缺陷修复（tester_feedback）
+  - 备注：Issue #42 的原始意图是新增功能；本轮 payload 明确 `change_type: "bugfix"`、`run_reason: "tester_feedback"`，因此按现阶段实际目标分类为**缺陷修复**。目录名保留 `requirement-add-qrcode-share` 是工作流连续性要求，不代表本轮意图仍为新增功能。
 - **关联全局文件**：specs/spec.md / specs/arch.md / specs/design.md
 
 ### 1.2 需求描述
@@ -67,8 +68,8 @@ OpenCalc
 ## 3. 需求解析报告
 
 ### 3.1 意图分类
-- **类型**：新增功能
-- **一句话概括**：在 OpenCalc 计算器中新增"二维码分享"能力——结果有效时一键打开面板，离线生成仅含当前算式与当前结果的 UTF-8 文本二维码，关闭面板后原状态不变，并附持久化自动化测试。
+- **类型**：缺陷修复
+- **一句话概括**：修复二维码分享面板在真实设备截图中无法被标准解码器稳定读取、主题切换后码面呈现异常的问题，并以独立截图解码证据重新验证载荷准确性、内容刷新和三主题可识别性。
 
 ### 3.2 领域映射
 - **UI/交互**：分享入口（有效性门控）、二维码面板（二维码图形 + 人类可读回显 + 关闭）、三主题适配。
@@ -117,7 +118,7 @@ OpenCalc
 以下未明确之处采用合理默认值（实现阶段可调整，调整需在 apply-report 说明）：
 - **入口位置**：显示屏（DisplayPanel）区域放置"二维码"文字入口，横竖屏均可见；竖屏同时可加入 ToggleRow。理由：横屏不渲染 ToggleRow，显示屏区域是唯一两方向稳定可见区域；AC1 只要求"一次明确操作"，不限定位置。
 - **二维码渲染方式**：Canvas 绘制模块矩阵（与 PlotPanel 同机制），白底黑模块、4 模块静区、恒定配色不随主题变化。理由：AC5 要求三主题均可识别，恒定黑/白配色是唯一在三主题下对比度都确定的最大化解；面板卡片本身遵循主题背景。
-- **编码参数**：EC 级别 M、版本 1–10（v10-M byte 容量 271 字节 > 载荷 3 行文本典型 40–80 字节，覆盖超长表达式余量）；超上限走决策 2 的错误提示分支。
+- **编码参数**：EC 级别 M、版本 1–10；byte 模式 v10-M 的有效载荷上限按 **213 字节**执行，载荷层与编码器必须使用同一边界，超上限走决策 2 的错误提示分支。
 - **面板形态**：全屏/居中卡片 overlay，关闭按钮沿用"✕ 返回"惯例，等价于 AC7。
 
 ### 4.3 功能边界
@@ -147,7 +148,7 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
 #### 待定假设
 - **入口位置**：显示屏（DisplayPanel）区域文字入口，横竖屏均可见。理由：横屏不渲染 ToggleRow，显示屏区域是唯一稳定区域；AC1 仅要求"一次明确操作"。
 - **二维码渲染**：Canvas 绘制 + 白底黑模块恒定配色 + 4 模块静区。理由：三主题下唯一对比度确定最大化的方案，直接满足 AC5。
-- **编码参数**：EC 级别 M、版本 1–10（v10-M byte 容量 271 字节，覆盖 3 行载荷典型 40–80 字节及长表达式余量）。
+- **编码参数**：EC 级别 M、版本 1–10，byte 模式最大 **213 字节**；此前 271 字节口径已由 Developer 风险记录证实错误，本轮统一纠正。
 
 #### 核心问题与边界确认
 | 项目 | 确认状态 | 内容 |
@@ -183,6 +184,18 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
 | 模块交互 | ✅ 确认 | §6.3 单向数据流：门控 → 载荷 → 矩阵 → Canvas；无缓存层 |
 | 不涉及的模块 | ✅ 确认 | plot/、calculator/ 算法、model/、preferences/、EntryAbility/Index、构建依赖 |
 
+### 4.5 Tester 反馈缺陷闭环
+
+| 项目 | 结论 | 规划约束 |
+|------|------|----------|
+| 复现基线 | Tester 在 PR #43 head `964c83e` 重新构建、安装并执行真实 UI | 修复后必须从新的准确 PR SHA 重复同等流程，Developer 自报或纯矩阵单测不能替代 |
+| 解码失败 | OpenCV 检测到浅色主题符号但未返回载荷；jsQR 无法解码 light/dark/AMOLED 截图 | AC2/AC3/AC5/AC10 保持失败，直至标准解码器从设备截图返回逐字一致载荷 |
+| 主题异常 | Tester 报告 AMOLED 截图未保持所需黑白对比；现有三主题截图不足以证明渲染契约 | 不能仅以 `fillStyle` 常量或矩阵正确性判定通过，必须检查最终截图像素并独立解码 |
+| 根因边界 | 已知问题位于“矩阵 → Canvas 布局/绘制 → 设备截图 → 解码器”链路；现有证据不足以唯一确定运行时根因 | 设计采用可测的整数模块尺寸、完整静区、显式白底与重绘时序约束；实现阶段用最小复现实验确认，不在规划中猜测 |
+| 已通过能力 | AC1/AC4/AC6/AC7/AC8/AC9 已由 Tester 通过 | 修复范围限制在 QR 布局/绘制及相应测试，保护计算、绘图、历史、设置和主题既有行为 |
+
+**澄清结论**：没有需要用户选择的 material ambiguity。验收口径、失败证据和修复边界均由 Issue 与 Tester payload 明确；运行时根因属于待验证技术事实，不构成需求歧义。
+
 ## 5. 特性清单
 
 - **F1: 二维码分享入口（有效性门控）**
@@ -217,6 +230,10 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
   - 功能描述：hypium 本地单测覆盖载荷格式与编码器：普通算式、科学函数、小数结果、负数结果、长表达式、不可分享状态。
   - 用户价值：AC9 达成的直接载体；防回归。
   - 技术要点：注册进 `entry/src/test/List.test.ets`；测试可断言载荷逐字节内容与矩阵结构（定位图案/时序图案/尺寸）。
+- **F7: 截图可解码布局修复（本轮 MOD）**
+  - 功能描述：将 Canvas 模块像素计算收敛为独立纯函数；模块使用整数像素，保留完整 4 模块静区，避免过大采样单元，并在可用空间不足时显式失败或采用可解码布局，不允许静默空白。
+  - 用户价值：修复 Tester 已复现的“屏幕上看似二维码但标准解码器读不到”问题，使 AC2/AC3/AC5/AC10 可被最终截图证据证明。
+  - 技术要点：布局常量与计算逻辑可单测；Canvas 组件背景和 bitmap 绘制均显式白底；onReady/onAreaChange/主题切换后按最新尺寸完整重绘；最终门禁为独立工具解码三主题截图，而非仅检查矩阵。
 
 ## 6. 系统架构概述
 
@@ -255,11 +272,12 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
 | CalculatorPage | 新增分享入口、`showQrShare` 状态、QrSharePanel @Builder 与 Canvas 渲染 | 复用/扩展 |
 | qrcode/QrPayload | 载荷文本构造 + 可分享性数据校验 + 容量判定 | 新增 |
 | qrcode/QrEncoder | UTF-8 → QR 模块矩阵（byte 模式/EC-M/版本 1–10/RS 纠错/掩模） | 新增 |
+| qrcode/QrLayout | Canvas 可用尺寸 → 整数模块像素；限制截图采样上限并保护 4 模块静区 | 本轮 bugfix 内部纯函数扩展 |
 | CalcEngine/NumberFormatter/ErrorFlags | 计算与格式化（载荷数据来源） | 复用，零改动 |
 | entry/src/test（hypium） | 载荷与编码器持久化单测 | 扩展注册 |
 
 ### 6.3 模块交互简述
-入口点击 → 门控判定（expression/result/errorMsg）→ 通过则置 `showQrShare=true` → QrSharePanel 打开时调用 `buildQrPayload(expression, result)` 得到载荷 → `encodeQr(payload)` 得到模块矩阵 → Canvas 白底黑模块绘制（4 模块静区）→ 关闭仅复位 `showQrShare=false`。载荷与矩阵为纯函数链路，与 UI 状态单向单向流动，无缓存层。
+入口点击 → 门控判定 → `buildQrPayload` → `encodeQr` → `qrModulePixels` 计算整数模块尺寸 → Canvas 组件背景与 bitmap 显式白底、黑模块、4 模块静区完整重绘 → 设备截图独立解码 → 关闭仅复位 `showQrShare=false`。载荷、矩阵与布局均为单向纯函数链路，无载荷缓存层。
 
 ### 6.4 明确不涉及的模块
 `plot/`（FunctionPlotter/PlotAxis）、`calculator/`（Expression/CalcEngine/NumberFormatter 算法本体）、`model/`（Models/ErrorFlags 定义）、`preferences/`（PreferencesStore 与历史存储）、EntryAbility/Index 路由、构建配置（不新增依赖）。以上模块 AC8 要求零退化，本次不改动。
@@ -309,6 +327,14 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
     - AC8: 既有功能行为与基线一致；既有测试（含 PlotFunction.test.ets）通过。
   - 优先级：P0
   - 关联特性：F1–F6 的约束性需求
+- **R7: Tester 反馈截图解码缺陷修复**
+  - 描述：修复真实设备截图不可解码及主题码面异常；模块必须以整数像素完整绘制，显式白底黑模块并保留 4 模块静区；更新内容后第二张截图必须解码为新载荷。
+  - 验收标准：
+    - AC2/AC5/AC10: 修复后准确 PR SHA 的 light/dark/AMOLED 原始设备截图均可由独立标准解码器返回精确载荷；
+    - AC3: 先后计算 `1+2=3` 与 `2+3=5`，两张截图分别解码为对应载荷，第二张不含旧内容；
+    - 布局空间不足或绘制失败时显示明确提示，不展示残缺/陈旧二维码。
+  - 优先级：P0
+  - 关联特性：F7（并约束 F2/F5/F6）
 
 ## 8. 影响范围分析
 
@@ -318,14 +344,15 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
 | pages/CalculatorPage.ets | 主界面/overlay 容器/主题取色 | 修改（新增入口、`showQrShare` 状态、QrSharePanel @Builder、Canvas 绘码） |
 | qrcode/QrPayload.ets | 不存在 | 新增（载荷构造纯函数） |
 | qrcode/QrEncoder.ets | 不存在 | 新增（QR 编码纯函数） |
+| qrcode/QrLayout.ets | 当前修复候选中存在 | 本轮规划：固化整数模块像素/截图上限/静区布局契约与边界测试 |
 | entry/src/test/List.test.ets | 测试入口（现注册 plotFunctionTest） | 修改（注册二维码测试套件） |
 | entry/src/test/QrShare.test.ets | 不存在 | 新增（持久化单测） |
 | plot/、calculator/、model/、preferences/ | 计算/绘图/存储 | 零改动（AC8 零退化对象） |
 
 ### 8.2 代码依赖分析
-- CalculatorPage → qrcode/QrPayload、qrcode/QrEncoder（新增单向依赖；两模块不依赖 UI，纯函数可独立单测）。
+- CalculatorPage → qrcode/QrPayload、qrcode/QrEncoder、qrcode/QrLayout（单向依赖；三模块不依赖 UI，纯函数可独立单测）。
 - qrcode/* → 无外部依赖（零三方库，符合离线约束与零依赖惯例）。
-- 测试：List.test.ets → QrShare.test.ets → QrPayload/QrEncoder；不影响既有 PlotFunction.test.ets。
+- 测试：List.test.ets → QrShare.test.ets → QrPayload/QrEncoder/QrLayout；不影响既有 PlotFunction.test.ets。最终设备像素另由 Tester 独立截图解码验证。
 - 运行时数据流只读复用 `expression`/`result`/`errorMsg` 状态，不写历史、不写偏好。
 
 ## 9. 复杂度评估

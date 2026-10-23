@@ -269,18 +269,18 @@ export default function qrShareTest(): void {
     })
 
     it('capacity_constants_contract', 0, (): void => {
-      expect(MAX_BYTES).assertEqual(271)
+      expect(MAX_BYTES).assertEqual(213)
       expect(PAYLOAD_PREFIX).assertEqual('OpenCalc\n算式: ')
     })
 
-    it('capacity_271_bytes_ok_cm06', 0, (): void => {
-      const r: QrPayloadResult = payloadWithTotalBytes(271)
+    it('capacity_213_bytes_ok_cm06', 0, (): void => {
+      const r: QrPayloadResult = payloadWithTotalBytes(213)
       expect(r.ok).assertTrue()
-      expect(utf8ByteLength(r.payload)).assertEqual(271)
+      expect(utf8ByteLength(r.payload)).assertEqual(213)
     })
 
-    it('capacity_272_bytes_rejected_cm06', 0, (): void => {
-      const r: QrPayloadResult = payloadWithTotalBytes(272)
+    it('capacity_214_bytes_rejected_cm06', 0, (): void => {
+      const r: QrPayloadResult = payloadWithTotalBytes(214)
       expect(r.ok).assertFalse()
       expect(r.payload).assertEqual('')
       expect(r.reason.length > 0).assertTrue()
@@ -725,6 +725,26 @@ export default function qrShareTest(): void {
 
     it('keeps_smaller_integer_module_size', 0, (): void => {
       expect(qrModulePixels(140, 140, 29, 4)).assertEqual(3)
+    })
+
+    it('rejects_invalid_layout_inputs_with_zero', 0, (): void => {
+      expect(qrModulePixels(0, 140, 29, 4)).assertEqual(0)
+      expect(qrModulePixels(-1, 140, 29, 4)).assertEqual(0)
+      expect(qrModulePixels(NaN, 140, 29, 4)).assertEqual(0)
+      expect(qrModulePixels(Infinity, 140, 29, 4)).assertEqual(0)
+      expect(qrModulePixels(140, 140, 0, 4)).assertEqual(0)
+      expect(qrModulePixels(140, 140, 29, 3)).assertEqual(0)
+    })
+
+    it('marks_less_than_four_pixels_as_insufficient_space', 0, (): void => {
+      const modulePx: number = qrModulePixels(147, 147, 29, 4)
+      expect(modulePx).assertEqual(3)
+      expect(modulePx < 4).assertTrue()
+    })
+
+    it('rejects_fractional_geometry_before_canvas_draw', 0, (): void => {
+      expect(qrModulePixels(148, 148, 29.5, 4)).assertEqual(0)
+      expect(qrModulePixels(148, 148, 29, 4.5)).assertEqual(0)
     })
   })
 }

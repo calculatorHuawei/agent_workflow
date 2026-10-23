@@ -1,15 +1,15 @@
 # 当前算式与结果一键生成二维码 - 代码仓理解（info.md）
 
 > rq-codebase 产出 ｜ 分析基线：`2500bf49d79b08b135059419c422a3d49dfb4a73`（PR #41 合并后，Issue #42 指定开发基线）
-> 注意：当前工作区分支 HEAD=`672e005`（基线 merge 的第一父提交），本文内容基于 `git show 2500bf4:...` 读取的基线真实代码；分支对齐是 IMPLEMENTING/APPLYING 门禁项（见 todo.md）。
+> 2026-10-23 Tester 反馈复规划：当前工作区分支 `agent/pull_request-43-task-14`，HEAD=`334f241`；失败证据对应 PR #43 head `964c83e`。本文以当前仓库、两提交差异和 Tester run-35 证据为事实基础，不再沿用早期 `672e005` 状态。
 
 ## 1. 基本信息
-- **需求类别**：新增功能（orchestrator 元数据标注 refactor，按需求内容纠正，差异已在 todo.md/proposal.md 记录）
+- **需求类别**：缺陷修复（`run_reason=tester_feedback`；原始 Issue 为新增功能，沿用既有 change_dir）
 - **需求名称**：当前算式与结果一键生成二维码（二维码分享）
 - **分析时间**：2026-10-23
 - **分析范围**：`opencalc/entry/src/main/ets/`（calculator/model/pages/plot/preferences/entryability）、`opencalc/entry/src/test/`、构建配置（oh-package/build-profile/module.json5）
 - **约束边界**：零三方依赖、离线生成、AC8 零退化模块（plot/、calculator/ 算法、model/、preferences/）不得改动
-- **重点分析类别**（新增功能 ✓✓ 项）：架构分析、公共组件识别、接口/契约识别、约束检查、构建集成分析
+- **重点分析类别**（缺陷修复 ✓✓ 项）：影响范围、现有代码、风险识别、测试验证策略；架构与数据模型仅做变更确认
 
 ## 2. 模块架构
 
@@ -135,7 +135,7 @@ EntryAbility（mainElement，UIAbility）
 - **结果串形态**：`this.result` = NumberFormatter.format(raw, '.', ',', INTERNATIONAL)，**可能含千分位逗号**（如 "12,345.5"）与负号；载荷逐字保留（AC2）。错误态时 result 为空串、errorMsg 非空（onEquals 的六个错误分支），门控天然拦截。
 - **边界条件**：
   1. 空算式/未按 =/计算失败 → 门控三分支拒绝（SC002-UC001）；
-  2. 载荷 > 271 字节（EC-M v10 上限）→ 容量分支提示（SC002-UC002）；
+  2. 载荷 > 213 字节（EC-M v10 byte 模式有效上限）→ 容量分支提示（SC002-UC002）；载荷层与编码器边界必须一致；
   3. 多字节字符（× ÷ π e 中文提示词不会入载荷，但算式可含 × ÷ π）→ UTF-8 byte 模式正确编码（FM-05/CM-09）；
   4. 面板打开中主题切换 → 码区恒定配色不受影响（FM-09/CM-05）；
   5. 横屏（isLandscape=true 不渲染 ToggleRow）→ 入口置于 DisplayPanel 区保证两方向可用（待定假设 9）。
@@ -147,7 +147,7 @@ EntryAbility（mainElement，UIAbility）
 | 自研 QR 编码器正确性（FM-02，RPN 180，最高风险） | 结构断言（尺寸公式/定位×3/时序/确定性）+ 容量边界 + 独立解码器抽样（Tester 侧） | QrShare.test.ets 结构断言；AC10 Tester 真实 UI + 解码工具 |
 | 载荷不一致（FM-01/05） | 单一纯函数 + 逐字/字节级断言（含 ×÷π、千分位、负数、小数） | 六类口径数据驱动用例 |
 | 主页面改动回归（AC8） | 最小侵入（新增状态与 @Builder，不改既有函数）；零改动模块约束 | 既有 PlotFunction.test.ets 同批执行 + 既有功能手工回归 |
-| 分支未对齐基线（当前 672e005） | APPLYING Step 0 门禁：先对齐 `2500bf4` | 构建前 git 核对 merge-base |
+| 修复 SHA 与 Tester 证据不一致 | Tester 必须从修复后的准确 PR head 重建、重装和取证 | 构建前后记录 `git rev-parse HEAD`，证据 manifest 绑定同一 SHA |
 | 签名配置指向原移植机路径 | Tester 侧本地签名适配（AC10 独立构建） | Tester 构建日志证据 |
 
 ## 10. 关键发现
@@ -164,3 +164,32 @@ EntryAbility（mainElement，UIAbility）
 - qrcode/ 两文件保持零 UI 依赖，全部导出为纯函数/纯数据结构，确保 hypium 直接可测。
 - 面板 @Builder 命名与文案沿用既有中文惯例（"二维码分享"/"✕ 返回"）。
 - 新增代码遵循全量显式类型标注，与基线风格一致（Reviewer 检查项）。
+
+## 11. Tester 反馈专项代码仓理解（本轮 rq-codebase 增量）
+
+### 11.1 失败链路定位
+
+```text
+QrPayload（文本正确）
+  → QrEncoder（矩阵级测试通过）
+  → CalculatorPage.drawQr（模块尺寸/静区/颜色/重绘）
+  → ArkUI Canvas 最终像素
+  → hdc 设备截图
+  → OpenCV/jsQR（失败）
+```
+
+Tester 已证明入口、回显、门控、关闭和回归正常，因此本轮重点不是重新设计载荷或编码算法，而是验证并修复 `drawQr` 之后的最终像素链路。矩阵测试通过不能推出设备截图可解码。
+
+### 11.2 当前相关模块
+
+| 模块 | 当前事实 | 规划影响 |
+|------|----------|----------|
+| `qrcode/QrPayload.ets` | 固定三行 UTF-8 载荷；常量仍声明 271，而编码器实际最多接受 213 字节 | 统一为 213 字节契约，避免“载荷层允许、编码器拒绝”的双重边界 |
+| `qrcode/QrEncoder.ets` | EC-M v1–v10，最大 byte 容量表为 213；矩阵结构测试已存在 | 保持算法范围，新增/保留独立标准解码器门禁 |
+| `pages/CalculatorPage.ets` | Canvas 负责白底、黑模块、4 模块静区和尺寸换算；Tester 失败发生在其最终输出之后 | 将布局计算委托可测纯函数，明确尺寸不足与重绘行为 |
+| `qrcode/QrLayout.ets` | 当前 HEAD 已出现 `qrModulePixels` 与 `MAX_SCREENSHOT_MODULE_PX=4` 的候选修复 | 作为设计目标记录；本 PLANNING 不修改或宣称其已通过 Tester，后续必须从准确修复 SHA 独立验证 |
+| `QrShare.test.ets` | 当前 HEAD 有布局上限与小画布整数结果测试 | 还需约束“可绘制最小值/不足时显式失败”，并保留三主题真实截图解码为 Tester 门禁 |
+
+### 11.3 架构判断
+
+本轮不改变 HAP、页面路由、数据流或外部依赖；`QrLayout` 是 qrcode 内部纯函数扩展，属于组件级缺陷修复，不构成新架构。`new-arch.md` 无需新增架构变更。

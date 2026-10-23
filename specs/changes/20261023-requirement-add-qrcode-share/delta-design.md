@@ -2,6 +2,7 @@
 
 > mod-design 产出（增量变更：`specs/changes/` 已存在）｜ 输入：info.md / proposal.md / delta-spec.md / new-arch.md
 > 变更目录：specs/changes/20261023-requirement-add-qrcode-share/ ｜ 基线：`2500bf49d79b08b135059419c422a3d49dfb4a73`
+> 2026-10-23 Tester 反馈修订：针对 PR #43 head `964c83e` 的设备截图解码失败，新增 QrLayout/Canvas 最终像素修复设计；本轮意图为 bugfix。
 > 全局 specs/design.md 为归档维护占位（基线 stub），本文对未变更部分标注"见基线源码/无相关实现"，仅展开变更点。
 
 ## 1. 概述
@@ -137,7 +138,7 @@ v --> k : Canvas 绘制/toast
 entry HAP 内源码目录 `entry/src/main/ets/qrcode/`，两个纯逻辑文件；非 installationFree 变更；无 UI 依赖、无 Kit 依赖、无三方依赖。
 
 #### 3.5.2 功能描述
-- QrPayload：`buildQrPayload(expression, result)` 三行固定格式构造；`utf8ByteLength(s)` 字节计数；`isWithinCapacity(s)` 容量判定（≤271 字节，EC-M v10 上限）；超限返回失败态（CM-06）。
+- QrPayload：`buildQrPayload(expression, result)` 三行固定格式构造；`utf8ByteLength(s)` 字节计数；容量判定统一为 ≤213 字节（EC-M v10 byte 模式上限）；超限返回失败态（CM-06）。
 - QrEncoder：`encodeQr(text)` → `{ size, modules: boolean[][] }`；ISO 18004 子集：byte 模式 + UTF-8、EC-M、版本 1–10 自适应、RS 纠错、掩模（评分选优）；超限/畸形输入返回失败态，不产出残缺矩阵（CM-10）。
 
 #### 3.5.3 目录结构
@@ -244,7 +245,7 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 |------|------|--------|
 | 1 容量/版本选择 | 按 UTF-8 字节数 + 模式指示符 + 长度域选最小版本 v∈[1,10]（EC-M） | O(1)（查表） |
 | 2 数据编码 | byte 模式：UTF-8 字节流 → 8bit 码字序列（含模式 0100、字符数指示、终止符、pad 0xEC/0x11） | O(n) |
-| 3 RS 纠错 | 按 EC-M 每版本块结构分块，GF(256) 多项式除法生成纠错码字并交错 | O(n·d)（n≤271 数据码字，d≤36） |
+| 3 RS 纠错 | 按 EC-M 每版本块结构分块，GF(256) 多项式除法生成纠错码字并交错 | O(n·d)（有效载荷 n≤213 字节；d 取决于版本分块） |
 | 4 矩阵布置 | (4v+17)² 矩阵：定位图案×3/分隔符/校正图案/时序图案/暗模块/格式信息（BCH(15,5)）/版本信息（v≥7，BCH(18,6)）/数据码字之字形填充 | O(N²)，N≤57 |
 | 5 掩模 | 8 个标准掩模条件逐一异或，按 N1–N4 规则评分取最低 | O(8·N²) |
 | 6 输出 | `{size: 4v+17, modules}` | O(1) |
@@ -255,7 +256,7 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 
 | 场景 | 处理 | 关联措施 |
 |------|------|---------|
-| 载荷超 271 字节 | QrPayload 返回 `{ok:false, reason}` → 面板"内容过长，无法生成二维码" | CM-06 |
+| 载荷超 213 字节 | QrPayload 返回 `{ok:false, reason}` → 面板"内容过长，无法生成二维码" | CM-06 |
 | 编码内部失败/未知异常 | QrEncoder 返回失败态；面板调用处 try/catch 兜底 →"二维码生成失败" | CM-10 |
 | 空串/畸形输入 | 入口前置校验拒绝（编码器同样防御性校验，双保险） | CM-03/CM-10 |
 
@@ -295,7 +296,7 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 数据流：expression/result（既有 @State，只读消费）→ 打开时现算（无缓存，CM-02）→ qrPayloadOk/qrErrorText → 条件渲染。载荷与矩阵不驻留 @State（临时局部量），杜绝陈旧内容。
 
 #### 3.6.8 核心算法
-门控：`expression.length > 0 && result.length > 0 && errorMsg.length === 0`（三分支单测覆盖，CM-03）。Canvas 绘制：模块映射 `px = (col)×modulePx`，静区偏移 `+4×modulePx`，先绘白底矩形再逐模块填黑；守卫与重绘时机沿用 PlotPanel（onReady/onAreaChange）。
+门控：`expression.length > 0 && result.length > 0 && errorMsg.length === 0`（三分支单测覆盖，CM-03）。Canvas 绘制：`modulePx = qrModulePixels(canvasW, canvasH, matrix.size, 4)`，结果必须为整数且不超过经设备截图验证的 `MAX_SCREENSHOT_MODULE_PX=4`；静区偏移 `+4×modulePx`，Canvas 组件背景与 bitmap 均显式白色，再逐模块填黑。`onReady`、`onAreaChange` 及主题切换后以最新宽高重绘；若空间不足以达到最小可绘制模块，不得静默 return 后留下空白/旧码，须进入明确失败分支。
 
 #### 3.6.9 错误处理
 编码调用包 try/catch → qrErrorText 兜底文案（CM-10）；toast 复用 `promptAction.showToast`（不可分享提示，CM-03）。
@@ -309,7 +310,7 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 `entry/src/test/QrShare.test.ets`，hypium 本地单测；default 导出注册函数经 `List.test.ets` 挂载（沿用 PlotFunction.test.ets 惯例：模块级辅助函数，禁嵌套）。
 
 #### 3.7.2 功能描述
-载荷断言（三行结构/前缀/逐字）、编码断言（尺寸公式 `(4v+17)²`/定位图案×3/时序图案/确定性）、六类口径数据驱动、容量边界（271 通过/272 拒绝）。
+载荷断言（三行结构/前缀/逐字）、编码断言（尺寸公式 `(4v+17)²`/定位图案×3/时序图案/确定性）、六类口径数据驱动、容量边界（213 通过/214 拒绝）、QrLayout 模块像素上限与小画布边界。
 
 #### 3.7.3 用例清单（AC9 口径）
 
@@ -321,7 +322,7 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 | 负数结果 | ("0-5","-5") | 负号逐字保留 |
 | 长表达式 | 构造 ≈200 字节算式 | 版本自适应正确、编码成功 |
 | 不可分享状态 | ("", "") / errorMsg 态 | 门控判定函数拒绝（不含 UI 的判定逻辑提为可测纯函数 `isShareable(expr,res,err)`） |
-| 容量边界 | 271/272 字节 | 通过/拒绝（CM-06） |
+| 容量边界 | 213/214 字节 | 通过/拒绝（CM-06） |
 | 多字节 | 含 × ÷ π 的算式 | UTF-8 字节级断言（CM-09） |
 | 结构断言 | 任一样例载荷 | 尺寸公式/定位×3/时序/确定性（CM-04） |
 
@@ -330,6 +331,84 @@ qrcode 模块**无状态**（纯函数，无 @State/无模块级可变变量）�
 
 #### 3.7.5 依赖关系
 仅依赖 qrcode/* 纯函数与 `../main/ets/...` 相对导入（既有惯例）；既有 PlotFunction.test.ets 零改动、同批执行（AC8 回归口径，CM-08）。
+
+### 3.8 QrLayout 截图可解码布局修复设计（新增，Tester 反馈）
+
+#### 3.8.1 模块介绍
+
+`entry/src/main/ets/qrcode/QrLayout.ets` 是零 UI 依赖的布局纯函数模块，仅负责把 Canvas 可用尺寸、矩阵边长和静区宽度转换为可绘制的整数模块像素。它不改变 QR 矩阵、不持有状态，也不依赖主题。
+
+#### 3.8.2 功能描述
+
+- 计算完整码面边长：`(matrixSize + 2 * quietModules) * modulePx`。
+- 结果使用整数像素，保证模块边界落在稳定采样网格上。
+- 对大画布应用 `MAX_SCREENSHOT_MODULE_PX=4` 上限，避免设备截图采样后的超大模块/网格伪影影响定位。
+- 对小画布返回实际可用整数值；调用方必须显式判断最小可绘制值，空间不足时显示失败提示，不得留下旧码或空白 Canvas。
+- 4 模块静区计入尺寸计算且不得被裁切。
+
+#### 3.8.3 目录结构
+
+```text
+entry/src/main/ets/qrcode/
+├── QrPayload.ets
+├── QrEncoder.ets
+└── QrLayout.ets      # Canvas 模块像素布局纯函数
+```
+
+#### 3.8.4 架构图谱
+
+```plantuml
+@startuml
+CalculatorPage -> QrLayout : qrModulePixels(canvasW, canvasH, matrixSize, 4)
+QrLayout --> CalculatorPage : integer modulePx
+CalculatorPage -> Canvas : white background + black modules + quiet zone
+Canvas --> "Device screenshot" : final pixels
+"Device screenshot" --> "OpenCV / jsQR" : independent decode
+@enduml
+```
+
+#### 3.8.5 功能与用例分析
+
+用例：SC005-UC001 三主题最终截图解码。前置条件是矩阵已成功生成且 Canvas 获得有效宽高；调用布局函数后完整居中绘制；后置条件是原始设备截图可由独立标准解码器还原精确载荷。
+
+用例：SC005-UC002 内容更新后截图载荷同步。重开时先清除旧矩阵/成功态，生成新矩阵并在最新布局尺寸下重绘；第二张截图必须解码为新载荷。
+
+#### 3.8.6 接口设计
+
+```typescript
+export const MAX_SCREENSHOT_MODULE_PX: number = 4
+export function qrModulePixels(
+  canvasWidth: number,
+  canvasHeight: number,
+  matrixSize: number,
+  quietModules: number
+): number
+```
+
+契约：入参必须为有限非负尺寸，`matrixSize > 0`、`quietModules >= 4`；返回非负整数。调用方负责将小于最小可绘制模块的结果映射到明确错误态。
+
+#### 3.8.7 状态管理设计
+
+QrLayout 无状态。CalculatorPage 沿用 V1；每次打开先清空旧 `qrMatrix/qrPayloadOk/qrErrorText`，完成编码后由 `onReady/onAreaChange` 使用最新 Canvas 尺寸绘制。主题变化不得改变码面黑白色值，必要时触发完整重绘。
+
+#### 3.8.8 核心算法
+
+```text
+available = floor(min(canvasWidth, canvasHeight) / (matrixSize + 2 * quietModules))
+modulePx = min(available, MAX_SCREENSHOT_MODULE_PX)
+side = (matrixSize + 2 * quietModules) * modulePx
+offset = floor((canvasSize - side) / 2)
+```
+
+先清除 Canvas，再绘制 `side × side` 白底，最后从 `(offset + quietModules * modulePx)` 开始绘制黑模块。禁止对最终截图做裁剪或重采样来掩盖应用输出缺陷。
+
+#### 3.8.9 错误处理
+
+非法尺寸、`modulePx` 不足、矩阵为空或绘制异常均进入“二维码生成失败/显示空间不足”明确提示分支；不得展示残缺码，不得复用上次矩阵。
+
+#### 3.8.10 依赖关系
+
+内部：CalculatorPage 单向依赖 QrLayout；QrLayout 无反向依赖。外部：无新增 Kit、OHPM 包或权限。
 
 ## 4. 接口设计
 
@@ -349,6 +428,11 @@ export function isShareable(expression: string, result: string, errorMsg: string
 export interface QrMatrix { size: number; modules: boolean[][] }
 export interface QrEncodeResult { ok: boolean; matrix: QrMatrix | null; reason: string }
 export function encodeQr(text: string): QrEncodeResult
+
+// qrcode/QrLayout.ets（纯函数，API 12）
+export const MAX_SCREENSHOT_MODULE_PX: number
+export function qrModulePixels(canvasWidth: number, canvasHeight: number,
+  matrixSize: number, quietModules: number): number
 ```
 
 同步、无 async、无副作用；失败以 `ok:false + reason` 显式表达（CM-06/CM-10）。
@@ -374,7 +458,7 @@ export function encodeQr(text: string): QrEncodeResult
 |----|------|
 | 格式 | UTF-8 纯文本，固定三行：`OpenCalc\n算式: {expression}\n结果: {result}` |
 | 取值 | {expression}/{result} 逐字取页面显示串（含千分位逗号/负号/小数，AC2） |
-| 容量 | ≤271 UTF-8 字节（EC-M v10）；超限显式失败（CM-06） |
+| 容量 | ≤213 UTF-8 字节（EC-M v10 byte 模式）；超限显式失败（CM-06） |
 | 字符集 | QR byte 模式 + UTF-8（无 ECI 段，解码端按 UTF-8 约定读取） |
 | 消费方 | 任意标准 QR 解码器（ISO 18004）；单向只读，无导入执行语义（"本次不包含"） |
 
@@ -492,14 +576,14 @@ note right of CalculatorPage : Settings/About/Plot 面板既有导航零改动
 
 | 校验项 | 结果 |
 |--------|------|
-| 功能一致性 | IR-R1~R5 ↔ §2 功能清单 6 项一一对应：通过 |
+| 功能一致性 | IR-R1~R6 与原功能清单保持对应；Tester 缺陷修复 F7 ↔ SC005/SR-03/SR-04/§3.8：通过 |
 | 页面一致性 | 无新路由页；QrSharePanel 为页面内 overlay ↔ §7.1：通过 |
 | 数据一致性 | 零持久化新增 ↔ §5.3/§10：通过 |
 | 权限一致性 | 零新增权限 ↔ §9.2：通过 |
 | Kit 一致性 | 仅 ArkUI/hypium ↔ §9.3：通过 |
-| 措施落点 | CM-01~CM-10 均有 §3.5/§3.6/§3.7 实现落点：通过 |
+| 措施落点 | CM-01~CM-10 均有 §3.5/§3.6/§3.7 实现落点；run-35 截图解码失败有 §3.8 与 SC005 落点：通过 |
 
 ---
 > 本文档由 mod-design skill 生成。
-> 标记 [推断] 的内容为基于设计推断，非确定性事实。本文未使用 [推断] 标记：实现参数（入口文案/摆放、编码参数、提示文案）均已在 delta-spec §13 待确认清单以默认值显式记录。
+> 标记 [推断] 的内容为基于设计推断，非确定性事实。Tester 反馈修订未把运行时根因写成确定事实；模块尺寸上限是待独立设备证据验证的修复设计约束。
 > 生成时间: 2026-10-23

@@ -58,7 +58,7 @@ export struct CalculatorPage {
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
-  private qrCanvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
+  private qrCanvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(false))
   private qrMatrix: QrMatrix | null = null
   private qrCanvasW: number = 0
   private qrCanvasH: number = 0
@@ -159,6 +159,12 @@ export struct CalculatorPage {
     this.showQrShare = true
   }
 
+  private failQrDrawing(message: string): void {
+    this.qrMatrix = null
+    this.qrPayloadOk = false
+    this.qrErrorText = message
+  }
+
   /** Draw constant black-on-white modules with a four-module quiet zone. */
   private drawQr(): void {
     const matrix: QrMatrix | null = this.qrMatrix
@@ -166,25 +172,32 @@ export struct CalculatorPage {
     const quiet: number = 4
     const modulePx: number = qrModulePixels(this.qrCanvasW, this.qrCanvasH,
       matrix.size, quiet)
-    if (modulePx < 4) return
+    if (modulePx < 4) {
+      this.failQrDrawing('二维码显示空间不足')
+      return
+    }
     const side: number = (matrix.size + quiet * 2) * modulePx
     const offsetX: number = Math.floor((this.qrCanvasW - side) / 2)
     const offsetY: number = Math.floor((this.qrCanvasH - side) / 2)
-    this.qrCanvasCtx.clearRect(0, 0, this.qrCanvasW, this.qrCanvasH)
-    this.qrCanvasCtx.fillStyle = '#FFFFFF'
-    this.qrCanvasCtx.fillRect(offsetX, offsetY, side, side)
-    this.qrCanvasCtx.fillStyle = '#000000'
-    for (let r: number = 0; r < matrix.size; r++) {
-      for (let c: number = 0; c < matrix.size; c++) {
-        if (matrix.modules[r][c]) {
-          this.qrCanvasCtx.fillRect(
-            offsetX + (c + quiet) * modulePx,
-            offsetY + (r + quiet) * modulePx,
-            modulePx,
-            modulePx
-          )
+    try {
+      this.qrCanvasCtx.clearRect(0, 0, this.qrCanvasW, this.qrCanvasH)
+      this.qrCanvasCtx.fillStyle = '#FFFFFF'
+      this.qrCanvasCtx.fillRect(0, 0, this.qrCanvasW, this.qrCanvasH)
+      this.qrCanvasCtx.fillStyle = '#000000'
+      for (let r: number = 0; r < matrix.size; r++) {
+        for (let c: number = 0; c < matrix.size; c++) {
+          if (matrix.modules[r][c]) {
+            this.qrCanvasCtx.fillRect(
+              offsetX + (c + quiet) * modulePx,
+              offsetY + (r + quiet) * modulePx,
+              modulePx,
+              modulePx
+            )
+          }
         }
       }
+    } catch (_e) {
+      this.failQrDrawing('二维码生成失败')
     }
   }
 

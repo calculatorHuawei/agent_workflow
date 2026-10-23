@@ -1,58 +1,53 @@
-# 应用报告（Issue #42 二维码分享）
+# 应用报告
 
-## 结果
+## 应用信息
 
-- 状态：Developer APPLYING 完成，等待独立 Tester/Reviewer。
-- 基线：`2500bf49d79b08b135059419c422a3d49dfb4a73`。
-- 分支：`agent/issue-42-task-12`。
-- 功能：将当前算式与结果离线编码为 QR，面板回显原文；空状态拒绝；关闭不修改计算状态。
+- 变更类型：缺陷修复（Tester feedback）
+- 变更名称：二维码设备截图可解码修复
+- 关联制品：proposal.md / delta-spec.md / delta-design.md / tasks.md
+- 应用日期：2026-10-23
 
-## 实现
+## 代码完成情况
 
-| 文件 | 内容 |
-|---|---|
-| `opencalc/entry/src/main/ets/qrcode/QrPayload.ets` | 固定三行载荷、UTF-8 字节计数、分享门控与容量防护 |
-| `opencalc/entry/src/main/ets/qrcode/QrEncoder.ets` | byte 模式、EC-M v1-v10、RS 纠错/交错、矩阵、8 掩模评分与失败态 |
-| `opencalc/entry/src/main/ets/pages/CalculatorPage.ets` | 分享入口、全屏面板、白底黑码、4 模块静区、关闭零扰动 |
-| `opencalc/entry/src/test/QrShare.test.ets` | 载荷、容量、GF/RS、矩阵、BCH、掩模、确定性与失败态回归 |
-| `opencalc/entry/src/test/List.test.ets` | 注册 QrShare 持久化测试套件 |
-
-## 验证
-
-- 全量单测：`Tests run: 91, Failure: 0, Error: 0, Pass: 91`。
-- 构建：`assembleHap` BUILD SUCCESSFUL；产物为 `entry-default-unsigned.hap`，无 signingConfig 与基线一致。
-- 静态检查：DevEco CodeLinter（`@typescript-eslint/recommended` + `@performance/recommended`）对新增 `QrPayload.ets` / `QrEncoder.ets` 为 0 defect；全部变更源文件为 0 error、1 个既有 warning。warning 位于 `CalculatorPage.ets` 的历史记录 `ForEach`（缺 keyGenerator），对应代码不在本次 diff 中。
-- 模拟器：`1 + 2 = 3` 后打开二维码，面板回显 `算式: 1+2`、`结果: 3`。
-- 独立解码：jsQR 从真实截图解得 QR v3，文本精确为 `OpenCalc\n算式: 1+2\n结果: 3`，UTF-8 原始字节一致。
-- 状态保持：关闭面板后表达式 `1+2` 与结果 `3` 均保留。
-- 拒绝路径：AC 清空后点击分享，面板不打开并出现 `请先完成一次有效计算`。
-- UI 证据：`.agent-runtime/evidence/task-12/ui-smoke/`。
+| 任务 | 状态 | 完成时间 |
+|------|------|----------|
+| Task 1.1 统一 213/214 字节容量边界 | ✅ 完成 | 2026-10-23 |
+| Task 1.2 加固 QrLayout 边界 | ✅ 完成 | 2026-10-23 |
+| Task 2.1 修复 Canvas 最终像素与失败态 | ✅ 完成 | 2026-10-23 |
+| Task 3.1 回归、构建与准确 SHA 交接 | ✅ 完成 | 2026-10-23 |
 
 ## TDD 执行记录
 
 | 任务 | RED | GREEN | REFACTOR |
-|---|---|---|---|
-| Task 1.1 载荷/门控/容量 | 失败测试先行 | 载荷纯函数通过 | UTF-8 与边界辅助函数收口后全绿 |
-| Task 1.2 数据码字 | 版本/码字断言先行 | v1-v10 数据码字通过 | 表驱动容量与填充逻辑后全绿 |
-| Task 1.3 RS/交错 | GF/RS/块结构断言先行 | RS 与交错通过 | 独立可整除性断言后全绿 |
-| Task 1.4 矩阵 | 图案/BCH/zigzag 断言先行 | 矩阵布置通过 | RED 捕获并修复 v4 remainder bits，复测全绿 |
-| Task 1.5 掩模/公共入口 | 确定性/失败态/长载荷断言先行 | 8 掩模与入口通过 | 统一失败态后全绿 |
-| Task 2.1-2.3 UI 组装 | 门控、现算语义、渲染契约由先行纯函数测试守护 | 页面接线与构建通过 | 最小侵入整理后全量测试/构建保持绿色 |
-| Task 3.1 收官 | 六类 AC9 与既有绘图回归批运行 | 91/91 通过 | 注册与零改动模块审计完成 |
+|------|-----|-------|----------|
+| Task 1.1 | MAX_BYTES=271、214 字节错误放行均被失败断言捕获 | 上限改为 213 后通过 | 注释/契约统一后保持绿色 |
+| Task 1.2 | 负尺寸返回 -1 被失败断言捕获 | 有限数、正值、静区守卫后通过 | 统一安全返回 0 后保持绿色 |
+| Task 2.1 | 分数网格测试失败；真实原始截图 jsQR 解码失败 | 离散网格、完整白底、明确失败态及关闭抗锯齿后，原始截图解码通过 | 提取 failQrDrawing，复跑保持绿色 |
+| Task 3.1 | 汇总前述 RED 与 Tester run-35 失败基线 | 全量 96/96、HAP 构建、三主题及刷新截图解码通过 | 终态复跑保持绿色 |
 
-## 收官命令（2026-10-23 新鲜复跑）
+## 验证结果
 
-- `hvigorw --no-daemon --mode module -p module=entry@default test`：BUILD SUCCESSFUL，91/91。
-- `opencalc/build-test.bat`：BUILD SUCCESSFUL，生成 unsigned HAP。
-- DevEco CodeLinter：0 error；1 个不在本次 diff 的既有 performance warning。
-- `git diff --name-only -- <AC8 零改动模块>`：空输出。
+- Local Test：`Tests run: 96, Failure: 0, Error: 0, Pass: 96, Ignore: 0`。
+- HAP：`opencalc/build-test.bat` BUILD SUCCESSFUL；产物 `entry-default-unsigned.hap`。
+- UI：模拟器重装最终 HAP；light/dark/AMOLED 原始截图均由 jsQR 1.4.0 解码为 `OpenCalc\n算式: 1+2\n结果: 3`。
+- Freshness：关闭后计算 `2+3=5` 并重开，原始截图解码为 `OpenCalc\n算式: 2+3\n结果: 5`。
+- AC8：受保护目录 diff 为空。
+- Lint：DevEco CodeLinter 顶层 launcher 在本沙箱复现已知 internal tool-start error；此前同一 QR 源集成功扫描为 0 error，当前修改另由真实 CompileArkTS 构建零 error 覆盖。该限制明确保留为风险，不伪造新的 CodeLinter 成功记录。
 
-## 规格差异
+## 关键修复
 
-设计稿将 EC-M v10 容量写为 271 字节；271 是另一纠错等级的容量口径。当前 EC-M v10 byte 模式实际最大载荷为 213 字节。实现保留载荷层 271 字节前置契约，但编码层对 214 字节及以上返回明确失败态，不生成残缺二维码；约 200 字节长载荷已通过单测。
+- QrPayload 与 QrEncoder 统一 EC-M v10 byte 模式 213 字节上限。
+- QrLayout 对非法、非有限和非离散输入安全失败。
+- Canvas 全画布显式白底、黑色整数模块、完整四模块静区；空间不足与绘制异常进入明确失败态。
+- QR Canvas 关闭抗锯齿，消除设备截图中的模块接缝；这是本轮真实截图 RED 后确认的最终像素修复。
 
-## 余项
+## 证据
 
-- 三主题与横竖屏视觉终验由独立 Tester 复核。
-- 不执行归档或审批。
-- Developer 收官阻塞：`git add -A` 无法创建共享 Git 管理目录 `D:/huawei/Demo/calculatorHuawei/.git/worktrees/developer-issue-42-task-12/index.lock`（managed sandbox 仅允许读取该目录），因此未能创建新 commit。`gh auth status` 同时报告现有 token 无效，且访问 `api.github.com` 被网络策略拒绝；未能 push、创建/更新 PR 或核验 PR head。工作树实现与验证结果完整保留，需在具备 Git 元数据写权限及 GitHub 网络/认证的执行环境中完成交付收官。
+- `opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`
+- `opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap`
+- `D:/huawei/Demo/calculatorHuawei/.agent-runtime/evidence/task-14/ui-smoke/`
+- `D:/huawei/Demo/calculatorHuawei/.agent-runtime/evidence/task-14/codelinter*.log`
+
+## 下一步
+
+由独立 Tester 从最终 PR head 重建、重装并重复三主题与刷新截图解码。不得归档或批准。
