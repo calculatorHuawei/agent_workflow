@@ -3,6 +3,9 @@
     { "name": "app_name", "value": "OpenCalc" },
     { "name": "module_desc", "value": "OpenCalc HarmonyOS" },
     { "name": "EntryAbility_desc", "value": "OpenCalc" },
-    { "name": "EntryAbility_label", "value": "OpenCalc" }
+    { "name": "EntryAbility_label", "value": "OpenCalc" },
+    { "name": "camera_permission_reason", "value": "用于拍摄并在设备上识别手写算式" },
+    { "name": "camera_permission_denied", "value": "相机权限被拒绝，原算式不会被修改" },
+    { "name": "camera_permission_permanent", "value": "请在系统设置中开启相机权限" }
   ]
 }

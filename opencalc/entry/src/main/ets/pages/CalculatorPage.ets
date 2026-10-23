@@ -14,6 +14,18 @@ import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../plot/PlotAxis'
+import {
+  ConfirmationResult, PermissionDecision, RecognitionError, RecognitionSnapshot,
+  RecognitionState, ValidationError
+} from '../recognition/model/RecognitionModels'
+import { ExpressionValidator } from '../recognition/service/ExpressionValidator'
+import { RecognitionCoordinator } from '../recognition/service/RecognitionCoordinator'
+import { HarmonyCameraPermissionGateway } from '../recognition/platform/HarmonyCameraPermissionGateway'
+import { HarmonyCaptureGateway } from '../recognition/platform/HarmonyCaptureGateway'
+import { OnDeviceHandwritingOcrProvider } from '../recognition/platform/OnDeviceHandwritingOcrProvider'
+import { CaptureResult } from '../recognition/platform/CaptureGateway'
+import { OcrResult } from '../recognition/platform/HandwritingOcrProvider'
+import { RecognitionPanel } from '../recognition/view/RecognitionPanel'
 
 @Entry
 @Component
@@ -28,6 +40,12 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+
+  // ==================== 手写算式识别状态（Issue #46） ====================
+  @State recognitionState: RecognitionState = RecognitionState.IDLE
+  @State recognitionCandidate: string = ''
+  @State recognitionValidationError: ValidationError = ValidationError.NONE
+  @State recognitionError: RecognitionError = RecognitionError.NONE
 
   // ==================== 绘图状态（Issue #40） ====================
   @State showPlot: boolean = false
@@ -52,12 +70,21 @@ export struct CalculatorPage {
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
+  private recognition: RecognitionCoordinator = new RecognitionCoordinator(new ExpressionValidator())
+  private permissionGateway: HarmonyCameraPermissionGateway | null = null
+  private captureGateway: HarmonyCaptureGateway | null = null
+  private ocrProvider: OnDeviceHandwritingOcrProvider = new OnDeviceHandwritingOcrProvider()
+  private recognitionTimeout: number = -1
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
     this.prefs = new PreferencesStore(ctx)
+    this.permissionGateway = new HarmonyCameraPermissionGateway(ctx)
+    this.captureGateway = new HarmonyCaptureGateway(ctx)
     this.prefs.init().then((): void => { this.loadPrefs(); this.loadHistory() })
   }
+
+  aboutToDisappear(): void { this.closeRecognition() }
 
   async loadPrefs(): Promise<void> {
     if (!this.prefs) return
@@ -127,6 +154,81 @@ export struct CalculatorPage {
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
     this.history = keep
     if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  // ==================== 拍照识别（Issue #46） ====================
+
+  private syncRecognition(): void {
+    const snapshot: RecognitionSnapshot = this.recognition.snapshot()
+    this.recognitionState = snapshot.state
+    this.recognitionCandidate = snapshot.candidate
+    this.recognitionValidationError = snapshot.validationError
+    this.recognitionError = snapshot.error
+  }
+
+  async openRecognition(): Promise<void> {
+    if (!this.permissionGateway || !this.captureGateway) return
+    this.recognition.begin(this.expression)
+    this.syncRecognition()
+    const decision: PermissionDecision = await this.permissionGateway.request()
+    this.recognition.onPermission(decision)
+    this.syncRecognition()
+    if (decision === PermissionDecision.GRANTED) await this.captureAndRecognize()
+  }
+
+  private async captureAndRecognize(): Promise<void> {
+    if (!this.captureGateway) return
+    const sessionId: number = this.recognition.snapshot().sessionId
+    const capture: CaptureResult = await this.captureGateway.capture()
+    this.recognition.onCapture(sessionId, capture.success, capture.cancelled)
+    this.syncRecognition()
+    if (!capture.success) return
+    this.recognitionTimeout = setTimeout((): void => {
+      this.recognition.onTimeout(sessionId)
+      this.syncRecognition()
+      if (this.captureGateway) this.captureGateway.release()
+    }, 5000)
+    const ocr: OcrResult = await this.ocrProvider.recognize(capture.uri)
+    if (this.recognitionTimeout >= 0) clearTimeout(this.recognitionTimeout)
+    this.recognitionTimeout = -1
+    this.recognition.onOcr(sessionId, ocr.text, ocr.success)
+    this.syncRecognition()
+    this.captureGateway.release()
+  }
+
+  updateRecognitionCandidate(value: string): void {
+    this.recognition.updateCandidate(value)
+    this.syncRecognition()
+  }
+
+  confirmRecognition(): void {
+    const result: ConfirmationResult = this.recognition.confirm()
+    if (result.accepted) {
+      this.expression = result.expression
+      this.errorMsg = ''
+    }
+    this.syncRecognition()
+  }
+
+  async retryRecognition(): Promise<void> {
+    this.recognition.retry()
+    this.syncRecognition()
+    if (this.recognitionState === RecognitionState.REQUESTING_PERMISSION && this.permissionGateway) {
+      const decision: PermissionDecision = await this.permissionGateway.request()
+      this.recognition.onPermission(decision)
+      this.syncRecognition()
+      if (decision !== PermissionDecision.GRANTED) return
+    }
+    await this.captureAndRecognize()
+  }
+
+  closeRecognition(): void {
+    if (this.recognitionTimeout >= 0) clearTimeout(this.recognitionTimeout)
+    this.recognitionTimeout = -1
+    this.recognition.cancel()
+    this.syncRecognition()
+    if (this.captureGateway) this.captureGateway.release()
+    this.ocrProvider.release()
   }
 
   // ==================== 绘图（Issue #40 SR-02） ====================
@@ -453,6 +555,22 @@ export struct CalculatorPage {
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
       if (this.showPlot) this.PlotPanel()
+      if (this.recognitionState !== RecognitionState.IDLE) {
+        RecognitionPanel({
+          state: this.recognitionState,
+          candidate: this.recognitionCandidate,
+          validationError: this.recognitionValidationError,
+          error: this.recognitionError,
+          panelBackground: this.getPanelBg(),
+          primaryText: this.getT1(),
+          secondaryText: this.getT2(),
+          accentColor: this.getOp(),
+          onCandidateChange: (value: string): void => { this.updateRecognitionCandidate(value) },
+          onConfirm: (): void => { this.confirmRecognition() },
+          onRetry: (): void => { this.retryRecognition() },
+          onClose: (): void => { this.closeRecognition() }
+        })
+      }
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -505,6 +623,8 @@ export struct CalculatorPage {
       Blank()
       Text('绘图').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.onOpenPlot() })
+      Text('📷 识别').fontSize(12).fontColor(this.getT2()).padding(8).accessibilityText('拍照识别手写算式')
+        .onClick((): void => { this.openRecognition() })
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
       Text('⚙').fontSize(16).fontColor(this.getT2()).padding(8)
