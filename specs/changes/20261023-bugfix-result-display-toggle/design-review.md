@@ -3,6 +3,7 @@
 > 变更目录：`specs/changes/20261023-bugfix-result-display-toggle/`  
 > 关联 Issue：#44（历史 #27）  
 > 审视日期：2026-10-23
+> 本次审视范围：Tester run-59 feedback replan；产品行为已通过，仅审视 canonical UI 用例持久化增量。
 
 ## 1. 完整性评估
 
@@ -14,7 +15,7 @@
 - [x] `design-review.md`：本报告
 - [x] `todo.md`：PLANNING 子步骤状态
 - [x] `new-arch.md`：不适用；无模块边界、部署、外部依赖或主数据流变化
-- [x] `tasks.md`：未创建，符合“仅 PLANNING”门禁
+- [x] `tasks.md`：目录中已有上一轮 IMPLEMENTING 制品；本次 PLANNING 未创建、删除或修改
 
 **制品齐全性：通过。**
 
@@ -30,6 +31,7 @@
 | 切换保持算式/结果/历史一致 | F2/R2 | SC003-UC001/SR-01 | §3.7 | ✅ |
 | 不可靠转换合理降级 | F3/R3 | SC002-UC001 | §3.5/§3.6 | ✅ |
 | 自动化测试 | R4 | SR-02 | §3.8 | ✅ |
+| canonical UI 套件来源 | F4/R5 | SC004-UC001/SR-03 | §3.9/§4.8/§9.1 | ✅ |
 
 **需求覆盖度：100%。**
 
@@ -40,6 +42,7 @@
 - [x] 功能边界一致：只切换当前结果，不做分数输入、历史重格式化或偏好持久化。
 - [x] 历史 #27 的关键反例一致：旧测试把 `1/3` 期望为 `null`，新规格必须修复。
 - [x] R1–R4 均分解到 SR-00–SR-02 与用例。
+- [x] Tester run-59 唯一失败门禁已分解为 R5/F4、SC004-UC001 与 SR-03；未重开已通过的产品要求。
 
 **proposal → delta-spec：通过。**
 
@@ -49,6 +52,7 @@
 | SR-00 | `FractionUtil` | `toFraction/gcd/format` | `FractionUtil.test.ets` | 通过 |
 | SR-01 | `ResultDisplayPresenter` + `CalculatorPage` | mode/raw/decimal/hasResult | presenter + 后续 UI | 通过 |
 | SR-02 | 测试模块 | `List.test.ets` 注册 | 核心与交互矩阵 | 通过 |
+| SR-03 | canonical UI 测试资产 | version-1 JSON / 既有 `load_cases()` | 解析、唯一 ID、五类覆盖与来源复验 | 通过 |
 
 - [x] 最大分母、误差门禁和迭代上限在 spec 与 design 一致。
 - [x] `null → decimalText` 降级契约一致。
@@ -63,6 +67,7 @@
 - [x] 小数模式和降级复用同一 `decimalText`，保证现有精度策略不漂移。
 - [x] 复制当前可见文本，但不覆盖历史小数快照。
 - [x] 所有 Markdown 代码围栏成对闭合。
+- [x] canonical 文件与 evidence 分工明确：前者保存测试意图，后者保存设备/HEAD/截图/日志。
 
 **内部自洽性：通过。**
 
@@ -82,7 +87,7 @@
 
 ### 3.3 范围门禁
 - [x] 未修改 `opencalc/` 产品源码。
-- [x] 未创建 `tasks.md`、测试代码或应用报告。
+- [x] 未创建或修改 `tasks.md`、测试代码、canonical JSON 或应用报告；这些既有文件保持原状。
 - [x] 未 commit、push 或 archive。
 - [x] 未运行实现/测试阶段命令。
 
@@ -97,6 +102,9 @@
 | 新计算重置为小数 | 确保每个新结果先遵循现有显示策略 | 行为确定、便于验收 |
 | 历史始终保留计算时小数快照 | “结果区域”范围与历史一致性 AC | 切换无持久副作用 |
 | 横竖屏均提供入口 | 功能范围未排除横屏 | 避免历史方案横屏隐藏造成能力缺失 |
+| canonical 用例采用 run-59 已执行套件 | Tester 已完成真实模拟器验证 | 最小化反馈修复，避免新增未经执行的产品场景 |
+| 文件名采用 `result_display_toggle.json` | 现有 `function_plot.json` 使用蛇形命名 | 保持编排器目录约定；suite ID 保持 kebab-case |
+| 不修改 `load_cases()` | 现有 version-1 契约已能解析目标内容 | 保持向后兼容与最小权限 |
 
 ## 5. 风险与遗留问题
 
@@ -109,9 +117,10 @@
 | 切换污染历史 | 切换路径无求值、无 `setHistory`，测试状态不变量 |
 | 错误后复用陈旧 raw | ERROR/AC 清理 hasResult/raw/mode |
 | UI 覆盖结果文本 | 预留间距、≥32vp 触控目标、双方向验证 |
+| 临时 evidence 套件不被视为 canonical | 新增 SR-03，固定 `orchestrator/ui_cases/result_display_toggle.json` 并要求 loader 解析/来源复验 |
 
 ### 5.2 遗留问题
-无 PLANNING blocker/important 遗留问题。以下为范围外未来项：分数输入、混合分数、历史条目跟随模式、跨启动记忆。
+无 PLANNING blocker/important 遗留问题。共享编排器路径存在，新增单个静态 JSON 可逆且不需要凭据、付费服务、隐私/合规决策或产品范围扩张。以下仍为范围外未来项：分数输入、混合分数、历史条目跟随模式、跨启动记忆。
 
 ## 6. 审视结论
 | 维度 | 结果 |
@@ -122,4 +131,4 @@
 | 可实施性 | ✅ 通过 |
 | 范围门禁 | ✅ 通过 |
 
-**PLANNING 阶段结论：通过。制品足以进入后续 IMPLEMENTING，但本次不进入该阶段。**
+**PLANNING 阶段结论：通过。反馈增量已完整映射到 R5/SC004/SR-03 与 §3.9；本次停在 PLANNING，不进入 IMPLEMENTING/APPLYING。**

@@ -58,6 +58,7 @@
 | IR-44-R2 | 无副作用切换 | 在结果区域切换当前展示，不重新输入/求值，不改变表达式、raw result 或历史 | Developer |
 | IR-44-R3 | 安全降级 | 转换失败或不可靠时显示既有小数，不崩溃、不显示错误候选 | Developer |
 | IR-44-R4 | 自动化验证 | 核心转换和关键交互均有自动化测试 | Developer |
+| IR-44-R5 | Canonical UI 用例来源 | 结果显示 UI 套件必须持久化在 `orchestrator/ui_cases/` 并可由现有 driver 解析 | Developer / Tester |
 
 ---
 
@@ -73,6 +74,7 @@
 | 6 | 生命周期 | 显示模式不要求跨应用启动持久化 | 重启默认小数，不纳入 AC |
 | 7 | 错误态 | 无成功结果或存在错误时不可执行有效切换 | 按钮隐藏或禁用均可，需可测 |
 | 8 | 阶段 | 本文仅规格，不授权产品源码实现 | PLANNING 完成不等于功能完成 |
+| 9 | 测试资产位置 | canonical 文件固定为 `D:/huawei/Demo/calculatorHuawei/orchestrator/ui_cases/result_display_toggle.json`；evidence bundle 仅保存执行证据，不替代用例来源 | Tester 必须能够指出 canonical 输入路径 |
 
 ---
 
@@ -104,6 +106,7 @@
 | MOD | SC-001 | 常见有理结果双向切换 | 页面/求值/分数工具/历史 | 高 | 覆盖 1/2、1/3、约分、负数、整数 |
 | MOD | SC-002 | 不可靠转换安全降级 | 页面/分数工具/错误边界 | 高 | 非有限、超界、误差不达标 |
 | MOD | SC-003 | 切换状态一致性 | 页面状态/历史/复制 | 高 | 不重复求值或写历史 |
+| ADD | SC-004 | 持久 UI 套件可复用 | 编排器/UI case loader/Tester | 高 | 关闭 run-59 唯一失败门禁 |
 
 ### [MOD] 场景 SC-001：常见有理结果双向切换
 
@@ -522,6 +525,106 @@ And   未再次调用求值或历史写入路径
 | IR-44 | SR-01 | 结果展示状态 | 仅模式可变，业务状态不变 | 当前结果/历史 | F-001/F-002 |
 | IR-44 | SR-02 | 自动化验证 | 断言副作用为零 | 测试 | F-005 |
 
+### [ADD] 场景 SC-004：持久 UI 套件可复用
+
+#### 场景描述
+Developer 将 Tester run-59 已执行的结果显示套件按现有 version-1 约定持久化到 `orchestrator/ui_cases/`，Tester/Reviewer 从该稳定路径加载相同测试意图。
+
+#### 场景要素分析
+| 场景要素 | 取值 |
+| -------- | ---- |
+| **T** 生命周期阶段 | Tester 反馈后的变更修正与复验 |
+| **G** 场景目标 | 让 UI 验收具有 canonical、可重复的用例来源 |
+| **E** 环境 | 共享编排器根目录与任意已连接 HarmonyOS 设备/模拟器 |
+| **A** 参与者 | Developer、Tester、Reviewer、`harmony_ui_driver.load_cases` |
+| **S** 系统状态 | 产品行为已通过，canonical 结果显示用例缺失 |
+
+#### 用例清单
+| 变更类型 | 用例编号 | 用例名称 | 用例目的 | 用例描述 | 是否基础用例 |
+| -------- | -------- | -------- | -------- | -------- | ------------ |
+| ADD | SC004-UC001 | 加载结果显示 canonical 套件 | 验证稳定用例来源 | 从固定路径解析并覆盖五类数值场景 | 是 |
+
+### [ADD] 用例 SC004-UC001：加载结果显示 canonical 套件
+
+##### 简要说明
+使用现有 loader 解析 `result_display_toggle.json`，确认内容与 run-59 已执行套件的核心 case 一致。
+
+##### Actor
+| 角色 | 类型（主/次，人/系统） | 与系统的关系 |
+| ---- | ---------------------- | ------------ |
+| Tester | 主，人 | 选择 canonical 套件并执行/复核 |
+| `load_cases` | 次，系统 | 校验 version 并构造 `UiCase` |
+
+##### 前置条件
+| 场景要素 | 本用例采用的取值 | 对用例的影响点（触发/步骤/分支/数据/DoD） |
+| -------- | ---------------- | ----------------------------------------- |
+| **T** 生命周期阶段 | changes-requested 修正 | 只处理测试资产缺口 |
+| **G** 场景目标 | 稳定来源 | 目标必须在 `orchestrator/ui_cases/` |
+| **E** 环境 | 编排器根目录 | 不依赖 PR worktree 相对路径猜测 |
+| **A** 参与者 | Tester/loader | loader 契约不可变 |
+| **S** 系统状态 | run-59 套件已验证 | 不增加新的产品行为要求 |
+
+##### 最小保证
+新增失败时不修改 `function_plot.json`、产品源码、既有 evidence、PR 提交或设备状态。
+
+##### 成功保证（后置条件）
+1. canonical 路径存在有效 UTF-8 JSON，`version=1`。
+2. `load_cases()` 可解析至少 5 个唯一 case。
+3. 套件覆盖 half、third、reduced-half、negative-half、integer-fraction-mode，断言保持机器可读。
+
+##### 触发事件
+Tester 对 run-59 返回 changes requested，指出 canonical 结果显示套件缺失。
+
+##### 主成功路径（基本事件流）
+```
+1. 读取 run-59 的 result-display-toggle-cases.json 作为已执行基线。
+2. 按 function_plot.json 的命名和 version-1 结构生成 result_display_toggle.json。
+3. 调用 harmony_ui_driver.load_cases() 解析目标文件。
+4. 比对 case ID、表达式和关键断言覆盖。
+5. Tester 从 canonical 路径复验或审计来源。
+```
+
+##### 扩展路径
+```
+3a. JSON 或 version 不受支持：拒绝交付并修正文档字段，不修改 loader。
+4a. 与 run-59 基线漂移：以已执行基线为准恢复，新增产品场景另立需求。
+```
+
+##### 验证达成标准
+```
+Given orchestrator/ui_cases/ 当前缺少结果显示套件
+And   run-59 evidence 含已执行的 result-display-toggle-cases.json
+When  Developer 持久化 result_display_toggle.json 并由 load_cases() 解析
+Then  至少五个相关 case 均可加载且 ID 唯一
+And   覆盖 1÷2、1÷3、2÷4、负数与整数结果
+And   未修改产品源码、现有 function_plot.json 或历史 evidence
+```
+
+##### 规格与性能要求（可选）
+| 规格项 | 规格要求 | 影响功能 |
+| ------ | -------- | -------- |
+| 兼容性 | `version=1`；只使用现有 loader 支持字段 | F4 |
+| 权限最小化 | 无设备 ID、凭据、绝对 evidence 路径或执行坐标 | F4 |
+
+##### 约束与影响（可选）
+1. canonical 用例描述测试意图，不携带一次性执行证据。
+2. `suite` 字段遵循现有文件约定；当前 loader 忽略该字段，因此不修改 loader。
+
+##### 是否影响架构
+| 是否影响 | 影响范围 | 影响类型 | 影响描述 |
+| -------- | -------- | -------- | -------- |
+| 否 | 测试编排资产 | 文件新增 | 不改变应用、driver API、部署或数据流 |
+
+##### 功能影响列表
+| 功能编号 | 功能描述 | 影响类型 | 影响描述（详细变更点） | 影响来源 |
+| -------- | -------- | -------- | ---------------------- | -------- |
+| F-006 | Canonical UI 用例 | 新增 | 新增一个 version-1 JSON 文件 | Tester run-59 |
+
+##### 需求分解列表（IR → SR）
+| IR 编号 | SR 编号 | SR 名称 | SR 描述 | 关联功能 | 关联功能编号 |
+| -------- | -------- | -------- | -------- | -------- | ------------ |
+| IR-44 | SR-03 | Canonical UI 套件 | 持久化并验证结果显示回归 case | 测试编排 | F-006 |
+
 ---
 
 ## 8. SR 功能模块点
@@ -558,6 +661,17 @@ And   未再次调用求值或历史写入路径
 | **功能点** | ①转换表驱动测试 ②降级边界 ③切换状态不变量 ④历史不变量 |
 | **验收场景与标准** | 测试入口可发现并运行；全部 AC 有明确断言 |
 | **DFX/性能/功耗设计** | 纯逻辑优先；UI 设备证据留给后续 APPLYING/Tester，不在本 phase 运行 |
+
+### SR-03　Canonical UI 套件〔Tier T0〕
+| 字段 | 内容 |
+| ---- | ---- |
+| **需求场景** | Tester/Reviewer 需要从稳定路径复验 Issue #44 UI |
+| **需求价值** | 消除临时生成套件导致的来源不可追溯问题 |
+| **需求描述** | 在 `orchestrator/ui_cases/` 新增与 run-59 已执行内容一致的 version-1 JSON；不修改 loader 或产品代码 |
+| **关联用例** | SC004-UC001 |
+| **功能点** | ①固定路径 ②唯一 case ID ③自然语言 purpose ④expression ⑤机器断言 ⑥loader 解析校验 |
+| **验收场景与标准** | `load_cases()` 成功加载至少 5 个 case；覆盖 half/third/reduced/negative/integer；来源路径可审计 |
+| **DFX/性能/功耗设计** | 静态 UTF-8 JSON；无权限、网络、设备绑定或运行时开销 |
 
 ---
 
@@ -604,6 +718,7 @@ And   未再次调用求值或历史写入路径
 | SR-00 | IR-44 | 可靠分数转换核心 | 有界逼近并返回最简分数或 null | F1/F3 | 学生用户、开发测试 | 把 raw number 转为可靠分数字符串 | 见 §5 参数约束 | SC-001/002 | 核心数值表与降级测试通过 | 高 | Issue #44 |
 | SR-01 | IR-44 | 结果展示状态与交互 | 当前结果双向切换且无业务副作用 | F2/F3 | 学生用户 | 结果区入口及派生展示 | 成功结果存在时 | SC-001/002/003 | UI/状态 AC 通过 | 高 | Issue #44 |
 | SR-02 | IR-44 | 自动化验证 | 注册核心和交互测试 | F3 | 开发、Reviewer、Tester | 可重复执行的验证证据 | 实现阶段执行 | 全部 | 全部 AC 有自动断言 | 高 | Issue #44 |
+| SR-03 | IR-44 | Canonical UI 套件 | 持久化结果切换 UI 测试意图 | F4 | Tester、Reviewer | 从约定目录加载相关用例 | version-1 JSON | SC-004 | loader 可解析且五类场景齐全 | 高 | Tester run-59 |
 
 ---
 
@@ -613,6 +728,7 @@ And   未再次调用求值或历史写入路径
 | SR-00 可靠分数转换核心 | T0 | SC001-UC001/002/003、SC002-UC001 | IR-44-R1/R3 | 1/2、1/3、约分、负数、整数、降级 | P0 |
 | SR-01 结果展示状态与交互 | T1 | SC001-UC001、SC002-UC001、SC003-UC001 | IR-44-R2/R3 | 双向切换且表达式/raw/历史不变 | P0 |
 | SR-02 自动化验证 | T2 | 全部 | IR-44-R4 | 核心逻辑和关键交互自动化覆盖 | P0 |
+| SR-03 Canonical UI 套件 | T0 | SC004-UC001 | IR-44-R5 | 固定路径可解析且覆盖已执行五类场景 | P0 |
 
 ---
 
@@ -624,6 +740,7 @@ And   未再次调用求值或历史写入路径
 | `CalcEngine` → `CalculatorPage` | 复用 raw number，不修改引擎 |
 | `NumberFormatter` → 小数快照 | 复用现有显示策略，不改变精度 |
 | `CalculatorPage` → History | 仅等号路径写入；切换路径禁止写入 |
+| run-59 evidence → SR-03 → Tester 复验 | 已执行套件作为内容基线；canonical 文件作为后续唯一稳定输入 |
 
 ---
 

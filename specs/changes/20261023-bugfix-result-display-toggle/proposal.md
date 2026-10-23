@@ -1,5 +1,7 @@
 # 计算结果小数/分数切换需求提案
 
+> **Tester 反馈再规划（2026-10-23）**：产品功能、主机测试、构建、lint 与模拟器 UI 行为均已通过。当前唯一未通过门禁是结果显示 UI 套件未持久化到编排器约定目录 `D:/huawei/Demo/calculatorHuawei/orchestrator/ui_cases/`。本次 PLANNING 仅补充该测试资产的需求与设计，不变更产品源码，不重做已通过的产品实现。
+
 ## 1. 需求概述
 
 ### 1.1 基本信息
@@ -125,6 +127,11 @@
   - 功能描述：非有限值、超界或误差不达标时保留小数；覆盖自动化测试。
   - 用户价值：避免崩溃和误导性结果。
 
+- **F4: Canonical UI 回归用例持久化**
+  - 功能描述：把 Tester 已执行并留存于 evidence bundle 的 version-1 JSON 用例，以项目现有约定持久化为 `orchestrator/ui_cases/result_display_toggle.json`。
+  - 用户价值：Tester/Reviewer 可从稳定、相关的 canonical 输入重复执行结果切换验收，而非临时生成用例。
+  - 技术要点：沿用 `function_plot.json` 的 `version/suite/cases` 结构以及 `harmony_ui_driver.load_cases()` 契约；不引入坐标、设备 ID、凭据或产品权限。
+
 ## 6. 系统架构概述
 
 ### 6.1 概念架构图
@@ -171,6 +178,10 @@ CalcEngine ──raw number──▶ CalculatorPage ──小数快照──▶ 
   - 描述：新增纯逻辑测试与页面交互状态测试。
   - 验收标准：覆盖 Issue 全部 AC 及错误/降级边界。
   - 优先级：P0；关联 F1/F2/F3。
+- **R5: 持久化 UI 用例来源**
+  - 描述：在编排器 canonical 用例目录提供与 Issue #44 直接相关、可由 `load_cases()` 解析的结果显示回归 JSON。
+  - 验收标准：文件路径为 `orchestrator/ui_cases/result_display_toggle.json`；`version=1`；至少覆盖 `1÷2` 双向切换、`1÷3`、`2÷4`、负数和整数；每个 case 具有唯一 `id`、自然语言 `purpose`、`expression` 与机器可读 `assertions`；来源与 Tester run-59 已执行套件一致。
+  - 优先级：P0；关联 F4。
 
 ## 8. 影响范围分析
 
@@ -180,6 +191,7 @@ CalcEngine ──raw number──▶ CalculatorPage ──小数快照──▶ 
 | `entry/src/main/ets/common` | 当前无分数工具 | 新增 `FractionUtil.ets` |
 | `entry/src/main/ets/pages/CalculatorPage.ets` | 求值、结果、历史与 UI | 修改状态和结果区域 |
 | `entry/src/test` | Hypium 本地测试入口 | 新增并注册转换/交互测试 |
+| `D:/huawei/Demo/calculatorHuawei/orchestrator/ui_cases` | 编排器 canonical UI 用例目录 | 新增一个 version-1 JSON 用例文件；不修改产品源码 |
 
 ### 8.2 代码依赖分析
 `CalculatorPage` 单向依赖 `FractionUtil`；`FractionUtil` 无 UI、Kit、存储依赖。现有 `NumberFormatter`、`CalcEngine` 和历史 schema 保持兼容。
@@ -204,7 +216,7 @@ CalcEngine ──raw number──▶ CalculatorPage ──小数快照──▶ 
 ## 10. 待解决问题
 
 ### 10.1 已定决策
-工作流分类、`1/3` 行为、整数/负数格式、降级语义、历史不变及不持久化均已确定。
+工作流分类、`1/3` 行为、整数/负数格式、降级语义、历史不变、显示模式不持久化及 canonical UI 用例路径均已确定。Tester run-59 的 `result-display-toggle-cases.json` 作为内容基线；采用蛇形文件名以匹配现有 `function_plot.json` 约定。
 
 ### 10.2 待解决问题
-无阻塞项。实现阶段只能在本文规定的算法门禁范围内选择常量，不能改变用户可见语义。
+无阻塞项。`orchestrator/ui_cases/` 位于共享编排器根目录而非 PR worktree，且 Tester 角色只读；Developer 后续 APPLYING 可按 changes-requested 门禁新增目标文件。该动作是可逆的单文件测试资产补充，不要求凭据、付费服务、隐私/合规决策或产品范围扩张。

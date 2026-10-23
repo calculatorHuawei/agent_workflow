@@ -2,10 +2,12 @@
 
 > 关联 Issue：#44（历史 #27）  
 > 文档类型：delta-design  
-> 设计基线：当前分支 `agent/issue-44-task-21`  
-> 本文仅指导后续实现，不包含源代码变更。
+> 产品实现基线：PR #47 HEAD `dd3f053a1a4fe04987f27f5b3f502db253dde5e0`（原开发分支 `agent/issue-44-task-21`）
+> 当前反馈规划分支：`agent/pull_request-47-task-25`；本文仅指导后续反馈修正，不包含源代码或 JSON 实现变更。
 
 ## 1. 概述
+
+> **Tester 反馈设计增量（2026-10-23）**：run-59 已验证所有产品行为；本轮只设计 `orchestrator/ui_cases/result_display_toggle.json` 的持久化与解析校验。以下既有产品设计保持有效且不要求再次修改产品源码。
 
 ### 1.1 应用定位
 OpenCalc 是单 entry HAP 的 HarmonyOS 科学计算器。本增量为学生用户增加当前计算结果的小数/最简分数双向展示，并修复历史 #27 方案无法识别 `1/3` 的算法缺陷。
@@ -31,6 +33,7 @@ OpenCalc 是单 entry HAP 的 HarmonyOS 科学计算器。本增量为学生用�
 | 安全降级 | 不可靠候选回退现有小数 | `CalculatorPage` | P0 |
 | 状态一致性 | 切换不求值、不写历史 | `CalculatorPage` | P0 |
 | 自动化测试 | 数学契约、状态选择、UI 交互 | `entry/src/test` / 后续 UI tests | P0 |
+| Canonical 结果显示 UI 套件 | 从稳定编排器路径提供已执行的五类结果切换 case | `orchestrator/ui_cases/result_display_toggle.json` | P0 |
 
 ## 3. 实现模型
 
@@ -354,7 +357,7 @@ entry/src/test/
 ├── FractionUtil.test.ets                 # 新增
 └── ResultDisplayPresenter.test.ets       # 新增
 ```
-后续 UI 自动化证据建议放变更目录 `ui-tests/`，不在 PLANNING 创建。
+设备执行证据继续保存在 `.agent-runtime/evidence/` 或变更目录报告中；测试意图必须另行持久化到 canonical `orchestrator/ui_cases/`，两者不得互相替代。本 PLANNING 仅产出设计，不创建 JSON 文件。
 
 #### 3.8.2 核心测试矩阵
 | 类别 | 用例 |
@@ -366,6 +369,62 @@ entry/src/test/
 | 降级 | NaN、Infinity、π、超安全范围、无门禁候选 |
 | 模式 | 双向翻转、canToggle=false 不变、null 回退 decimalText |
 | 交互 | 计算后切换不改变表达式与历史条目数量/内容；AC 后不可切换 |
+
+### 3.9 Canonical UI 用例模块实现设计
+
+#### 3.9.1 模块介绍
+新增单个静态测试资产 `D:/huawei/Demo/calculatorHuawei/orchestrator/ui_cases/result_display_toggle.json`。该文件属于共享编排器的测试输入，不属于 `opencalc` 产品源码，也不进入应用 HAP。
+
+#### 3.9.2 功能描述
+- 复用 Tester run-59 已执行的 `result-display-toggle-cases.json` 语义。
+- 覆盖 `half-toggle`、`third-toggle`、`reduced-half`、`negative-half`、`integer-fraction-mode`。
+- 供 `harmony_ui_driver.load_cases()` 和 Tester/Reviewer 从固定路径加载。
+
+#### 3.9.3 目录结构
+```
+orchestrator/
+├── harmony_ui_driver.py                 # 复用，不修改
+└── ui_cases/
+    ├── function_plot.json               # 既有，不修改
+    └── result_display_toggle.json        # 后续 APPLYING 新增
+```
+
+#### 3.9.4 架构图谱
+```plantuml
+@startuml
+artifact "run-59 evidence suite" as Evidence
+artifact "result_display_toggle.json" as Canonical
+component "load_cases()" as Loader
+actor Tester
+Evidence --> Canonical : preserve tested intent
+Canonical --> Loader : version-1 JSON
+Loader --> Tester : UiCase[]
+@enduml
+```
+
+#### 3.9.5 功能与用例分析
+用例 SC004-UC001：以 run-59 套件为内容基线写入 canonical 路径，解析后检查至少五个唯一 ID，并核对五类表达式/断言覆盖。无需在 Developer APPLYING 中重新操控设备；设备复跑由 Tester 根据门禁决定。
+
+#### 3.9.6 接口设计
+不新增 Python API。沿用：
+```python
+load_cases(path: str | Path) -> list[UiCase]
+```
+JSON 顶层字段：`version: 1`、`suite: string`、`cases: array`。每个 case 使用 `id`、`purpose`、`expression`、`assertions`；断言沿用 run-59 的 `text_present`、`text_absent`、`screenshot_required`、`ui_tree_required`。
+
+#### 3.9.7 状态管理设计
+无状态。canonical 文件只描述测试意图；设备 ID、HEAD、时间和截图路径属于 evidence manifest，不写入该文件。
+
+#### 3.9.8 核心算法
+无算法变更。校验流程为 JSON 解析 → `load_cases()` → ID 唯一性与覆盖集合检查，复杂度 O(n)，n 为 case 数。
+
+#### 3.9.9 错误处理
+- JSON/version 解析失败：修正资产，不修改 loader 以绕过错误。
+- case 与 run-59 漂移：恢复已执行基线；新增场景另行评审。
+- 目标路径不可写：仅在后续 APPLYING 实际发生且无法安全解决时报告阻塞；PLANNING 已确认路径存在且单文件新增可逆。
+
+#### 3.9.10 依赖关系
+依赖现有 `harmony_ui_driver.py` 数据契约和 run-59 evidence；不依赖产品模块、网络、凭据、设备坐标或付费服务。
 
 ## 4. 接口设计
 
@@ -391,7 +450,7 @@ entry/src/test/
 无相关实现。
 
 ### 4.8 文件交换接口
-无相关实现。
+新增内部测试资产 JSON，Schema 见 §3.9.6。它不是产品导入/导出格式，不改变应用接口。
 
 ## 5. 数据模型
 
@@ -475,7 +534,7 @@ entry/src/test/
 ## 9. 平台集成
 
 ### 9.1 构建配置与依赖
-无变化；不增加 OHPM 依赖或 Hvigor 配置。
+产品构建无变化；不增加 OHPM 依赖或 Hvigor 配置。canonical JSON 由编排器直接读取，不打包进 HAP。
 
 ### 9.2 权限与运行时请求
 无新增权限。
@@ -503,6 +562,7 @@ entry/src/test/
 | SR-00 | §3.5 | §3.8 FractionUtil tests |
 | SR-01 | §3.6–3.7、§8 | Presenter tests + 后续 UI tests |
 | SR-02 | §3.8 | `entry/src/test/List.test.ets` 注册与后续 UI 证据 |
+| SR-03 | §3.9、§4.8、§9.1 | `load_cases()` 解析 + case ID/覆盖集合校验 + Tester canonical 来源复验 |
 
 自验证结论：
 - 功能一致：全部 Issue AC 均有组件与测试设计。
@@ -510,6 +570,7 @@ entry/src/test/
 - 数据一致：History schema 和 Preferences 不变。
 - 权限/Kit 一致：无新增。
 - 关键差异已显式处理：历史 #27 的 `1/3 -> null` 行为被有界连分数替代。
+- Tester 反馈闭环：run-59 唯一失败门禁映射到 SR-03；设计不要求修改已通过的产品代码、driver API 或既有 evidence。
 
 ---
 > 本文档由 mod-design skill 生成。  

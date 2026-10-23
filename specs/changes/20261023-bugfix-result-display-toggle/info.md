@@ -4,8 +4,9 @@
 - **需求类别**：缺陷修复（重发历史 Issue #27）
 - **需求名称**：结果小数/最简分数显示切换
 - **分析时间**：2026-10-23
-- **分析范围**：`opencalc/entry/src/main/ets/{pages,calculator,model,preferences,common}`、`entry/src/test`
+- **分析范围**：`opencalc/entry/src/main/ets/{pages,calculator,model,preferences,common}`、`entry/src/test`、`D:/huawei/Demo/calculatorHuawei/orchestrator/{ui_cases,harmony_ui_driver.py,tests/test_harmony_ui_driver.py,worker.py}`
 - **约束边界**：仅规划；不修改产品源码；不创建 `tasks.md`
+- **当前实现基线**：PR #47 HEAD `dd3f053a1a4fe04987f27f5b3f502db253dde5e0` 已包含 `FractionUtil`、`ResultDisplayPresenter`、`CalculatorPage` 接入和 62 个通过的本地测试；本轮不计划改动这些文件
 
 ## 2. 模块架构
 ```
@@ -14,7 +15,8 @@ CalculatorPage（ArkUI View + 页面状态）
   ├─ CalcEngine.evaluate -> number
   ├─ NumberFormatter.format -> 小数字符串
   ├─ HistoryItem[] -> PreferencesStore
-  └─ [拟新增] FractionUtil -> FractionResult|null
+  ├─ FractionUtil -> FractionResult|null（已实现，本轮不改）
+  └─ ResultDisplayPresenter -> visible text / lifecycle（已实现，本轮不改）
 ```
 
 | 模块 | 当前位置 | 职责 |
@@ -28,6 +30,8 @@ CalculatorPage（ArkUI View + 页面状态）
 
 无需新增 HAP/HAR/HSP、外部依赖、权限或系统 Kit。
 
+Tester 反馈后的新增关注点位于产品边界之外的测试编排层：`worker.py` 明确要求 UI 验收从 `orchestrator/ui_cases/` 读取持久用例；当前目录仅有 `function_plot.json`，因此 run-59 虽完成结果切换 UI 验证，仍因用例来源不是 canonical 文件而阻塞。
+
 ## 3. 接口与契约
 
 ### 3.1 外部接口
@@ -36,12 +40,13 @@ CalculatorPage（ArkUI View + 页面状态）
 | `CalcEngine.evaluate` | `Calculator.ets:33` | 表达式求值 | `(equation: string, isDegree: boolean, varX?: number) => number` |
 | `NumberFormatter.format` | `NumberFormatter.ets` | 小数显示 | `(text, decimalSep, groupingSep, numberingSystem) => string` |
 | `PreferencesStore.setHistory` | `PreferencesStore.ets:127` | 裁剪并持久化历史 | `(HistoryItem[]) => Promise<void>` |
+| `load_cases` | `orchestrator/harmony_ui_driver.py` | 解析 canonical UI 用例 | `(path) => list[UiCase]`；要求 `version == 1` 且 `cases` 为数组 |
 
 ### 3.2 事件机制
 | 事件 | 触发条件 | 消费者 | 格式 |
 |------|---------|--------|------|
 | 等号点击 | 表达式非空 | `CalculatorPage.onEquals` | UI click |
-| 模式切换（拟新增） | 成功结果存在且无错误 | `CalculatorPage` | UI click |
+| 模式切换（已实现） | 成功结果存在且无错误 | `CalculatorPage` | UI click |
 | 清空 | AC 点击 | `CalculatorPage.onAC` | UI click |
 
 ### 3.3 调用约束
@@ -55,6 +60,7 @@ CalculatorPage（ArkUI View + 页面状态）
 - **测试入口**：`opencalc/entry/src/test/List.test.ets`
 - **初始化证据**：`specs/initialized.flag` 记录 hvigorw 6.24.2 基线构建成功与 `entry/src/test` 可用
 - **裁剪机制**：不涉及
+- **UI 用例集成**：编排器从根目录 `orchestrator/ui_cases/*.json` 取得持久测试意图；case 结构为 `id/purpose/expression/assertions`，执行证据另存于 `.agent-runtime/evidence/`
 
 ## 5. 影响范围
 | 模块/文件 | 影响内容 | 风险 |
@@ -63,6 +69,7 @@ CalculatorPage（ArkUI View + 页面状态）
 | `pages/CalculatorPage.ets` | raw result、display mode、派生展示、切换入口 | 历史副作用、复制语义、布局拥挤 |
 | `entry/src/test/*` | 注册纯逻辑及关键交互测试 | 测试入口漏注册 |
 | `Models.ets` | 无持久 schema 变更；可选页面本地 enum 或导出 enum | 避免扩大兼容面 |
+| `orchestrator/ui_cases/result_display_toggle.json`（规划新增） | 持久化 run-59 已验证的 5 个结果切换用例 | 路径位于共享编排器根目录而非 PR worktree；必须避免误改产品或证据文件 |
 
 不修改 `Calculator.ets`、`Expression.ets`、`PreferencesStore.ets`、`HistoryItem` 或 plot 目录。
 
@@ -75,6 +82,8 @@ CalculatorPage（ArkUI View + 页面状态）
 | 不伪造分数 | Issue #44 | 分母上限 + 误差门禁；失败返回 `null` |
 | ArkTS 静态约束 | 项目技术栈 | 显式类型、无动态对象形状、纯函数可测试 |
 | 本 phase 不实现 | 用户指令 | 只写 `specs/changes/...` 文档 |
+| canonical 来源 | Tester run-59 与 `worker.py` | 用例必须来自 `orchestrator/ui_cases/`，evidence bundle 不能替代 canonical 输入 |
+| 向后兼容 | `load_cases()` / `function_plot.json` | 固定 `version=1`，只使用现有字段和断言形态；不改 loader |
 
 ## 7. 可复用组件
 | 组件 | 位置 | 复用方式 |
@@ -83,6 +92,8 @@ CalculatorPage（ArkUI View + 页面状态）
 | `ErrorFlags` | `model/ErrorFlags.ets` | 只在成功求值时建立可切换结果 |
 | `DisplayPanel` 主题方法 | `CalculatorPage.ets` | 沿用 `getT1/getT2/getOp` 与 border 风格 |
 | Hypium 入口 | `entry/src/test/List.test.ets` | 注册新增测试套件 |
+| run-59 已执行套件 | `.agent-runtime/evidence/task-24/run-59/result-display-toggle-cases.json` | 作为 canonical 文件内容基线，避免重新发明或扩大用例范围 |
+| UI case 结构 | `orchestrator/ui_cases/function_plot.json` | 复用 `version/suite/cases` 命名与 JSON 排版约定 |
 
 ## 8. 关键实现
 
@@ -100,6 +111,9 @@ Git 提交 `525b442` 曾新增 `FractionUtil`，但其测试把 `toFraction(1/3)
 ### 8.4 推荐边界
 成功求值时保存 `lastRawResult` 与 `decimalResult`；展示函数按模式派生文本。分数转换采用有界连分数，候选必须满足：有限值、分母不超过设计上限、绝对/相对误差门禁、整数安全范围。失败返回 `null`。
 
+### 8.5 Tester 反馈定位
+产品代码已处于实现后状态，Tester run-59 已证明数值切换、历史不变量、62/62 本地测试、构建和 lint 均通过。唯一缺口是测试资产治理：evidence 中的 `result-display-toggle-cases.json` 不在 `orchestrator/ui_cases/`。最小修复是复制其语义到 canonical 目录并用 `load_cases()` 做解析校验；无需修改 `harmony_ui_driver.py`、产品源码、现有 evidence 或 PR 历史。
+
 ## 9. 风险与测试
 | 风险 | 缓解 | 测试策略 |
 |------|------|----------|
@@ -109,6 +123,7 @@ Git 提交 `525b442` 曾新增 `FractionUtil`，但其测试把 `toFraction(1/3)
 | 切换重复写历史 | 切换函数纯状态变更 | 记录数组长度/内容前后相等 |
 | 清空后陈旧结果复现 | AC 同步清除 raw/快照 | AC 后按钮不可用/结果为 0 |
 | 横竖屏空间冲突 | 入口位于结果区域并允许紧凑布局 | 两种方向 UI 验证在后续 APPLYING/Tester 阶段 |
+| canonical 文件与已执行套件漂移 | 以 run-59 JSON 为基线，仅规范文件名和保持 version-1 结构 | 比较 case id/表达式/断言并调用 `load_cases()` |
 
 ## 10. 关键发现
 ### 可复用组件
@@ -118,4 +133,4 @@ Git 提交 `525b442` 曾新增 `FractionUtil`，但其测试把 `toFraction(1/3)
 历史实现不是可直接恢复的正确实现；复制行为应复制当前可见结果还是既有小数快照属于交互细节。本设计选择复制当前可见结果，使 UI 所见即所得，但不影响历史存储。
 
 ### 建议
-优先以纯 `FractionUtil` 测试锁定数学契约，再接入页面。页面切换逻辑提取为可测试的纯展示选择函数，减少 ArkUI 组件级测试依赖。
+当前反馈轮次只新增 `orchestrator/ui_cases/result_display_toggle.json` 并验证可解析、覆盖五类已执行场景；产品实现与测试保持不动。后续 Tester 应明确记录加载该 canonical 路径后复跑或复核，关闭唯一失败门禁。
