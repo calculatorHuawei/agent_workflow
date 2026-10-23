@@ -24,6 +24,51 @@ export enum ScientificModeType {
   OFF = 2          // 强制关闭
 }
 
+/** 顶层计算器模式。程序员模式状态与普通计算状态相互隔离。 */
+export enum CalculatorMode {
+  NORMAL = 'normal',
+  PROGRAMMER = 'programmer'
+}
+
+/** 程序员模式支持的输入进制。 */
+export enum Radix {
+  BIN = 2,
+  OCT = 8,
+  DEC = 10,
+  HEX = 16
+}
+
+/** 程序员转换的结构化反馈。 */
+export enum ProgrammerError {
+  NONE = 'none',
+  EMPTY = 'empty',
+  INVALID_DIGIT = 'invalid_digit',
+  OUT_OF_RANGE = 'out_of_range',
+  INTERNAL = 'internal'
+}
+
+/** 同一精确值的四种规范表示。 */
+export interface ConversionResult {
+  bin: string
+  oct: string
+  dec: string
+  hex: string
+}
+
+/** 程序员面板的完整、可整体替换状态。 */
+export interface ProgrammerState {
+  radix: Radix
+  input: string
+  result: ConversionResult | null
+  error: ProgrammerError
+}
+
+/** 原子操作结果；error 与 state.error 一致，便于调用方分支。 */
+export interface ProgrammerOperationResult {
+  state: ProgrammerState
+  error: ProgrammerError
+}
+
 /** 历史记录条目 */
 export interface HistoryItem {
   id: number           // 唯一标识

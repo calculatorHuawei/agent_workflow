@@ -6,7 +6,12 @@ import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import {
+  CalculatorMode, NumberingSystem, HistoryItem, ProgrammerState, Radix
+} from '../model/Models'
+import {
+  ProgrammerConverter, programmerFeedback, programmerKeyEnabled, programmerResultRows, selectCalculatorMode
+} from '../programmer/ProgrammerConverter'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { FunctionPlotter, PlotResult, PlotSegment, PLOT_X_MIN, PLOT_X_MAX, PLOT_N } from '../plot/FunctionPlotter'
@@ -28,6 +33,10 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+
+  // ==================== 顶层模式与程序员状态（与普通状态隔离） ====================
+  @State calculatorMode: CalculatorMode = CalculatorMode.NORMAL
+  @State programmerState: ProgrammerState = ProgrammerConverter.initialState()
 
   // ==================== 绘图状态（Issue #40） ====================
   @State showPlot: boolean = false
@@ -127,6 +136,30 @@ export struct CalculatorPage {
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
     this.history = keep
     if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  onCalculatorMode(target: CalculatorMode): void {
+    if (this.calculatorMode === target) return
+    this.getUIContext().animateTo({ duration: 180, curve: Curve.EaseInOut }, (): void => {
+      this.calculatorMode = selectCalculatorMode(this.calculatorMode, target)
+    })
+  }
+
+  onProgrammerRadix(target: Radix): void {
+    this.programmerState = ProgrammerConverter.changeRadix(this.programmerState, target).state
+  }
+
+  onProgrammerDigit(digit: string): void {
+    if (!programmerKeyEnabled(digit, this.programmerState.radix)) return
+    this.programmerState = ProgrammerConverter.appendDigit(this.programmerState, digit).state
+  }
+
+  onProgrammerBackspace(): void {
+    this.programmerState = ProgrammerConverter.backspace(this.programmerState).state
+  }
+
+  onProgrammerClear(): void {
+    this.programmerState = ProgrammerConverter.clear(this.programmerState).state
   }
 
   // ==================== 绘图（Issue #40 SR-02） ====================
@@ -429,10 +462,19 @@ export struct CalculatorPage {
   // ==================== 主布局 ====================
   build() {
     Stack() {
-      if (this.isLandscape) {
+      if (this.calculatorMode === CalculatorMode.PROGRAMMER) {
+        Column() {
+          this.ModeSwitchBar()
+          this.ProgrammerPanel()
+        }
+        .width('100%').height('100%').backgroundColor(this.getBg())
+        .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 4 }))
+          .animation({ duration: 180, curve: Curve.EaseInOut }))
+      } else if (this.isLandscape) {
         // 横屏：左边按钮 + 可选右侧历史（有折叠按钮）
         Row() {
           Column() {
+            this.ModeSwitchBar()
             this.DisplayPanel()
             this.ButtonGrid()
           }
@@ -443,6 +485,7 @@ export struct CalculatorPage {
       } else {
         // 竖屏：原有布局
         Column() {
+          this.ModeSwitchBar()
           this.DisplayPanel()
           this.ToggleRow()
           this.ButtonGrid()
@@ -462,6 +505,116 @@ export struct CalculatorPage {
       // 横屏时自动开启科学模式（但不强制显示历史）
       if (this.isLandscape) this.scientific = true
     })
+  }
+
+  @Builder ModeSwitchBar() {
+    Row() {
+      Text('普通模式')
+        .fontSize(13).fontWeight(this.calculatorMode === CalculatorMode.NORMAL ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.getT1()).padding({ left: 12, right: 12, top: 6, bottom: 6 })
+        .border({ width: 1, color: this.calculatorMode === CalculatorMode.NORMAL ? this.getOp() : this.getT2(), radius: 8 })
+        .onClick((): void => { this.onCalculatorMode(CalculatorMode.NORMAL) })
+      Text('程序员模式')
+        .fontSize(13).fontWeight(this.calculatorMode === CalculatorMode.PROGRAMMER ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.getT1()).padding({ left: 12, right: 12, top: 6, bottom: 6 })
+        .border({ width: 1, color: this.calculatorMode === CalculatorMode.PROGRAMMER ? this.getOp() : this.getT2(), radius: 8 })
+        .margin({ left: 8 })
+        .onClick((): void => { this.onCalculatorMode(CalculatorMode.PROGRAMMER) })
+    }
+    .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 4 })
+  }
+
+  @Builder ProgrammerPanel() {
+    if (this.isLandscape) {
+      Row() {
+        this.ProgrammerDisplay()
+        this.ProgrammerKeyboard()
+      }
+      .width('100%').layoutWeight(1)
+    } else {
+      Column() {
+        this.ProgrammerDisplay()
+        this.ProgrammerKeyboard()
+      }
+      .width('100%').layoutWeight(1)
+    }
+  }
+
+  @Builder ProgrammerDisplay() {
+    Column() {
+      this.ProgrammerRadixRow()
+      Text(this.programmerState.input.length > 0 ? this.programmerState.input : '—')
+        .fontSize(this.isLandscape ? 24 : 32).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        .width('100%').textAlign(TextAlign.End).padding({ left: 16, right: 16, top: 8, bottom: 8 })
+      this.ProgrammerResults()
+      if (programmerFeedback(this.programmerState).length > 0) {
+        Text(programmerFeedback(this.programmerState)).fontSize(14)
+          .fontColor(this.programmerState.result === null && this.programmerState.input.length > 0 ? this.getErr() : this.getT2())
+          .width('100%').padding({ left: 16, right: 16, top: 8 })
+      }
+      Blank()
+    }
+    .layoutWeight(this.isLandscape ? 2 : 1).width('100%')
+  }
+
+  @Builder ProgrammerResults() {
+    Column() {
+      if (programmerResultRows(this.programmerState).length === 0) {
+        Text('BIN  —').fontSize(16).fontColor(this.getT2()).width('100%').padding(8)
+        Text('OCT  —').fontSize(16).fontColor(this.getT2()).width('100%').padding(8)
+        Text('DEC  —').fontSize(16).fontColor(this.getT2()).width('100%').padding(8)
+        Text('HEX  —').fontSize(16).fontColor(this.getT2()).width('100%').padding(8)
+      } else {
+        ForEach(programmerResultRows(this.programmerState), (row: string) => {
+          Text(row).fontSize(this.isLandscape ? 15 : 18).fontColor(this.getT1())
+            .width('100%').padding(8).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        })
+      }
+    }
+    .width('100%').padding({ left: 8, right: 8 })
+  }
+
+  @Builder ProgrammerRadixRow() {
+    Row() {
+      this.ProgrammerRadixButton('BIN', Radix.BIN)
+      this.ProgrammerRadixButton('OCT', Radix.OCT)
+      this.ProgrammerRadixButton('DEC', Radix.DEC)
+      this.ProgrammerRadixButton('HEX', Radix.HEX)
+    }
+    .width('100%').padding({ left: 12, right: 12, top: 4, bottom: 4 })
+  }
+
+  @Builder ProgrammerRadixButton(label: string, radix: Radix) {
+    Text((this.programmerState.radix === radix ? '✓ ' : '') + label)
+      .fontSize(13).fontWeight(this.programmerState.radix === radix ? FontWeight.Bold : FontWeight.Normal)
+      .fontColor(this.getT1()).textAlign(TextAlign.Center).layoutWeight(1).padding(8)
+      .border({ width: 1, color: this.programmerState.radix === radix ? this.getOp() : this.getT2(), radius: 8 })
+      .margin({ left: 2, right: 2 }).onClick((): void => { this.onProgrammerRadix(radix) })
+  }
+
+  @Builder ProgrammerKeyboard() {
+    Column() {
+      Row() {
+        Text('AC').fontColor(this.getBtnText()).backgroundColor(this.getClr()).onClick((): void => { this.onProgrammerClear() })
+          .fontSize(18).textAlign(TextAlign.Center).layoutWeight(1).height(this.isLandscape ? 34 : 46).borderRadius(24).margin(3)
+        Text('⌫').fontColor(this.getT1()).backgroundColor(this.getBtnBg()).onClick((): void => { this.onProgrammerBackspace() })
+          .fontSize(18).textAlign(TextAlign.Center).layoutWeight(1).height(this.isLandscape ? 34 : 46).borderRadius(24).margin(3)
+      }
+      Row() { this.ProgrammerKey('A'); this.ProgrammerKey('B'); this.ProgrammerKey('C'); this.ProgrammerKey('D') }
+      Row() { this.ProgrammerKey('E'); this.ProgrammerKey('F'); this.ProgrammerKey('8'); this.ProgrammerKey('9') }
+      Row() { this.ProgrammerKey('4'); this.ProgrammerKey('5'); this.ProgrammerKey('6'); this.ProgrammerKey('7') }
+      Row() { this.ProgrammerKey('0'); this.ProgrammerKey('1'); this.ProgrammerKey('2'); this.ProgrammerKey('3') }
+    }
+    .layoutWeight(this.isLandscape ? 3 : 0).width('100%').padding({ left: 8, right: 8, bottom: 8 })
+  }
+
+  @Builder ProgrammerKey(key: string) {
+    Text(key).fontSize(this.isLandscape ? 16 : 20).fontColor(this.getT1())
+      .textAlign(TextAlign.Center).layoutWeight(1).height(this.isLandscape ? 32 : 46)
+      .backgroundColor(programmerKeyEnabled(key, this.programmerState.radix) ? this.getBtnBg() : this.getFuncBg())
+      .opacity(programmerKeyEnabled(key, this.programmerState.radix) ? 1 : 0.35)
+      .borderRadius(24).margin(3).enabled(programmerKeyEnabled(key, this.programmerState.radix))
+      .onClick((): void => { this.onProgrammerDigit(key) })
   }
 
   // ==================== 显示屏 ====================

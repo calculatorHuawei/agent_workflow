@@ -1,0 +1,25 @@
+{
+  "files": [
+    "entry/src/main/ets/model/Models.ets",
+    "entry/src/main/ets/programmer/ProgrammerConverter.ets",
+    "entry/src/main/ets/pages/CalculatorPage.ets",
+    "entry/src/test/ProgrammerConverter.test.ets",
+    "entry/src/test/List.test.ets"
+  ],
+  "ignore": [
+    "**/oh_modules/**",
+    "**/build/**",
+    "**/.preview/**",
+    "**/node_modules/**"
+  ],
+  "ruleSet": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@hw-stylistic/recommended",
+    "plugin:@performance/recommended",
+    "plugin:@security/recommended",
+    "plugin:@correctness/recommended",
+    "plugin:@cross-device-app-dev/recommended",
+    "plugin:@compatibility/recommended"
+  ],
+  "rules": {}
+}
