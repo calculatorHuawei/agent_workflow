@@ -14,6 +14,9 @@ import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../plot/PlotAxis'
+import { buildQrPayload, isShareable, QrPayloadResult } from '../qrcode/QrPayload'
+import { encodeQr, QrEncodeResult, QrMatrix } from '../qrcode/QrEncoder'
+import { qrModulePixels } from '../qrcode/QrLayout'
 
 @Entry
 @Component
@@ -28,6 +31,9 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+  @State showQrShare: boolean = false
+  @State qrPayloadOk: boolean = false
+  @State qrErrorText: string = ''
 
   // ==================== 绘图状态（Issue #40） ====================
   @State showPlot: boolean = false
@@ -52,6 +58,10 @@ export struct CalculatorPage {
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
+  private qrCanvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(false))
+  private qrMatrix: QrMatrix | null = null
+  private qrCanvasW: number = 0
+  private qrCanvasH: number = 0
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
@@ -119,6 +129,79 @@ export struct CalculatorPage {
     if (this.result.length === 0) return
     pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.result))
     promptAction.showToast({ message: '已复制' })
+  }
+
+  private resetQrShareState(): void {
+    this.qrMatrix = null
+    this.qrPayloadOk = false
+    this.qrErrorText = ''
+  }
+
+  /** Open-time QR generation prevents stale payloads while preserving calculator state. */
+  onOpenQrShare(): void {
+    if (!isShareable(this.expression, this.result, this.errorMsg)) {
+      promptAction.showToast({ message: '请先完成一次有效计算' })
+      return
+    }
+    this.resetQrShareState()
+    try {
+      const payload: QrPayloadResult = buildQrPayload(this.expression, this.result)
+      if (!payload.ok) {
+        this.qrErrorText = payload.reason
+      } else {
+        const encoded: QrEncodeResult = encodeQr(payload.payload)
+        if (encoded.ok && encoded.matrix !== null) {
+          this.qrMatrix = encoded.matrix
+          this.qrPayloadOk = true
+        } else {
+          this.qrErrorText = encoded.reason.length > 0 ? encoded.reason : '二维码生成失败'
+        }
+      }
+    } catch (_e) {
+      this.qrErrorText = '二维码生成失败'
+    }
+    this.showQrShare = true
+  }
+
+  private failQrDrawing(message: string): void {
+    this.resetQrShareState()
+    this.qrErrorText = message
+  }
+
+  /** Draw constant black-on-white modules with a four-module quiet zone. */
+  private drawQr(): void {
+    const matrix: QrMatrix | null = this.qrMatrix
+    if (matrix === null || this.qrCanvasW <= 0 || this.qrCanvasH <= 0) return
+    const quiet: number = 4
+    const modulePx: number = qrModulePixels(this.qrCanvasW, this.qrCanvasH,
+      matrix.size, quiet)
+    if (modulePx < 4) {
+      this.failQrDrawing('二维码显示空间不足')
+      return
+    }
+    const side: number = (matrix.size + quiet * 2) * modulePx
+    const offsetX: number = Math.floor((this.qrCanvasW - side) / 2)
+    const offsetY: number = Math.floor((this.qrCanvasH - side) / 2)
+    try {
+      this.qrCanvasCtx.clearRect(0, 0, this.qrCanvasW, this.qrCanvasH)
+      this.qrCanvasCtx.fillStyle = '#FFFFFF'
+      this.qrCanvasCtx.fillRect(0, 0, this.qrCanvasW, this.qrCanvasH)
+      this.qrCanvasCtx.fillStyle = '#000000'
+      for (let r: number = 0; r < matrix.size; r++) {
+        for (let c: number = 0; c < matrix.size; c++) {
+          if (matrix.modules[r][c]) {
+            this.qrCanvasCtx.fillRect(
+              offsetX + (c + quiet) * modulePx,
+              offsetY + (r + quiet) * modulePx,
+              modulePx,
+              modulePx
+            )
+          }
+        }
+      }
+    } catch (_e) {
+      this.failQrDrawing('二维码生成失败')
+    }
   }
 
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
@@ -453,6 +536,7 @@ export struct CalculatorPage {
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
       if (this.showPlot) this.PlotPanel()
+      if (this.showQrShare) this.QrSharePanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -490,6 +574,8 @@ export struct CalculatorPage {
           .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       }
+      Text('二维码分享').fontSize(12).fontColor(this.getOp()).padding(8)
+        .onClick((): void => { this.onOpenQrShare() })
     }
     .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 24, bottom: 8 })
     .gesture(LongPressGesture().onAction((): void => { this.onCopy() }))
@@ -697,5 +783,42 @@ export struct CalculatorPage {
         })
     }
     .width('100%').height('100%').padding(16).backgroundColor(this.getPanelBg())
+  }
+
+  // ==================== 二维码分享面板（Issue #42） ====================
+  @Builder QrSharePanel() {
+    Column() {
+      Row() {
+        Text('二维码分享').fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        Blank()
+        Text('✕ 返回').fontSize(16).fontColor(this.getT2()).padding(8)
+          .onClick((): void => { this.showQrShare = false })
+      }
+      .width('100%').padding(16)
+
+      if (this.qrPayloadOk) {
+        Canvas(this.qrCanvasCtx)
+          .width('100%').layoutWeight(1).margin({ left: 16, right: 16 })
+          .backgroundColor('#FFFFFF')
+          .onReady((): void => { this.drawQr() })
+          .onAreaChange((_old: Area, newVal: Area): void => {
+            this.qrCanvasW = newVal.width as number
+            this.qrCanvasH = newVal.height as number
+            this.drawQr()
+          })
+      } else {
+        Text(this.qrErrorText.length > 0 ? this.qrErrorText : '二维码生成失败')
+          .fontSize(16).fontColor(this.getErr()).layoutWeight(1)
+      }
+
+      Column() {
+        Text('算式: ' + this.expression).fontSize(15).fontColor(this.getT1())
+          .width('100%').maxLines(3)
+        Text('结果: ' + this.result).fontSize(15).fontColor(this.getT1())
+          .width('100%').margin({ top: 8 }).maxLines(2)
+      }
+      .width('100%').padding(16)
+    }
+    .width('100%').height('100%').backgroundColor(this.getPanelBg())
   }
 }
