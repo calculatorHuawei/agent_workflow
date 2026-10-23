@@ -3,6 +3,7 @@
 > 来源：calculatorHuawei/agent_workflow#42（新增：将当前算式和结果一键生成二维码）
 > 开发基线：`agent-test/baseline-opencalc-source`，基线 merge commit `2500bf49d79b08b135059419c422a3d49dfb4a73`（PR #41 合并后版本）
 > 2026-10-23 Tester 反馈修订：本轮是对 PR #43 head `964c83e77e0c558001dcff396c07d43b226deae4` 的**缺陷修复规划**；沿用 orchestrator 指定的既有 change_dir，不重命名目录。
+> 2026-10-23 Reviewer 反馈再规划：产品结果与独立 Tester 证据已通过，但 Developer run-46 顶层 SHA 与结构化交接不一致，且其 session 晚于最终修复提交，不能认证所声明的 TDD 过程。本轮只规划过程证据修复，不改写已通过的产品结论。
 
 ## 1. 需求概述
 
@@ -385,3 +386,46 @@ OpenCalc（HarmonyOS）新增二维码分享：计算得到有效结果后，用
 - 入口在竖屏/横屏下的最终摆放细节（假设已给默认：显示屏区域文字入口，实现阶段按可用空间微调）。
 - 编码器版本上限与 EC 等级的最终参数（假设：EC-M、版本 1–10）。
 - 单元测试对矩阵的结构断言深度（定位图案/时序图案/格式信息）在 IMPLEMENTING 任务分解时细化。
+
+## 11. Reviewer 反馈过程证据修复提案
+
+### 11.1 本轮意图与范围
+
+- **意图分类**：缺陷修复（process-evidence bugfix）。
+- **一句话概括**：在不改变已通过产品行为的前提下，重新执行可审计的逐任务 RED→GREEN→REFACTOR，并生成顶层与结构化交接均绑定同一最终 PR head 的 Developer run manifest。
+- **包含**：精确 SHA 预检、逐任务真实失败测试、实现/恢复动作、通过复跑、重构复跑、命令退出码与时间戳、session 快照、结构化交接 hash、最终 manifest 一致性校验。
+- **不包含**：新增产品能力、放宽 AC、替换独立 Tester 结论、归档、审批、合并。
+
+### 11.2 rq-parse 结构化结论
+
+| 项目 | 结论 |
+|---|---|
+| 领域映射 | 开发流程、证据链、Git/SHA 一致性；产品 UI/业务结果仅作回归保护 |
+| 影响层次 | 产品源码不预设功能变更；测试与过程证据为主要影响面；orchestrator run manifest 为交付接口 |
+| 关键实体 | PR #43 head、Developer session、RED/GREEN/REFACTOR 日志、structured output、run manifest、Tester run-47、Reviewer run-48 |
+| 模糊点 | 无 blocker/important：Reviewer 明确给出“提供 originating evidence 或重复过程”二选一；全盘检索未发现 334f241/4f81d91 的 originating session，因此只能选择重复过程 |
+| 复杂度 | M：产品范围稳定，但证据链跨 session、Git、测试日志和 manifest，必须顺序执行并做 hash/SHA 交叉校验 |
+
+### 11.3 已确认事实与决策
+
+| 事实/决策 | 依据 |
+|---|---|
+| 产品结果真实性与正确性通过 | Reviewer run-48 `result_audit.passed=true`；Tester run-47 从 4f81d91 独立构建、安装、UI 操作和解码通过 |
+| run-46 不具备 exact-head 一致性 | 顶层 `head_sha=964c83e...`，结构化交接 `head_sha=4f81d91...` |
+| run-46 session 不能认证实际 TDD | 4f81d91 提交时间 19:33:40+08:00；session 开始时间 19:34:09.644+08:00，且开场即为最终提交 |
+| 不采用“补写说明即修复” | 说明文字不能替代真实 RED/GREEN/REFACTOR 命令、失败/成功结果与 session 时间线 |
+| 采用“重复过程”路径 | 未发现可提供的 originating session；该路径由 Reviewer finding 明确允许，不属于猜测 material ambiguity |
+
+### 11.4 新增需求 R8：可审计的 Developer 过程证据
+
+- **描述**：后续 Applying 必须在同一可保存 session 中，按每个实施任务执行并记录 RED、GREEN、REFACTOR；RED 必须是真实执行且因预期缺口失败，GREEN/REFACTOR 必须使用相同或更大测试范围通过。最终交接不得声称未在 session 中发生的动作。
+- **验收标准**：
+  - AC12：每个实施任务均有按时间排序的 RED/GREEN/REFACTOR 命令、退出码、日志路径和对应修改记录。
+  - AC13：最终 Developer run manifest 顶层 `head_sha`、structured output 的 `commit_sha/head_sha`、本地 HEAD、origin tracking ref 与 orchestrator delivery head 全部相同。
+  - AC14：run manifest 引用的 session 开始时间早于本轮实现提交，并能在 session 内定位测试失败、实现修改、通过复跑与重构复跑。
+  - AC15：structured output 与 session snapshot 的 SHA-256 可重算一致；引用文件存在且路径解析明确。
+  - AC16：既有 Tester run-47 和 Reviewer 结果审计作为产品结果基线保留；若最终 SHA 因证据修复提交变化，必须重新走准确 SHA 的 Tester/Reviewer 门禁，不得复用旧 SHA 作最终批准。
+
+### 11.5 Phase gate
+
+本 PLANNING 只定义修复契约。下一阶段是否创建/修改 `tasks.md` 由单独的 IMPLEMENTING 授权决定；本轮不修改产品源码、不执行 TDD、不提交、不推送、不归档。

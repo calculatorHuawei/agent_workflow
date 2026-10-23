@@ -1324,4 +1324,226 @@ And 第二张截图不包含第一次载荷
 
 ---
 
-> 说明：本 SPEC 已完成 §9.2 FMEA 填充（dfr-fmea-general，存档见同目录 `20261023-qrcode-share-fmea分析表.md`），为 PLANNING 阶段终版。
+## 14. Reviewer 反馈增量规格：Developer 过程证据修复
+
+> 本节是 2026-10-23 Reviewer run-48 的 process-audit 增量；不改变 §1–§13 的产品功能规格。产品 AC1–AC10 的真实性/正确性已有独立证据，本节新增 AC12–AC16。
+
+### MOD 场景 SC-006：可审计的 TDD 与 exact-head Developer 交接
+
+#### 场景描述
+
+Reviewer 已确认最终产品结果，但无法从 Developer run-46 认证实际 TDD，且 run manifest 的顶层 SHA 与结构化交接 SHA 不一致。Developer 必须在新的同一 session 中重复可追踪过程，并生成单一 final SHA 的一致交接。
+
+#### 场景要素分析
+
+| 场景要素 | 取值 |
+|---|---|
+| **T** 生命周期阶段 | Reviewer changes_requested 后的 Developer 修复轮次 |
+| **G** 场景目标 | 让 Reviewer 可从原始 session、命令日志、Git 时间线和 manifest 独立复核 TDD 与 SHA 一致性 |
+| **E** 环境 | PR #43 Developer worktree、orchestrator evidence/handoff 目录、Hvigor/CodeLinter |
+| **A** 参与者 | Developer（产证）、orchestrator（固化 run）、Reviewer（复核） |
+| **S** 系统状态 | 产品结果已通过；process audit 因两个 major finding 失败；未归档/未合并 |
+
+#### 用例清单
+
+| 变更类型 | 用例编号 | 用例名称 | 用例目的 | 用例描述 | 是否基础用例 |
+|---|---|---|---|---|---|
+| MOD | SC006-UC001 | 同一 session 的逐任务 RED-GREEN-REFACTOR | 修复 TDD 真实性缺口 | 每个任务保留真实失败、实现动作、通过复跑和重构复跑证据 | 是 |
+| MOD | SC006-UC002 | final SHA 一致的 run manifest | 修复 exact-head 不一致 | 顶层/structured output/Git/delivery 全部绑定同一 final SHA，hash 可重算 | 是 |
+
+### MOD 用例 SC006-UC001：同一 session 的逐任务 RED-GREEN-REFACTOR
+
+##### 简要说明
+
+由于未发现覆盖 `334f241`/`4f81d91` 实际修改的 originating session，采用 Reviewer 明确允许的“重复过程”路径；不得通过补写日志或改写历史 evidence 冒充实际执行。
+
+##### Actor
+
+| 角色 | 类型 | 与系统的关系 |
+|---|---|---|
+| Developer | 主，人/代理 | 执行测试、修改与记录 |
+| Reviewer | 次，人/代理 | 根据 session 与日志复核真实性 |
+| Hvigor/CodeLinter/Git | 次，系统 | 产生退出码、日志与提交时间线 |
+
+##### 前置条件
+
+| 场景要素 | 本用例采用的取值 | 对用例的影响点 |
+|---|---|---|
+| **T** 生命周期阶段 | 新 Applying session | session 必须早于本轮实现提交 |
+| **G** 场景目标 | 认证真实 TDD | 不能只审计已有绿色状态 |
+| **E** 环境 | exact assigned PR worktree | 开始/结束均记录 HEAD 与 status |
+| **A** 参与者 | Developer + 测试工具 | 工具输出必须保留 |
+| **S** 系统状态 | 4f81d91 产品基线已绿 | RED 必须由新测试或受控、可恢复的实现缺口真实触发 |
+
+##### 最小保证
+
+任何 RED 不符合预期、GREEN 未通过或实现动作无法与任务对应时，停止交接并报告阻塞；不得声称该任务完成。
+
+##### 成功保证（后置条件）
+
+1. 每个任务都有按时间排序的 RED、GREEN、REFACTOR 证据；
+2. session 内可见测试变更/实现动作与复跑；
+3. 最终全量测试、构建和 lint 通过，产品行为不退化。
+
+##### 触发事件
+
+Developer 接受 Reviewer run-48 changes_requested 并进入后续 Applying 阶段。
+
+##### 主成功路径（基本事件流）
+
+```text
+1. 记录 session 起始时间、HEAD、branch、status
+2. 对当前实施任务先建立可持久化失败断言并执行 RED
+3. 保存命令、退出码、失败断言和原始日志
+4. 执行与该任务直接对应的实现/恢复动作
+5. 以相同或更大测试范围执行 GREEN 并保存日志
+6. 执行 REFACTOR（整理而不改变行为）并复跑通过
+7. 对下一任务重复 2–6
+8. 执行全量 Local Test、HAP build、CodeLinter 与保护模块 diff
+```
+
+##### 扩展路径
+
+```text
+2a. 新断言在修改前已通过
+    该断言不构成 RED；重新识别尚未满足且不扩大需求的可验证缺口
+4a. 只能通过篡改旧 evidence 或伪造退出码达成
+    立即停止；判定不可接受
+8a. 最终产品 SHA 变化
+    重新触发准确 final SHA 的独立 Tester 与 Reviewer 门禁
+```
+
+##### 验证达成标准
+
+```text
+Given Developer 在新 session 中从记录的 exact head 开始
+When 每个实施任务依次执行 RED、实现、GREEN、REFACTOR 与复跑
+Then session 中存在真实非零 RED 退出码和预期失败断言
+And 后续相同或更大范围测试以零退出码通过
+And 实现修改发生在 RED 与 GREEN 之间
+And 最终提交时间晚于 session 开始时间
+```
+
+##### 是否影响架构
+
+| 是否影响 | 影响范围 | 影响类型 | 影响描述 |
+|---|---|---|---|
+| 否 | 开发流程与证据链 | 过程/交付 | 不改变 OpenCalc 运行架构、接口或数据模型 |
+
+##### 功能影响列表
+
+| 功能编号 | 功能描述 | 影响类型 | 影响描述 | 影响来源 |
+|---|---|---|---|---|
+| F-008 | Developer TDD 可审计性 | 修改 | 从“书面声明”升级为 session 内可复核的真实执行链 | Reviewer finding 2 |
+
+##### 需求分解列表（IR → SR）
+
+| IR 编号 | SR 编号 | SR 名称 | SR 描述 | 关联功能 | 关联功能编号 |
+|---|---|---|---|---|---|
+| IR-R8 | SR-05 | Developer 过程证据完整性 | 逐任务 RED/GREEN/REFACTOR 原始证据与时间线 | 过程审计 | F-008 |
+
+### MOD 用例 SC006-UC002：final SHA 一致的 run manifest
+
+##### 简要说明
+
+生成新的 Developer structured output 和 orchestrator run manifest，使所有 SHA 字段与实际最终交付一致，并保证引用的 session/hash 可重算。
+
+##### Actor
+
+| 角色 | 类型 | 与系统的关系 |
+|---|---|---|
+| Developer | 主，人/代理 | 输出最终结构化交接 |
+| orchestrator | 次，系统 | 固化 run manifest 与 session snapshot |
+| Reviewer | 次，人/代理 | 重算 hash、核对 SHA 与时间线 |
+
+##### 前置条件
+
+| 场景要素 | 本用例采用的取值 | 对用例的影响点 |
+|---|---|---|
+| **T** 生命周期阶段 | TDD、全量验证与 commit 后 | final SHA 已稳定 |
+| **G** 场景目标 | exact-head 一致性 | 所有来源必须指向同一 SHA |
+| **E** 环境 | local Git + origin tracking + delivery.json | 网络不可用时仅使用 orchestrator-verified facts，不猜值 |
+| **A** 参与者 | Developer/orchestrator/Reviewer | 职责分离 |
+| **S** 系统状态 | worktree clean，未归档/未审批 | 允许交接，禁止提前收尾 |
+
+##### 最小保证
+
+任一 SHA 不一致、hash 不可重算或引用文件缺失时，status 不得标记 `ready_for_test`。
+
+##### 成功保证（后置条件）
+
+顶层 `head_sha`、structured output `commit_sha/head_sha`、`git rev-parse HEAD`、origin tracking ref 与 delivery head 一致；structured output/session snapshot hash 可重算一致。
+
+##### 触发事件
+
+Developer 完成本轮 commit/push 或收到 orchestrator delivery facts 后生成交接。
+
+##### 主成功路径（基本事件流）
+
+```text
+1. 读取 local HEAD、branch、status、origin tracking ref
+2. 读取 orchestrator delivery.json（若存在）
+3. 以 final SHA 生成 structured output
+4. 固化 session snapshot 并计算 SHA-256
+5. 生成 run manifest，顶层 head_sha 使用同一 final SHA
+6. 重算 structured output/session hash 并逐字段校验
+7. Reviewer 可独立重复 1、4、6
+```
+
+##### 扩展路径
+
+```text
+2a. GitHub 网络不可用
+    使用 orchestrator-host verified delivery facts；缺失值保持阻塞，不编造
+6a. 任一 SHA/hash 不一致
+    修正生成流程并重新产出完整 manifest，不手工局部篡改旧 run
+```
+
+##### 验证达成标准
+
+```text
+Given 本轮 final commit 已产生且 worktree clean
+When 生成 structured output、session snapshot 与 run manifest
+Then 所有 final SHA 字段与 Git/delivery 事实一致
+And structured output 与 session snapshot 的 SHA-256 可重算一致
+And manifest 引用路径全部存在
+And status 仅在上述检查全部通过后为 ready_for_test
+```
+
+##### 是否影响架构
+
+| 是否影响 | 影响范围 | 影响类型 | 影响描述 |
+|---|---|---|---|
+| 否 | orchestrator 交付制品 | 过程/接口契约 | 不改变产品架构 |
+
+##### 功能影响列表
+
+| 功能编号 | 功能描述 | 影响类型 | 影响描述 | 影响来源 |
+|---|---|---|---|---|
+| F-009 | exact-head manifest 一致性 | 修改 | 顶层、结构化交接、Git 与 delivery 单一 SHA | Reviewer finding 1 |
+
+##### 需求分解列表（IR → SR）
+
+| IR 编号 | SR 编号 | SR 名称 | SR 描述 | 关联功能 | 关联功能编号 |
+|---|---|---|---|---|---|
+| IR-R8 | SR-05 | Developer 过程证据完整性 | final SHA/hash/path 一致性门禁 | 交付一致性 | F-009 |
+
+### SR-05　Developer 过程证据完整性〔Tier T0〕
+
+| 字段 | 内容 |
+|---|---|
+| **需求场景** | Reviewer 对 Developer workflow/TDD/session/SHA 的过程审核（SC-006） |
+| **需求价值** | 使“已执行 TDD 与 exact-head 交付”成为可独立复核事实，而非自报声明 |
+| **需求描述** | 同一新 session 内保留逐任务 RED→GREEN→REFACTOR；最终 run manifest、structured output、Git 与 delivery 使用同一 final SHA；hash 与路径可重算/可访问 |
+| **关联用例** | SC006-UC001, SC006-UC002 |
+| **功能点** | ①起始 HEAD/status ②真实 RED ③实现动作 ④GREEN ⑤REFACTOR 复跑 ⑥全量验证 ⑦commit/push ⑧final SHA 交叉校验 ⑨session/structured output hash |
+| **验收场景与标准** | AC12–AC16 全部满足；任一不满足不得 ready_for_test |
+| **DFX/性能/功耗设计** | 不涉及运行时性能/功耗；可靠性由原始日志、不可变 hash、单一 SHA 与职责分离保证 |
+
+### 新增系统需求与追溯
+
+| SR 编号 | IR 编号 | SR 名称 | 关联用例 | 可验证达成标准 | 优先级 | 来源 |
+|---|---|---|---|---|---|---|
+| SR-05 | IR-R8 | Developer 过程证据完整性 | SC006-UC001/UC002 | AC12–AC16 | 高 | Reviewer run-48 findings 1–2 |
+
+> 说明：本 SPEC 已完成 §9.2 FMEA 填充（dfr-fmea-general，存档见同目录 `20261023-qrcode-share-fmea分析表.md`）。本次 Reviewer 反馈不引入新的运行时故障模式，因此不重复调用 FMEA；SC-006 的过程风险由 SR-05 门禁覆盖。

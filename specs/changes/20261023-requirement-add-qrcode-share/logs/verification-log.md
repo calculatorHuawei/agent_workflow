@@ -69,3 +69,25 @@
 - CodeLinter：直接 launcher 返回已知 internal tool-start error；保存 task-14 失败日志且未冒充成功。真实 CompileArkTS 对当前源零 error；task-12 同 QR 源集成功 CodeLinter 记录为 0 error。
 - AC8 保护目录 diff：空。
 - 证据：`D:/huawei/Demo/calculatorHuawei/.agent-runtime/evidence/task-14/ui-smoke/`。
+
+## V-09 Reviewer process-evidence repair（task-17）
+
+- Session 起点：`2026-10-23T20:12:45.8846489+08:00`；分支 `agent/pull_request-43-task-17`；起始 HEAD 与 origin tracking ref 均为 `4f81d91ab0e6ed638f955f5f9201ad93b6ce2f70`。
+- Task 1.1 RED：对旧 run-46 执行 exact-head 断言，真实观察顶层 `964c83e...` 与 structured handoff `4f81d91...` 不一致；GREEN/REFACTOR 对新骨架必填字段与单一 SHA 集合检查通过。
+- Task 2.1 RED：受控容量缺口使 `capacity_constants_contract` 和 `capacity_214_bytes_rejected_cm06` 真实失败；GREEN/REFACTOR 恢复 213-byte 契约后均为 96/96。
+- Task 2.2 RED：先写持久化小画布失败契约，实际返回 3 而非 0；GREEN 新增最小 4px 模块门禁，REFACTOR 提取命名常量，均为 96/96。
+- Task 2.3 RED：受控移除打开前清旧态后，生命周期源码断言真实失败；GREEN/REFACTOR 提取并复用 `resetQrShareState()`，源码契约与 Local Test 均通过。
+- 终态 Local Test：`Tests run: 96, Failure: 0, Error: 0, Pass: 96, Ignore: 0`。
+- 终态 HAP：`opencalc/build-test.bat`，`BUILD SUCCESSFUL`；CompileArkTS 0 error，告警为既有 exception/deprecation 与 unsigned HAP 基线告警。
+- CodeLinter：DevEco eslintAgent 推荐 TypeScript + performance 规则检查 `CalculatorPage.ets`、`QrLayout.ets`、`QrPayload.ets`、`QrShare.test.ets`，0 defect。
+- AC8：相对 `4f81d91...` 的 plot/calculator/model/preferences/entryability/Index/module/package 保护路径 diff 为空。
+- 原始日志：`D:/huawei/Demo/calculatorHuawei/.agent-runtime/evidence/task-17/00-session-baseline.log` 至 `19-protected-modules-diff.log`。
+
+## V-10 Task 3.1 host delivery
+
+- 预提交 RED：最终 commit/delivery 前 `task-17/delivery.json` 不存在，exact-head 一致性断言按预期失败并记录于 `20-task-3.1-red.log`。
+- `git add`/`git commit`：失败，Git 无法在 `D:/huawei/Demo/calculatorHuawei/.git/worktrees/developer-pull_request-43-task-17/` 创建 `index.lock`；ACL 显示当前 sandbox SID 具有显式 `Deny Write`。
+- `gh auth status`：账号 `223556cy` 的现有 token 无效。
+- orchestrator-host 接管：子进程如实返回 blocked 后，由具备共享 Git metadata 写权限的 host 完成 commit/push，并生成 `D:/huawei/Demo/calculatorHuawei/.agent-runtime/handoffs/task-17/delivery.json`；不修改旧 run-46/session。
+- 恢复门禁：重试 Applying 时必须读取 `delivery.json`，并确认本地 HEAD、origin tracking ref、remote head、handoff SHA 为同一值后才可 `ready_for_test`。
+- 结论：原始 sandbox 阻塞被保留为真实日志；host delivery 与恢复后的 exact-head 断言共同构成 Task 3.1 GREEN/REFACTOR。未归档、未批准。

@@ -131,15 +131,19 @@ export struct CalculatorPage {
     promptAction.showToast({ message: '已复制' })
   }
 
+  private resetQrShareState(): void {
+    this.qrMatrix = null
+    this.qrPayloadOk = false
+    this.qrErrorText = ''
+  }
+
   /** Open-time QR generation prevents stale payloads while preserving calculator state. */
   onOpenQrShare(): void {
     if (!isShareable(this.expression, this.result, this.errorMsg)) {
       promptAction.showToast({ message: '请先完成一次有效计算' })
       return
     }
-    this.qrMatrix = null
-    this.qrPayloadOk = false
-    this.qrErrorText = ''
+    this.resetQrShareState()
     try {
       const payload: QrPayloadResult = buildQrPayload(this.expression, this.result)
       if (!payload.ok) {
@@ -160,8 +164,7 @@ export struct CalculatorPage {
   }
 
   private failQrDrawing(message: string): void {
-    this.qrMatrix = null
-    this.qrPayloadOk = false
+    this.resetQrShareState()
     this.qrErrorText = message
   }
 

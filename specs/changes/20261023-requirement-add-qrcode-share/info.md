@@ -193,3 +193,44 @@ Tester 已证明入口、回显、门控、关闭和回归正常，因此本轮�
 ### 11.3 架构判断
 
 本轮不改变 HAP、页面路由、数据流或外部依赖；`QrLayout` 是 qrcode 内部纯函数扩展，属于组件级缺陷修复，不构成新架构。`new-arch.md` 无需新增架构变更。
+
+## 12. Reviewer 反馈专项证据链理解（本轮 rq-codebase 增量）
+
+### 12.1 当前精确状态
+
+| 对象 | 当前事实 | 规划含义 |
+|---|---|---|
+| 工作树 | `agent/pull_request-43-task-17`，HEAD `4f81d91ab0e6ed638f955f5f9201ad93b6ce2f70` | 本轮以已通过产品结果为只读基线 |
+| PR #43 | payload head 为 `4f81d91...` | 后续最终交接必须重新核对实际最终 head |
+| Developer run-46 | 顶层 head 为 `964c83e...`，structured output 为 `4f81d91...` | manifest 自相矛盾，不能原样复用 |
+| Developer session | 2026-10-23 19:34:09+08:00 开始 | 晚于 4f81d91 的 19:33:40+08:00 提交时间，不能证明该提交的 TDD |
+| Tester run-47 | exact SHA `4f81d91...`，96/96、构建/安装/UI/独立解码通过 | 产品结果基线可信，但不修复 Developer 流程缺口 |
+| Reviewer run-48 | result audit 通过、process audit 失败 | 修复目标仅是 process audit 两个 major finding |
+
+### 12.2 证据搜索结论
+
+在 `.agent-runtime/evidence` 中检索现有 JSONL/JSON/日志后，仅找到：task-12 session（从已存在的 `964c83e` 开始审计初版 Applying）与 task-14 session（从已存在的 `4f81d91` 开始审计修复版 Applying）。未找到覆盖提交 `334f241` 或 `4f81d91` 实际修改过程的 originating session。因此无法选择 Reviewer 允许的“补交 originating session”路径。
+
+### 12.3 后续证据调用链
+
+```text
+同一 Developer Applying session
+  → exact-head/clean-tree 预检
+  → Task N RED（真实失败，保存命令/退出码/日志）
+  → Task N 实现或恢复动作（session 内可见）
+  → Task N GREEN（同范围通过）
+  → Task N REFACTOR（审查/整理后复跑通过）
+  → 全量 Local Test / HAP build / CodeLinter
+  → commit（提交时间晚于 session 开始）
+  → push/delivery 校验
+  → structured output（final SHA）
+  → orchestrator run manifest（顶层同一 SHA + hashes）
+```
+
+### 12.4 约束与风险
+
+- 不得修改既有 evidence 文件来伪装历史；新证据必须由新 session 和新 run 产生。
+- 不得把临时书面 RED 记录当作真实失败执行；日志必须包含非零退出码与预期断言失败。
+- 若后续提交只更新文档/证据而 PR head 变化，Tester/Reviewer 仍需按 Issue AC10/AC11 对最终准确 SHA 重新闭环。
+- 产品结果已通过，不应借过程修复扩大功能范围；任何必要源码动作必须与既有 QR 修复任务直接对应并保持最终行为不退化。
+- `tasks.md` 属于 IMPLEMENTING 制品，本 PLANNING 不创建或修改。

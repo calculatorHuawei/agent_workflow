@@ -572,6 +572,115 @@ note right of CalculatorPage : Settings/About/Plot 面板既有导航零改动
 |-----|------|--------|------|---------|
 | （零新增） | — | — | 本需求不新增任何偏好项；既有 key（vibrateOn/preventSleep/radianMode/theme/scientific 等）零改动 | 无 |
 
+## 11. Reviewer 反馈的过程证据设计（SC-006 / SR-05）
+
+> 本节是 mod-design 对 proposal §11、delta-spec §14 的增量设计。它设计 Developer 证据链，不改变 D1–D10 的产品实现模型。
+
+### 11.1 设计目标
+
+1. 同一 Applying session 能从时间线证明每个任务的 RED、实现动作、GREEN 与 REFACTOR 复跑。
+2. 新 run manifest 不再出现顶层 SHA 与 structured output SHA 分裂。
+3. Reviewer 可只依赖已固化文件重算 hash、核对提交时间和复现关键命令。
+4. 保留 Tester run-47 的结果事实，但不让其替代 Developer process audit。
+
+### 11.2 证据组件与职责
+
+| 组件 | 职责 | 禁止行为 |
+|---|---|---|
+| Applying session JSONL | 记录真实工具调用、修改、命令输出与时间顺序 | session 后补文字冒充历史执行 |
+| per-task verification log | 记录 phase、command、started/finished、exit code、expected/actual | 只写“通过”而不留原始输出 |
+| Git commit | 固化本轮最终变更并提供提交时间 | 提交早于 session、却宣称由 session 实现 |
+| structured output | 用 final SHA 生成 Developer→Tester 交接 | 使用旧 SHA 或未验证值 |
+| run manifest | 顶层关联 final SHA、structured output hash、session snapshot hash | 顶层与内层 SHA 不一致 |
+| delivery.json | orchestrator-host 的远端 PR/head 事实 | 网络不可用时臆造 GitHub 状态 |
+
+### 11.3 执行时序
+
+```plantuml
+@startuml
+actor Developer
+participant "Applying session" as S
+participant "Hvigor tests" as T
+participant "Product/Test files" as W
+participant Git
+participant Orchestrator
+participant Reviewer
+
+Developer -> S : 记录 start time / HEAD / status
+loop 每个任务
+  S -> T : RED command
+  T --> S : expected failure + nonzero exit
+  S -> W : implementation/restoration action
+  S -> T : GREEN command
+  T --> S : pass + exit 0
+  S -> W : REFACTOR
+  S -> T : same-or-broader rerun
+  T --> S : pass + exit 0
+end
+S -> T : full Local Test / build / lint
+T --> S : all pass
+S -> Git : commit
+Git --> S : final SHA
+S -> Orchestrator : structured output(final SHA)
+Orchestrator -> Orchestrator : snapshot session + compute hashes
+Orchestrator -> Reviewer : run manifest(top-level same SHA)
+Reviewer -> Reviewer : recompute hashes/SHA/timeline
+@enduml
+```
+
+### 11.4 RED 真实性契约
+
+- RED 必须来自实际命令并返回非零退出码，失败点必须是该任务预期新增/恢复的行为；环境安装、网络或缓存失败不计为 RED。
+- 若当前 4f81d91 已满足拟写断言，该断言不能作为 RED。后续 IMPLEMENTING 必须把工作拆为能在不扩大 Issue 范围的前提下形成真实缺口的最小任务；若无法形成，必须阻塞并向 Reviewer 请求接受 originating evidence 替代，不得伪造。
+- 可采用受控、可恢复的实现缺口来重复既有修复，但 session 必须显示缺口建立、失败、实现恢复和通过；最终 tree 必须保持或增强既有行为。
+- 每个 RED 与后续 GREEN 必须使用相同测试目标；REFACTOR 使用相同或更大的目标。
+
+### 11.5 日志数据模型
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| task_id | string | 是 | 与后续 tasks.md 条目一致 |
+| phase | `RED`/`GREEN`/`REFACTOR` | 是 | TDD 阶段 |
+| command | string | 是 | 实际执行命令，含工作目录语义 |
+| started_at/finished_at | ISO-8601 | 是 | 支持时间线复核 |
+| exit_code | number | 是 | RED 非零；GREEN/REFACTOR 为 0 |
+| expected | string | 是 | 本阶段预期 |
+| observed | string | 是 | 实际断言/摘要 |
+| log_path | string | 是 | 原始日志可访问路径 |
+| source_state | string | 是 | 执行前相关文件/HEAD 状态摘要 |
+
+### 11.6 exact-head manifest 生成规则
+
+```text
+final_sha = git rev-parse HEAD
+assert worktree is clean
+assert final_sha == git rev-parse <origin tracking ref>
+assert final_sha == delivery.remote_head_sha (when delivery exists)
+structured_output.commit_sha = final_sha
+structured_output.head_sha = final_sha
+run_manifest.head_sha = final_sha
+run_manifest.structured_output_sha256 = sha256(canonical structured output)
+run_manifest.session.sha256 = sha256(session snapshot bytes)
+```
+
+任一断言失败时，交接状态必须为 blocked；不能通过局部编辑旧 run-46 伪装一致。新 run 应引用本轮新 session 与新 structured output。
+
+### 11.7 与产品验证的关系
+
+- 全量 Local Test、HAP build、CodeLinter 与保护模块 diff 仍是 Developer GREEN/REFACTOR 后的回归门禁。
+- Tester run-47 可证明 `4f81d91` 的产品结果；若本轮产生新 final SHA，即使产品源码等价，也必须由 Tester 对新 SHA 重新构建、安装与取证。
+- AC11 仅由 Reviewer 在 result audit 与 process audit 均通过后关闭；Developer 不自批、不归档。
+
+### 11.8 自验证
+
+| 校验项 | 设计覆盖 |
+|---|---|
+| Reviewer finding 1：run manifest SHA 分裂 | §11.6 单一 final SHA 生成与断言 |
+| Reviewer finding 2：session 晚于提交且只审计已有状态 | §11.3–§11.4 要求 session 先于实现提交并包含真实 RED/修改/GREEN/REFACTOR |
+| hash 可重算 | §11.6 structured output/session snapshot 双 hash |
+| 不扩大产品范围 | §11.1、§11.7；产品 D1–D10 不变 |
+| 不猜 material ambiguity | 未找到 originating session 的证据事实决定采用 Reviewer 明示的 repeat 路径 |
+
 ## 自验证（与 delta-spec 交叉校验）
 
 | 校验项 | 结果 |
@@ -582,6 +691,7 @@ note right of CalculatorPage : Settings/About/Plot 面板既有导航零改动
 | 权限一致性 | 零新增权限 ↔ §9.2：通过 |
 | Kit 一致性 | 仅 ArkUI/hypium ↔ §9.3：通过 |
 | 措施落点 | CM-01~CM-10 均有 §3.5/§3.6/§3.7 实现落点；run-35 截图解码失败有 §3.8 与 SC005 落点：通过 |
+| Reviewer 过程反馈 | SC-006/SR-05 ↔ §11 的 TDD 时间线、日志模型、exact-head manifest 设计：通过 |
 
 ---
 > 本文档由 mod-design skill 生成。
