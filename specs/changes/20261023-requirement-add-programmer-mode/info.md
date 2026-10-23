@@ -108,12 +108,12 @@ Programmer key/radix event
 | 约束 | 来源 | 遵守方式 |
 |------|------|----------|
 | 仅执行 PLANNING，不修改产品源码 | 用户指令 | 只写 `specs/changes/...` 制品 |
-| 不创建 `tasks.md` | 用户指令 | todo 仅跟踪 PLANNING；IMPLEMENTING 保持待开始 |
+| 不创建或修改 `tasks.md` | 用户指令 | 保留精确 PR HEAD 中的既有文件；本次 todo 单独记录 PLANNING 复核 |
 | 保持向后兼容 | Issue/worker workflow | 隔离普通和程序员状态，不改既有接口/schema |
 | 安全可逆默认 | GitHub assignment | 采用 U64 非负、页面内草稿、不含位运算并记录 rationale |
 | 精确转换 | Issue 的错算/边界 AC | 禁止浮点 `number` 处理 U64；边界单测门禁 |
 | 最小权限 | workflow | 无新权限、依赖、网络、后台任务或持久化 |
-| 现有工作树保护 | workspace 规则 | 目标 change 目录为当前未跟踪规划稿；不触碰无关改动 |
+| 现有工作树保护 | workspace 规则 | 仅更新指定 change 目录中的 Planning 制品；不触碰产品、任务拆解或无关改动 |
 
 ## 7. 可复用组件
 | 组件 | 位置 | 复用方式 |
@@ -173,3 +173,17 @@ Programmer key/radix event
 
 ---
 > 本文件由 rq-codebase 工作流产出，仅包含代码仓理解与设计输入，不包含产品源码修改。
+
+## 11. 2026-10-24 精确 HEAD 复核
+
+本次在 PR #49 的精确 HEAD `8e633ce5a1af269ba986b6ef9e8df4211c9bde8e` 上重新执行 `rq-codebase`。由于该 HEAD 已包含上一轮实现，现状检查仅作为设计一致性证据，不授权或产生产品源码改动：
+
+| 规划约束 | 当前代码证据 | 结论 |
+|----------|--------------|------|
+| 精确 U64 且不得经浮点 `number` 中转 | `programmer/ProgrammerConverter.ets` 使用十进制字符串乘加/长除与 `U64_MAX_DEC` 比较 | 符合设计允许的精确字符串回退 |
+| UI 与业务共用合法键规则 | `programmerKeyEnabled` 委托 `ProgrammerConverter.isDigitAllowed` | 符合 |
+| 普通状态与程序员状态隔离 | `CalculatorPage` 分别持有既有普通字段和 `programmerState`；mode handler 不调用 AC/历史/偏好方法 | 符合 |
+| 180ms opacity + 4vp translation | `animateTo({ duration: 180 })` 与 `TransitionEffect.OPACITY.combine(translate({ y: 4 }))` | 符合 |
+| 最小权限与兼容 | 无新增网络、权限、Preferences key、路由或 HAP/HAR/HSP | 符合 |
+
+复核结论：原 `info.md` 对架构、约束、风险和推荐落点的理解仍有效；本次没有读取结果后反向扩大需求或修改设计边界。

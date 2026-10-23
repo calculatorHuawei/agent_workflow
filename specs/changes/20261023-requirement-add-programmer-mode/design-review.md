@@ -10,8 +10,8 @@
 - [x] 制品齐全性：通过（proposal/spec/info/architecture/design/FMEA/review/todo 均存在）。
 - [x] 需求覆盖度：100%（Issue 6 项功能范围与 6 项验收要求均有 UC、SR 和设计映射）。
 - [x] 初始化确认：通过（`specs/initialized.flag` 有效；PROJECT_ROOT=`opencalc`，TEST_ROOT=`opencalc/entry/src/test`）。
-- [x] 意图分类：通过（新增功能 / `new_requirement`）。
-- [x] 阶段边界：通过（未创建 `tasks.md`，未修改产品源码，未实施/提交/推送/归档）。
+- [x] 意图分类：通过（产品意图为新增功能；当前 `bugfix` 标签仅表示 Reviewer 反馈触发的流程补正）。
+- [x] 阶段边界：通过（本次复核未创建或修改 `tasks.md`、产品源码，未实施/提交/推送/归档；仓库中既有文件来自被复核的精确 PR HEAD）。
 
 ### 2.1 Issue 验收覆盖
 | Issue 验收点 | Spec/UC | SR | Design/AR | 结论 |
@@ -91,6 +91,18 @@ IR-45-R5 兼容测试 → SC001-UC001 → SR-04 → AR-04/05
 - [x] new-arch 明确当前架构与变更点。
 - [x] delta-design 覆盖 D1~D10、接口、模型、状态、错误、UI、平台和门禁。
 - [x] FMEA 高风险全部转化为可验证 SR。
-- [x] todo 将仅标记 PLANNING 完成，后续 phases 保持待开始。
+- [x] todo 已单独记录本次 PLANNING 复核完成；既有 IMPLEMENTING/APPLYING 历史不被本次重写或冒认。
 
-**审视判定：PLANNING 可完成，进入 IMPLEMENTING 需由后续明确调用；本次不创建 tasks.md。**
+**审视判定：PLANNING 复核通过；本次到此停止，不创建或修改 tasks.md，不进入 IMPLEMENTING/APPLYING/ARCHIVING。**
+
+## 9. 2026-10-24 Reviewer 反馈闭环复审
+
+| 检查项 | 结果 | 依据 |
+|--------|------|------|
+| 初始化与意图分类 | 通过 | 初始化标记有效；产品意图为新增功能，`bugfix` 仅是过程补正标签 |
+| PLANNING 顺序 | 通过 | 依次完成 rq-parse、rq-clarify、delta-spec/FMEA、rq-codebase、复杂度、架构、mod-design、设计审视 |
+| 制品完整性 | 通过 | proposal、delta-spec、info、new-arch、FMEA、delta-design、design-review、todo 均非空 |
+| 设计与精确 HEAD 一致性 | 通过 | 字符串精确算法、共享键规则、隔离状态、180ms/4vp 过渡均落在已批准设计范围 |
+| 本次阶段边界 | 通过 | 未触碰产品源码、`tasks.md`、提交、推送、PR、归档或外部系统状态 |
+
+Reviewer 指出的旧 run manifest 缺少 session source/snapshot/hash 属于外层证据保存问题，无法通过伪造历史记录修复。本次采用真实、独立的 PLANNING 执行重新生成可由 orchestrator 捕获的过程，并只更新规划制品；无阻塞条件。

@@ -20,7 +20,7 @@
 - [x] `delta-design.md`：接口、状态、错误、UI、动画、响应式、T0~T3 顺序及精确算法回退策略明确。
 - [x] `20261023-programmer-mode-fmea分析表.md`：CM-01~06 已映射到 SR 与测试门禁。
 - [x] `design-review.md`：审视结论为“通过”，无 Planning blocker；`bigint` 语法和设备动画属于后续验证项。
-- [x] `todo.md`：PLANNING 已完成，IMPLEMENTING 可进入，APPLYING/ARCHIVING 未执行。
+- [x] `todo.md`：2026-10-24 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
 
 ## 任务列表
 

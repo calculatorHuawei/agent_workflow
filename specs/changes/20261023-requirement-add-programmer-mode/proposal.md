@@ -44,7 +44,7 @@
 ### 3.1 意图分类
 - **类型**：新增功能
 - **一句话概括**：为 OpenCalc 增加与普通计算器相互切换的四进制非负整数转换模式。
-- **分类依据**：Issue 标题使用“新增”，正文要求当前产品不存在的独立模式；orchestrator 标记为 `new_requirement`。
+- **分类依据**：Issue 标题使用“新增”，正文要求当前产品不存在的独立模式。当前 orchestrator 的 `change_type=bugfix` 描述 Reviewer 反馈触发的流程补正，不改变产品意图分类。
 
 ### 3.2 领域映射
 - **UI/交互**：模式入口、进制选择器、按进制启停的键盘、四行结果区、动画和错误反馈。
@@ -202,7 +202,7 @@ CalculatorPage（模式状态、普通状态、程序员状态、动画）
 | info.md | 必须，产出 |
 | new-arch.md | 复杂需求且新增业务组件，产出 |
 | delta-design.md | 必须，产出 |
-| tasks.md | 本次明确禁止，留待 IMPLEMENTING phase |
+| tasks.md | 本次复核明确禁止创建或修改；保留精确 PR HEAD 中的既有文件 |
 
 ## 10. 待解决问题
 
@@ -214,3 +214,11 @@ CalculatorPage（模式状态、普通状态、程序员状态、动画）
 
 ---
 > 本提案中的自动澄清均依据 Issue 授权，选择安全、可逆、最小范围且向后兼容的默认值。
+
+## 11. 2026-10-24 PLANNING 复核记录
+
+- **初始化确认**：复用有效的 `specs/initialized.flag`；`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 均存在。本次不重新初始化、不改初始化配置。
+- **意图分类确认**：Issue #45 的产品意图仍为“新增功能”；orchestrator 的 `change_type=bugfix` 仅描述本次因 Reviewer 过程证据缺失而进行的流程补正，不改变产品范围，也不迁移既有 change 目录。
+- **澄清方式**：Issue、既有验收证据和授权足以消除 important 级歧义；按 `rq-clarify` 的“用户授权代理决定”路径保留 U64、页面内状态、数值保持换进制、无位运算等安全默认，无需人工确认。
+- **范围结论**：本次仅重新执行并留痕 PLANNING；既有 `tasks.md`、产品实现与测试属于已存在的精确 PR HEAD，本次不创建或修改它们，不进入 IMPLEMENTING/APPLYING/ARCHIVING。
+- **复核结果**：原提案的功能边界、假设和 rationale 仍与 Issue 及当前代码约定一致，无需扩大权限、依赖或持久化范围。

@@ -78,3 +78,12 @@
 
 ## 下一步
 APPLYING 已完成。本次按指令不执行归档或审批；后续仅在独立阶段闸门明确授权后进入 ARCHIVING。
+
+## 2026-10-24 Reviewer 反馈闭环 APPLYING 复核
+
+- 前置门禁：重新核验 Planning 与 Implementing checkpoint 均为 completed，九项规划制品、`tasks.md` 与获批 `design-review.md` 均存在且非空。
+- RED：在已继承实现上对七个任务契约做受控、可逆的缺失行为变异；隔离 `HVIGOR_USER_HOME` 后真实 Local Test 得到 71 run / 56 pass / 15 expected failures / 0 errors。失败分别命中典型转换、U64 长度门禁、原子状态、模式切换、结果/反馈映射、键盘启停和不支持进制回归门禁。
+- GREEN：撤销全部变异，并用 `git diff --exit-code` 确认产品转换器恢复到精确 HEAD 内容；真实 Local Test 得到 71/71 pass、0 failure、0 error。
+- REFACTOR：复核共享业务边界、纯函数状态更新与 UI 编排未需额外改动；保持同一绿色实现，真实 `opencalc/build-test.bat` 输出 `BUILD SUCCESSFUL`，DevEco CodeLinter 以 error 门禁退出 0（0 error，127 warning）。
+- 环境修复：首次 Local Test 因 `@ohos/hypium` 未安装而编译失败，不计作 RED；按 local-test 指引执行 `ohpm install --all` 后重跑。共享 hvigor daemon 一次超时，改用隔离 `HVIGOR_USER_HOME` 与 `--no-daemon` 后成功。
+- 阶段边界：仅完成 APPLYING；未归档、未审批。

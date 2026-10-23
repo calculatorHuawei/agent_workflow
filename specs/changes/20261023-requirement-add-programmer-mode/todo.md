@@ -3,7 +3,7 @@
 ## 当前进行中的任务
 | 任务名称 | 类型 | 状态 | 开始日期 |
 |----------|------|------|----------|
-| requirement-add-programmer-mode | 新增功能 | APPLYING 已完成 | 2026-10-23 |
+| requirement-add-programmer-mode | 新增功能 | APPLYING 已完成（本次） | 2026-10-23 |
 
 ## 任务详情
 
@@ -15,11 +15,11 @@
 - 关联 Issue：#45
 - 关联全局文件：specs/spec.md / specs/arch.md / specs/design.md
 - 开始日期：2026-10-23
-- git_branch_adopted: true（当前独立分支 `agent/issue-45-task-22`）
+- git_branch_adopted: true（当前独立复核分支 `agent/pull_request-49-task-30`）
 - 初始化：有效（复用 `specs/initialized.flag`，未重新初始化）
 
 #### 当前阶段
-APPLYING — completed。PLANNING、IMPLEMENTING 与 APPLYING 已完成；ARCHIVING 未执行。
+APPLYING — completed（2026-10-24）。已对 7 个任务执行受控 RED 变异验证、恢复 GREEN、REFACTOR 后全量回归，并完成真实构建与 lint；ARCHIVING 未执行。
 
 #### 进度
 | 步骤 | 状态 | 完成时间 |
@@ -77,12 +77,59 @@ APPLYING — completed。PLANNING、IMPLEMENTING 与 APPLYING 已完成；ARCHIV
 - 工作量等级：M；流程判定为复杂（影响页面、模型、业务组件、测试并新增内部数据流）。
 - 架构：entry HAP 内部新增 `ProgrammerConverter`；无部署/权限/依赖/持久化架构扩张。
 - `new-arch.md`：已产出。
-- `tasks.md`：按本次指令禁止创建，留待 IMPLEMENTING。
+- `tasks.md`：本次按获批设计重新核验并更新为 7 个 T0~T3 任务；所有 TDD 标记保持待执行，供后续独立 APPLYING 阶段使用。
 
 #### 最近更新
+- 2026-10-24：仅执行 MigBot IMPLEMENTING；核验 proposal、delta-spec、info、new-arch、FMEA、delta-design、design-review、todo 均存在非空且设计审视结论为“通过”，将设计重新分解/排序为 7 个 T0~T3 任务并更新 `tasks.md`。未修改产品源码，未运行 APPLYING、测试或构建，未提交、推送或归档。
+- 2026-10-24：因 Reviewer 指出旧 Developer session 证据缺失，重新按顺序执行 MigBot PLANNING；确认初始化与新增功能意图，复核 proposal/spec/info/architecture/FMEA/design/review，并记录精确 HEAD 一致性。本次未修改 `tasks.md` 或产品源码，未进入后续 phase。
 - 2026-10-23：完成 APPLYING；7 个任务均执行 RED-GREEN-REFACTOR，71/71 Local Test 通过，HAP 构建成功，CodeLinter 0 error；动画/横竖屏设备视觉证据交 Tester。
 - 2026-10-23：完成 IMPLEMENTING；核验全部 Planning 制品，将获批设计分解为 7 个有序、可测试的 T0~T3 任务并产出 `tasks.md`。未修改产品源码，未运行 APPLYING。
 - 2026-10-23：确认初始化与独立分支；完成 rq-parse、自动 rq-clarify、delta-spec、rq-codebase、复杂度、架构、FMEA、mod-design 和设计审视。
 
 #### 下一步
-本次停止于 APPLYING。代码、测试、lint、应用报告与交付已完成；不得进入 ARCHIVING 或审批。
+本次停止于 APPLYING，向 orchestrator 返回 Developer-to-Tester handoff。不得进入 ARCHIVING 或审批。
+
+#### 2026-10-24 APPLYING 复核步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase APPLYING Step 3.0: 环境检查 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.1: 确认应用条件 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.2: 代码应用（TDD） | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.2.1: 七任务 RED 受控变异验证 | ✅ 已完成（71 中 15 个预期失败） | 2026-10-24 |
+| Phase APPLYING Step 3.2.2: GREEN 全量测试 | ✅ 已完成（71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.3: REFACTOR 后构建与 lint | ✅ 已完成（BUILD SUCCESSFUL；0 error） | 2026-10-24 |
+| Phase APPLYING Step 3.3: 更新任务状态 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
+
+#### 2026-10-24 PLANNING 复核步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase PLANNING Step 1: 用户意图理解 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 1.1: Git 分支检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 2: 需求理解 (rq-parse) | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 3: 需求澄清 (rq-clarify) | ✅ 已完成（授权自动决策） | 2026-10-24 |
+| Phase PLANNING Step 4: 需求spec设计 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 4.1: 场景与用例设计 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 4.2: FMEA 与 SR 追溯 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 5: 代码仓理解 (rq-codebase) | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 6: 需求复杂度评估 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 7: 架构设计 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 8: 组件设计 (mod-design) | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9: 设计审视 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.1: 完整性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2: 一致性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.3: 规范性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.4: 产出审视报告 | ✅ 已完成 | 2026-10-24 |
+
+#### 2026-10-24 IMPLEMENTING 复核步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase IMPLEMENTING Step 2.1.1: 阅读设计文档 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.2: 识别代码组件 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.3: 拆分为最小可开发任务 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.1: 确定任务依赖关系 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.2: 制定开发顺序 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.3: 产出 tasks.md | ✅ 已完成 | 2026-10-24 |

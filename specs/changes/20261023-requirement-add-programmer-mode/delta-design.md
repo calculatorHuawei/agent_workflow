@@ -490,3 +490,7 @@ end note
 ---
 > 本文档由 mod-design 工作流生成。标记 `[推断]` 的内容为基于设计推断，需在 APPLYING 编译/设备验证。  
 > 生成时间：2026-10-23
+
+## 13. 2026-10-24 PLANNING 设计复核
+
+本次重新以 `proposal.md`、`delta-spec.md` 和 `info.md` 为输入执行 `mod-design` 自验证。D1~D10、AR↔SR↔UC 追溯和验收门禁仍完整，无需改变接口或模块边界。精确字符串乘加/长除实现属于 §1.3、§3.5.8 已定义的 `bigint` 不适配时回退方案，维持同一契约且避免 U64 精度退化。Reviewer 的 changes-requested 仅要求补齐可审计过程证据，不构成设计变更来源；本次不修改产品源码或 `tasks.md`。
