@@ -11,6 +11,7 @@ import {
   gfMul, ecBlockInfo, rsEncodeBlock, buildFinalCodewords,
   buildMatrix, maskCondition, scoreMatrix, encodeQr, QrEncodeResult
 } from '../main/ets/qrcode/QrEncoder'
+import { qrModulePixels } from '../main/ets/qrcode/QrLayout'
 
 /** 重复 ASCII 片段构造指定长度字符串（模块级函数——ArkTS 禁止嵌套函数） */
 function asciiRepeat(fragment: string, times: number): string {
@@ -714,6 +715,16 @@ export default function qrShareTest(): void {
       expect(oversized.ok).assertFalse()
       expect(oversized.matrix === null).assertTrue()
       expect(oversized.reason.length > 0).assertTrue()
+    })
+  })
+
+  describe('QrLayoutTest', () => {
+    it('caps_large_canvas_modules_for_direct_screenshot_decoding', 0, (): void => {
+      expect(qrModulePixels(370, 370, 29, 4)).assertEqual(4)
+    })
+
+    it('keeps_smaller_integer_module_size', 0, (): void => {
+      expect(qrModulePixels(140, 140, 29, 4)).assertEqual(3)
     })
   })
 }

@@ -16,6 +16,7 @@ import {
 } from '../plot/PlotAxis'
 import { buildQrPayload, isShareable, QrPayloadResult } from '../qrcode/QrPayload'
 import { encodeQr, QrEncodeResult, QrMatrix } from '../qrcode/QrEncoder'
+import { qrModulePixels } from '../qrcode/QrLayout'
 
 @Entry
 @Component
@@ -163,8 +164,8 @@ export struct CalculatorPage {
     const matrix: QrMatrix | null = this.qrMatrix
     if (matrix === null || this.qrCanvasW <= 0 || this.qrCanvasH <= 0) return
     const quiet: number = 4
-    const modulePx: number = Math.floor(Math.min(this.qrCanvasW, this.qrCanvasH) /
-      (matrix.size + quiet * 2))
+    const modulePx: number = qrModulePixels(this.qrCanvasW, this.qrCanvasH,
+      matrix.size, quiet)
     if (modulePx < 4) return
     const side: number = (matrix.size + quiet * 2) * modulePx
     const offsetX: number = Math.floor((this.qrCanvasW - side) / 2)
