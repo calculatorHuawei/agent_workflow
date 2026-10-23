@@ -9,6 +9,9 @@ import { NumberFormatter } from '../calculator/NumberFormatter'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
+import {
+  ResultDisplayLifecycle, ResultDisplayMode, ResultDisplayPresenter, ResultDisplaySnapshot
+} from '../common/ResultDisplayPresenter'
 import { FunctionPlotter, PlotResult, PlotSegment, PLOT_X_MIN, PLOT_X_MAX, PLOT_N } from '../plot/FunctionPlotter'
 import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
@@ -28,6 +31,8 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+  @State displayMode: ResultDisplayMode = ResultDisplayMode.DECIMAL
+  @State hasResult: boolean = false
 
   // ==================== 绘图状态（Issue #40） ====================
   @State showPlot: boolean = false
@@ -52,6 +57,7 @@ export struct CalculatorPage {
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
+  private lastRawResult: number = 0
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
@@ -89,7 +95,12 @@ export struct CalculatorPage {
   onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
   onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
-  onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
+  onAC(): void {
+    this.expression = ''
+    this.errorMsg = ''
+    this.applyDisplaySnapshot(ResultDisplayLifecycle.cleared())
+    ErrorFlags.reset()
+  }
 
   onEquals(): void {
     if (this.expression.length === 0) return
@@ -97,14 +108,20 @@ export struct CalculatorPage {
     try {
       const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
       const raw: number = this.engine.evaluate(clean, !this.radianMode)
-      if (ErrorFlags.division_by_0) { this.errorMsg = '除数不能为零'; this.result = '' }
-      else if (ErrorFlags.domain_error) { this.errorMsg = '定义域错误'; this.result = '' }
-      else if (ErrorFlags.syntax_error) { this.errorMsg = '表达式错误'; this.result = '' }
-      else if (ErrorFlags.is_infinity) { this.errorMsg = '结果无穷大'; this.result = '' }
-      else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = '' }
-      else {
+      if (ErrorFlags.division_by_0) {
+        this.setCalculationError('除数不能为零')
+      } else if (ErrorFlags.domain_error) {
+        this.setCalculationError('定义域错误')
+      } else if (ErrorFlags.syntax_error) {
+        this.setCalculationError('表达式错误')
+      } else if (ErrorFlags.is_infinity) {
+        this.setCalculationError('结果无穷大')
+      } else if (ErrorFlags.require_real_number) {
+        this.setCalculationError('需要实数')
+      } else {
         const fmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
-        this.result = fmt; this.errorMsg = ''
+        this.errorMsg = ''
+        this.applyDisplaySnapshot(ResultDisplayLifecycle.success(raw, fmt))
         const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
         this.nextId = this.nextId + 1
         const nh: HistoryItem[] = [item]
@@ -112,13 +129,44 @@ export struct CalculatorPage {
         this.history = nh
         if (this.prefs) this.prefs.setHistory(this.history)
       }
-    } catch (_e) { this.errorMsg = '计算错误' }
+    } catch (_e) { this.setCalculationError('计算错误') }
   }
 
   onCopy(): void {
     if (this.result.length === 0) return
-    pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.result))
+    pasteboard.getSystemPasteboard().setData(
+      pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.visibleResult())
+    )
     promptAction.showToast({ message: '已复制' })
+  }
+
+  private currentDisplaySnapshot(): ResultDisplaySnapshot {
+    return {
+      mode: this.displayMode,
+      hasResult: this.hasResult,
+      rawValue: this.lastRawResult,
+      decimalText: this.result
+    }
+  }
+
+  private applyDisplaySnapshot(snapshot: ResultDisplaySnapshot): void {
+    this.displayMode = snapshot.mode
+    this.hasResult = snapshot.hasResult
+    this.lastRawResult = snapshot.rawValue
+    this.result = snapshot.decimalText
+  }
+
+  private setCalculationError(message: string): void {
+    this.errorMsg = message
+    this.applyDisplaySnapshot(ResultDisplayLifecycle.cleared())
+  }
+
+  private visibleResult(): string {
+    return ResultDisplayLifecycle.visible(this.currentDisplaySnapshot())
+  }
+
+  onToggleResultDisplay(): void {
+    this.applyDisplaySnapshot(ResultDisplayLifecycle.toggle(this.currentDisplaySnapshot(), this.errorMsg))
   }
 
   onHistoryTap(item: HistoryItem): void { this.expression = item.expression; this.showHistory = false }
@@ -486,9 +534,21 @@ export struct CalculatorPage {
         Text(this.errorMsg).fontSize(this.isLandscape ? 22 : 28).fontColor(this.getErr())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
       } else {
-        Text(this.result.length > 0 ? this.result : '0')
+        Text(this.result.length > 0 ? this.visibleResult() : '0')
           .fontSize(this.isLandscape ? 28 : 36).fontWeight(FontWeight.Bold).fontColor(this.getT1())
           .width('100%').textAlign(TextAlign.End).padding({ right: 12, left: 12 })
+      }
+      if (this.hasResult && this.errorMsg.length === 0) {
+        Row() {
+          Blank()
+          Text(ResultDisplayPresenter.toggleLabel(this.displayMode))
+            .fontSize(12).fontColor(this.getOp()).height(32)
+            .padding({ left: 12, right: 12 })
+            .border({ width: 1, color: this.getOp(), radius: 8 })
+            .accessibilityText(ResultDisplayPresenter.toggleAccessibilityText(this.displayMode))
+            .onClick((): void => { this.onToggleResultDisplay() })
+        }
+        .width('100%').padding({ right: 12, left: 12 })
       }
     }
     .width('100%').padding(this.isLandscape ? { top: 8, bottom: 2 } : { top: 24, bottom: 8 })

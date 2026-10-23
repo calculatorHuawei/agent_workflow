@@ -1,0 +1,10 @@
+Command: hdc version
+Result: Ver: 3.2.0d
+
+Command: hdc shell uitest help
+Result: [Fail]ExecuteCommand need connect-key? please confirm a device by help info
+
+Command: hdc list targets
+Result: [Empty]
+
+Conclusion: no HarmonyOS device or emulator was connected in the APPLYING sandbox. No screenshot or accessibility tree can be truthfully produced.
