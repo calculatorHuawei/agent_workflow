@@ -177,3 +177,7 @@ mode event → synchronous CalculatorMode update → ArkUI transition
 ### 7.3 Task 33 架构复核
 
 在精确 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 上复核后，架构仍为单 entry HAP、单主页面、独立纯业务 converter。无需新增模块、权限、依赖、路由、持久化或迁移；本次仅修正规划文字中的精确算法默认值，不改变组件边界。
+
+### 7.4 Task 39 架构复核
+
+在 HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c` 上再次检查后，§2 的目标架构仍是最小且兼容的常规方案：单 `entry` HAP、单 `CalculatorPage`、普通与程序员内存态隔离、独立 `ProgrammerConverter`、既有 Preferences schema 不变。Task 39 不提出新的模块、接口、权限、依赖、路由、部署或迁移；`acceptance-criteria.json` 仅补强验收契约，不改变架构。

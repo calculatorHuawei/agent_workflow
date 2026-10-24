@@ -3,7 +3,7 @@
 ## 当前进行中的任务
 | 任务名称 | 类型 | 状态 | 开始日期 |
 |----------|------|------|----------|
-| requirement-add-programmer-mode | 新增功能 | APPLYING 已完成（Task 33） | 2026-10-23 |
+| requirement-add-programmer-mode | 新增功能 | APPLYING 已完成（Task 39） | 2026-10-23 |
 
 ## 任务详情
 
@@ -15,11 +15,11 @@
 - 关联 Issue：#45
 - 关联全局文件：specs/spec.md / specs/arch.md / specs/design.md
 - 开始日期：2026-10-23
-- git_branch_adopted: true（当前独立复核分支 `agent/pull_request-49-task-33`）
+- git_branch_adopted: true（当前独立复核分支 `agent/pull_request-49-task-39`）
 - 初始化：有效（复用 `specs/initialized.flag`，未重新初始化）
 
 #### 当前阶段
-APPLYING — completed（Task 33，2026-10-24）。已核验 Task 33 的 Planning/Implementing checkpoint，对 7 个任务执行受控 RED、恢复 GREEN 和 REFACTOR 审视，完成 71/71 全量测试、真实 HAP 构建与 CodeLinter 0 error；未进入 ARCHIVING 或审批。
+APPLYING — completed（Task 39，2026-10-24）。核验 Planning/Implementing checkpoint 与全部制品，七任务完成受控 RED（71/58/13/0）、精确恢复 GREEN（71/71）和 REFACTOR 后最终测试；真实 HAP 构建成功，CodeLinter 为 0 error / 127 warning / 0 suggestion；未进入 ARCHIVING、审批或合并。
 
 #### 进度
 | 步骤 | 状态 | 完成时间 |
@@ -77,9 +77,12 @@ APPLYING — completed（Task 33，2026-10-24）。已核验 Task 33 的 Plannin
 - 工作量等级：M；流程判定为复杂（影响页面、模型、业务组件、测试并新增内部数据流）。
 - 架构：entry HAP 内部新增 `ProgrammerConverter`；无部署/权限/依赖/持久化架构扩张。
 - `new-arch.md`：已产出。
-- `tasks.md`：Task 33 已依据获批设计重新核验并更新为 7 个 T0~T3 最小任务；本次 APPLYING 已逐项完成 RED-GREEN-REFACTOR 门禁。
+- `tasks.md`：Task 39 已依据获批设计和 AC-001~010 执行 7 个 T0~T3 任务；所有 TDD 标记均完成，并保留 Developer/Tester 验证责任。
 
 #### 最近更新
+- 2026-10-24：Task 39 仅执行 MigBot APPLYING。环境预检为 Hvigor 6.24.2，真实构建和 CodeLinter error 门禁通过；首次 RED 因 `@ohos/hypium` 未安装止于编译，不计为 RED，按 local-test 指引执行 `ohpm install --all` 后，七项受控可逆变异得到 71 run / 58 pass / 13 expected failures / 0 errors；精确恢复产品源码后 GREEN 与 REFACTOR 最终运行均为 71/71。最终 HAP 构建成功，lint 为 0 error / 127 warning / 0 suggestion。未永久修改产品/测试源码，未归档、审批或合并。
+- 2026-10-24：Task 39 仅执行 MigBot IMPLEMENTING。核验 proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、todo 均存在非空，Planning validator 记录为 5 IR / 10 AC 且 exit 0，设计审视批准且无 blocker；将获批设计分解、排序为 7 个 T0~T3 任务，补齐 AC→Task→验证责任并重置 TDD 标记。未修改产品/测试源码，未运行 APPLYING、测试、构建或 lint，未提交、推送、审批或归档。
+- 2026-10-24：Task 39 仅执行 MigBot PLANNING。在分支 `agent/pull_request-49-task-39`、HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c` 确认初始化与“新增功能”产品意图；依次执行 rq-parse、授权式 rq-clarify、spec/AC gate、rq-codebase、复杂度、架构、mod-design 和设计审视。新增 5 IR/10 AC 的 `acceptance-criteria.json` 并通过校验器，镜像 AC 到 delta-spec。未修改产品源码、测试源码、构建配置或 `tasks.md`，未进入 IMPLEMENTING/APPLYING/ARCHIVING，未提交或推送。
 - 2026-10-24：Task 33 仅执行 MigBot APPLYING。核验已完成的 Planning/Implementing checkpoint；隔离 Hvigor home 后，以受控可逆变异完成七任务 RED（71 run / 56 pass / 15 expected failures / 0 errors），精确恢复实现后 GREEN 为 71/71；REFACTOR 审视无需额外产品改动，最终 `assembleHap` BUILD SUCCESSFUL，CodeLinter 0 error / 127 warning。已刷新 tasks、todo、apply-report 与证据日志；未归档、未审批。
 - 2026-10-24：Task 33 仅执行 MigBot IMPLEMENTING。逐项核验 proposal、delta-spec、info、new-arch、FMEA、delta-design、design-review、todo 均存在非空，审视结论为批准且无 blocker；将获批设计分解、排序为 7 个 T0~T3 任务并更新 `tasks.md`，TDD 标记重置为待执行。未修改产品源码，未运行 APPLYING、测试或构建，未提交、推送或归档。
 - 2026-10-24：Task 33 仅执行 MigBot PLANNING。确认初始化、独立分支与“新增功能”产品意图；依次执行 rq-parse、授权式 rq-clarify、delta-spec/场景/追溯、rq-codebase、复杂度、new-arch、mod-design 和设计审视。基于 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 修正规划制品中的旧 HEAD、测试聚合现状、精确算法默认值及 `ProgrammerOperationResult` 契约；未修改 `tasks.md` 或产品源码，未测试、提交、推送、归档。
@@ -90,7 +93,7 @@ APPLYING — completed（Task 33，2026-10-24）。已核验 Task 33 的 Plannin
 - 2026-10-23：确认初始化与独立分支；完成 rq-parse、自动 rq-clarify、delta-spec、rq-codebase、复杂度、架构、FMEA、mod-design 和设计审视。
 
 #### 下一步
-本次停止于 APPLYING，提交并推送 Task 33 交付提交，验证 PR head 后向 Tester 返回完整 handoff。不得进入 ARCHIVING 或审批。
+本次严格停止于 APPLYING。提交并推送 Task 39 交付提交、更新 PR #49 并验证远端 head 后向 Tester 返回完整 handoff；不得进入 ARCHIVING、审批或合并。
 
 #### 2026-10-24 Task 33 APPLYING 复核步骤
 
@@ -147,6 +150,44 @@ APPLYING — completed（Task 33，2026-10-24）。已核验 Task 33 的 Plannin
 | Phase PLANNING Step 9.3: 规范性检查 | ✅ 已完成 | 2026-10-24 |
 | Phase PLANNING Step 9.4: 产出审视报告 | ✅ 已完成 | 2026-10-24 |
 
+#### 2026-10-24 Task 39 IMPLEMENTING 步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase IMPLEMENTING Step 2.1: 任务分解 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.1: 阅读设计文档 | ✅ 已完成（9 项 Planning 输入均非空） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.2: 识别代码组件 | ✅ 已完成（模型、converter、状态操作、页面、测试聚合） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.3: 拆分为最小可开发任务 | ✅ 已完成（7 项，每项 1–2 小时） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2: 任务排序 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.1: 确定任务依赖关系 | ✅ 已完成（T0→T1→T2→T3） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.2: 制定开发顺序 | ✅ 已完成（7 项关键路径明确） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.3: 产出 tasks.md | ✅ 已完成（AC-001~010 全覆盖） | 2026-10-24 |
+
+**Task 39 IMPLEMENTING 判定：completed。仅刷新 `tasks.md` 与 `todo.md`；等待独立 APPLYING 阶段闸门。**
+
+#### 2026-10-24 Task 39 APPLYING 步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase APPLYING Step 3.0: 环境检查 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.0.1: 检测项目类型 | ✅ 已完成（HarmonyOS/Hvigor） | 2026-10-24 |
+| Phase APPLYING Step 3.0.2: 检查编译环境 | ✅ 已完成（Hvigor 6.24.2） | 2026-10-24 |
+| Phase APPLYING Step 3.0.3: 尝试编译项目 | ✅ 已完成（BUILD SUCCESSFUL） | 2026-10-24 |
+| Phase APPLYING Step 3.0.4: 检查测试环境 | ✅ 已完成（Hypium bootstrap 后可用） | 2026-10-24 |
+| Phase APPLYING Step 3.0.5: 环境问题处理 | ✅ 已完成（`ohpm install --all` + isolated home） | 2026-10-24 |
+| Phase APPLYING Step 3.1: 确认应用条件 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.1.1: 确认编码准备就绪 | ✅ 已完成（Planning/Implementing checkpoints completed） | 2026-10-24 |
+| Phase APPLYING Step 3.1.2: 检查代码质量 | ✅ 已完成（CodeLinter 0 error） | 2026-10-24 |
+| Phase APPLYING Step 3.2: 代码应用 (TDD) | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.2.1: 七任务 RED-GREEN-REFACTOR | ✅ 已完成（RED 13 expected failures；GREEN/REFACTOR 71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.2: 运行全量测试 | ✅ 已完成（71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.3: 执行 lint 检查 | ✅ 已完成（0 error / 127 warning / 0 suggestion） | 2026-10-24 |
+| Phase APPLYING Step 3.2.4: 执行集成测试 | ✅ 已完成（真实 HAP 构建；设备视觉交 Tester） | 2026-10-24 |
+| Phase APPLYING Step 3.3: 更新任务状态 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
+
+**Task 39 APPLYING 判定：completed。仅执行 APPLYING；未执行 ARCHIVING、审批或合并。**
+
 #### 2026-10-24 Task 33 IMPLEMENTING 复核步骤
 
 | 步骤 | 状态 | 完成时间 |
@@ -159,3 +200,24 @@ APPLYING — completed（Task 33，2026-10-24）。已核验 Task 33 的 Plannin
 | Phase IMPLEMENTING Step 2.2.1: 确定任务依赖关系 | ✅ 已完成 | 2026-10-24 |
 | Phase IMPLEMENTING Step 2.2.2: 制定开发顺序 | ✅ 已完成 | 2026-10-24 |
 | Phase IMPLEMENTING Step 2.3: 产出 tasks.md | ✅ 已完成 | 2026-10-24 |
+
+#### 2026-10-24 Task 39 PLANNING 复核步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase PLANNING Step 1: 用户意图理解 | ✅ 已完成（Issue 产品意图=新增功能；payload bugfix=证据补正原因） | 2026-10-24 |
+| Phase PLANNING Step 1.1: Git 分支检查 | ✅ 已完成（独立非主分支） | 2026-10-24 |
+| Phase PLANNING Step 2: 需求理解 (rq-parse) | ✅ 已完成（IR-45-R1~R5） | 2026-10-24 |
+| Phase PLANNING Step 3: 需求澄清 (rq-clarify) | ✅ 已完成（授权自主采用安全常规默认） | 2026-10-24 |
+| Phase PLANNING Step 4: 需求spec设计 | ✅ 已完成（5 IR / 10 AC） | 2026-10-24 |
+| Phase PLANNING Step 4.1: 场景与用例设计 | ✅ 已完成（SC-001~003 / 6 UC） | 2026-10-24 |
+| Phase PLANNING Step 4.2: AC Quality Gate 与 FMEA/SR 追溯 | ✅ 已完成（validator exit 0；CM-01~05 保持） | 2026-10-24 |
+| Phase PLANNING Step 5: 代码仓理解 (rq-codebase) | ✅ 已完成（只读 HEAD 9b3629c） | 2026-10-24 |
+| Phase PLANNING Step 6: 需求复杂度评估 | ✅ 已完成（M；流程复杂；4 个关注模块） | 2026-10-24 |
+| Phase PLANNING Step 7: 架构设计 | ✅ 已完成（new-arch 复核；无权限/部署扩张） | 2026-10-24 |
+| Phase PLANNING Step 8: 组件设计 (mod-design) | ✅ 已完成（D1~D10 自验证） | 2026-10-24 |
+| Phase PLANNING Step 9: 设计审视 | ✅ 已完成（批准） | 2026-10-24 |
+| Phase PLANNING Step 9.1: 完整性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2: 一致性与独立 AC 检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.3: 规范性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.4: 产出审视报告 | ✅ 已完成 | 2026-10-24 |

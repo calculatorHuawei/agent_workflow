@@ -1,0 +1,156 @@
+> hvigor [32mUP-TO-DATE :entry:default@PreBuild...  [39m
+> hvigor [32mFinished :entry:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :entry:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mFinished :entry:default@MergeProfile... after 5 ms [39m
+> hvigor [32mFinished :entry:default@CreateBuildProfile... after 3 ms [39m
+> hvigor [32mFinished :entry:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mFinished :entry:default@GeneratePkgContextInfo... after 8 ms [39m
+> hvigor [32mFinished :entry:default@GeneratePkgSdkInfo... after 5 ms [39m
+> hvigor [32mFinished :entry:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :entry:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@MakePackInfo...  [39m
+> hvigor [32mFinished :entry:default@SyscapTransform... after 12 ms [39m
+> hvigor [32mFinished :entry:default@ProcessProfile... after 98 ms [39m
+> hvigor [32mFinished :entry:default@ProcessRouterMap... after 5 ms [39m
+> hvigor [32mFinished :entry:default@ProcessShareConfig... after 3 ms [39m
+> hvigor [32mFinished :entry:default@ProcessStartupConfig... after 1 ms [39m
+> hvigor [32mFinished :entry:default@BuildNativeWithNinja... after 1 ms [39m
+> hvigor [32mFinished :entry:default@ProcessResource... after 5 ms [39m
+> hvigor [32mFinished :entry:default@GenerateLoaderJson... after 9 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessLibs...  [39m
+> hvigor [32mFinished :entry:default@CompileResource... after 191 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@DoNativeStrip...  [39m
+> hvigor [32mFinished :entry:default@BuildJS... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@CacheNativeLibs...  [39m
+> hvigor WARN: WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/Index.ets:7:5
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/Index.ets:7:12
+ 'replaceUrl' has been deprecated.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:33:24
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:41:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:47:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:48:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:54:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:60:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:61:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:69:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:75:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:76:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:84:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:90:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:91:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:99:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:105:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:106:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:115:32
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:131:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:132:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:140:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:146:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:147:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:155:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:161:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:162:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:170:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:176:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:177:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:185:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:191:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:192:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:198:18
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:204:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/preferences/PreferencesStore.ets:205:11
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/CalculatorPage.ets:66:42
+ 'getContext' has been deprecated.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/CalculatorPage.ets:129:5
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/CalculatorPage.ets:130:5
+ Function may throw exceptions. Special handling is required.
+
+WARN: ArkTS:WARN File: D:/huawei/Demo/calculatorHuawei/.agent-runtime/worktrees/developer-pull_request-49-task-39/opencalc/entry/src/main/ets/pages/CalculatorPage.ets:130:18
+ 'showToast' has been deprecated.
+
+
+> hvigor [32mFinished :entry:default@CompileArkTS... after 3 s 261 ms [39m
+> hvigor [32mFinished :entry:default@GeneratePkgModuleJson... after 3 ms [39m
+> hvigor [32mFinished :entry:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :entry:default@PackageHap... after 321 ms [39m
+> hvigor [32mFinished :entry:default@PackingCheck... after 5 ms [39m
+> hvigor WARN: No signingConfig found for product default
+> hvigor [32mFinished :entry:default@SignHap... after 2 ms [39m
+> hvigor [32mFinished :entry:default@CollectDebugSymbol... after 1 ms [39m
+> hvigor [32mFinished :entry:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 8 s 399 ms [39m

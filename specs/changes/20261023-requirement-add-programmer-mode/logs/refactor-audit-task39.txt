@@ -1,0 +1,6 @@
+opencalc/entry/src/test/List.test.ets:7:  programmerConverterTest()
+opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets:31:  return ProgrammerConverter.isDigitAllowed(key, radix)
+opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets:130:      if (!ProgrammerConverter.isDigitAllowed(digit, radix)) {
+opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets:154:    if (!ProgrammerConverter.isDigitAllowed(normalized, state.radix)) {
+opencalc/entry/src/main/ets/pages/CalculatorPage.ets:143:    this.getUIContext().animateTo({ duration: 180, curve: Curve.EaseInOut }, (): void => {
+opencalc/entry/src/main/ets/pages/CalculatorPage.ets:471:        .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 4 }))

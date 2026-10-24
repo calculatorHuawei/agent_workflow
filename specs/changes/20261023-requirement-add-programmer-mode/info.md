@@ -188,3 +188,12 @@ Programmer key/radix event
 | 最小权限与兼容 | 无新增网络、权限、Preferences key、路由或 HAP/HAR/HSP | 符合 |
 
 复核结论：原 `info.md` 对架构、约束、风险和推荐落点的理解仍有效；本次没有读取结果后反向扩大需求或修改设计边界。
+
+## 12. Task 39 rq-codebase 复核
+
+- **复核上下文**：分支 `agent/pull_request-49-task-39`，只读基线 HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c`。
+- **结构结论**：仓库仍为单 `entry` HAP；`CalculatorPage` 使用 ArkUI V1 `@State` 编排普通与程序员两条状态链；`ProgrammerConverter` 是 UI 无关的纯本地业务边界；`PreferencesStore` 仍只服务既有普通状态。
+- **契约结论**：`Models.ets` 的 `CalculatorMode`、`Radix`、`ProgrammerError`、`ProgrammerState` 与 `ProgrammerOperationResult(state + error)` 和设计一致；无公开 API、权限、网络或持久化 schema 变更。
+- **实现约定**：转换路径使用字符串精确算法而非浮点 `number`；页面模式切换使用同步单值状态，`UIContext.animateTo` 与 `TransitionEffect` 均为 180ms，内容位移为 y=4vp。
+- **测试约定**：`entry/src/test/List.test.ets` 聚合既有绘图和程序员转换套件。Task 39 不运行测试，只把现有注册方式作为后续验证层级设计输入。
+- **影响与风险**：继续约束 U64 精度、非法输入原子性、快速切换、重复点击区域、响应式状态刷新以及普通历史兼容；无需新增模块、依赖或权限。

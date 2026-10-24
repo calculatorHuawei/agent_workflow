@@ -1,0 +1,293 @@
+{
+  "version": "1.0",
+  "source_requirements": [
+    {
+      "id": "IR-45-R1",
+      "text": "用户可在普通模式与程序员模式之间双向切换，切换具有轻量动画且界面状态稳定。"
+    },
+    {
+      "id": "IR-45-R2",
+      "text": "程序员模式支持 BIN、OCT、DEC、HEX 四种输入进制，并只允许当前进制的合法字符。"
+    },
+    {
+      "id": "IR-45-R3",
+      "text": "输入值或输入进制变化时，系统同步、精确地更新四种进制表示。"
+    },
+    {
+      "id": "IR-45-R4",
+      "text": "空输入、非法输入和超出支持范围的数值获得明确反馈，且不会产生部分或舍入结果。"
+    },
+    {
+      "id": "IR-45-R5",
+      "text": "模式切换不造成崩溃、错算或无关普通计算状态与历史丢失，并补充边界、非法输入和模式切换测试。"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "title": "双向切换并保留两侧状态",
+      "source_requirement_ids": ["IR-45-R1", "IR-45-R5"],
+      "category": "compatibility",
+      "level": "feature",
+      "given": ["普通模式显示表达式 1+1 和结果 2，且至少存在一条历史记录", "程序员模式尚未输入或保存有既有草稿"],
+      "when": ["用户进入程序员模式输入 DEC 10，再返回普通模式并再次进入程序员模式"],
+      "then": ["普通表达式、结果和历史内容与切换前完全一致", "程序员输入显示 10，BIN、OCT、DEC、HEX 分别显示 1010、12、10、A"],
+      "observable": {
+        "type": "ui_state",
+        "target": "模式选中态、普通表达式与结果、历史列表、程序员输入与四行结果"
+      },
+      "verification_layers": ["integration", "ui"],
+      "oracle": {
+        "type": "exact_state_snapshot",
+        "expected": {
+          "normalExpression": "1+1",
+          "normalResult": "2",
+          "history": "unchanged",
+          "programmer": {"BIN": "1010", "OCT": "12", "DEC": "10", "HEX": "A"}
+        }
+      },
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-002",
+      "title": "轻量动画与快速切换最终态",
+      "source_requirement_ids": ["IR-45-R1", "IR-45-R5"],
+      "category": "boundary",
+      "level": "feature",
+      "given": ["普通模式和程序员模式均保存有可识别状态"],
+      "when": ["用户在 180ms 内依次选择 PROGRAMMER、NORMAL、PROGRAMMER"],
+      "then": ["最终只有程序员面板可见且可交互", "过渡使用 180ms opacity 与 4vp 纵向位移", "两侧状态保持且不存在双层可点击区域"],
+      "observable": {"type": "ui_state", "target": "最终模式、过渡效果、可交互面板和两侧状态"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {
+        "type": "exact_transition_contract",
+        "expected": {"finalMode": "PROGRAMMER", "durationMs": 180, "translateYVp": 4, "interactivePanels": 1, "statePreserved": true}
+      },
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI", "animation rendering"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-003",
+      "title": "十进制 10 同步转换",
+      "source_requirement_ids": ["IR-45-R2", "IR-45-R3"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["用户已进入程序员模式", "当前输入进制为 DEC 且输入为空"],
+      "when": ["用户依次输入 1、0"],
+      "then": ["输入区显示 10", "BIN、OCT、DEC、HEX 分别显示 1010、12、10、A"],
+      "observable": {"type": "ui_state", "target": "输入进制、输入区和四行转换结果"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {"type": "exact", "expected": {"BIN": "1010", "OCT": "12", "DEC": "10", "HEX": "A"}},
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-004",
+      "title": "十六进制 FF 同步转换并规范化",
+      "source_requirement_ids": ["IR-45-R2", "IR-45-R3"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["用户已进入程序员模式", "当前输入进制为 HEX 且输入为空"],
+      "when": ["用户依次输入 F、F"],
+      "then": ["输入区显示 FF", "BIN、OCT、DEC、HEX 分别显示 11111111、377、255、FF", "字母输出为大写且无进制前缀"],
+      "observable": {"type": "ui_state", "target": "HEX 输入区和四行规范化结果"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {"type": "exact", "expected": {"BIN": "11111111", "OCT": "377", "DEC": "255", "HEX": "FF"}},
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-005",
+      "title": "各进制键盘矩阵与非法输入原子拒绝",
+      "source_requirement_ids": ["IR-45-R2", "IR-45-R4"],
+      "category": "exception",
+      "level": "feature",
+      "given": ["用户已进入程序员模式", "BIN 输入草稿为 1 且存在最后有效结果"],
+      "when": ["用户查看 BIN、OCT、DEC、HEX 的字符键启停状态", "测试入口尝试向 BIN 追加字符 2"],
+      "then": ["BIN 只启用 0-1，OCT 只启用 0-7，DEC 只启用 0-9，HEX 启用 0-9/A-F", "非法追加返回 INVALID_DIGIT，草稿仍为 1，最后有效结果不变并显示明确反馈"],
+      "observable": {"type": "ui_state", "target": "四种进制的键启停矩阵、输入草稿、结果和反馈文案"},
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": {
+        "type": "exact_matrix_and_atomic_state",
+        "expected": {"BIN": "01", "OCT": "01234567", "DEC": "0123456789", "HEX": "0123456789ABCDEF", "rejected": "2", "inputAfter": "1", "error": "INVALID_DIGIT"}
+      },
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-006",
+      "title": "切换输入进制保持数值语义",
+      "source_requirement_ids": ["IR-45-R2", "IR-45-R3"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["程序员模式当前输入进制为 DEC", "当前有效输入为 10"],
+      "when": ["用户把输入进制切换为 BIN"],
+      "then": ["输入草稿规范化为 1010", "DEC 结果仍为 10，其他三种结果与同一数值一致", "BIN 键盘只保留 0 和 1 可用"],
+      "observable": {"type": "ui_state", "target": "选中进制、输入草稿、四行结果和键盘启停状态"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {"type": "exact", "expected": {"selectedRadix": "BIN", "input": "1010", "DEC": "10", "enabledDigits": "01"}},
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-007",
+      "title": "空输入反馈与错误恢复",
+      "source_requirement_ids": ["IR-45-R4"],
+      "category": "recovery",
+      "level": "feature",
+      "given": ["程序员模式存在有效结果或错误反馈"],
+      "when": ["用户点击 AC 或删除最后一个字符", "随后输入合法字符 1"],
+      "then": ["空输入时显示请输入数值和四行占位符，不把空输入显示为 0", "输入 1 后旧错误消失且四行结果均精确表示数值 1"],
+      "observable": {"type": "ui_text", "target": "输入区、空态文案、四行结果和恢复后的反馈"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {"type": "state_sequence", "expected": ["EMPTY:请输入数值", "VALID:BIN=1,OCT=1,DEC=1,HEX=1"]},
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-008",
+      "title": "U64 边界、超长和越界反馈",
+      "source_requirement_ids": ["IR-45-R3", "IR-45-R4"],
+      "category": "boundary",
+      "level": "feature",
+      "given": ["程序员模式当前输入进制为 DEC", "转换范围为 0 至 18446744073709551615"],
+      "when": ["分别输入 0、18446744073709551615、18446744073709551616 和超长候选文本"],
+      "then": ["0 和 U64_MAX 的四进制结果精确且可往返", "U64_MAX+1 和超长候选返回 OUT_OF_RANGE 与明确反馈", "失败时不显示截断、回绕、舍入或部分转换结果"],
+      "observable": {"type": "ui_text", "target": "边界结果、错误反馈和结果区域"},
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": {
+        "type": "exact_boundary",
+        "expected": {"min": "success", "max": "success", "maxPlusOne": "OUT_OF_RANGE", "overlong": "OUT_OF_RANGE", "partialResult": false}
+      },
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-009",
+      "title": "普通计算功能兼容回归",
+      "source_requirement_ids": ["IR-45-R5"],
+      "category": "compatibility",
+      "level": "feature",
+      "given": ["普通模式已设置主题、角度制并具有表达式、结果和历史", "绘图入口可用"],
+      "when": ["用户完成一次普通到程序员再回普通的往返切换"],
+      "then": ["普通与科学计算、历史读取删除、主题、角度制和绘图入口保持原有可观察行为", "模式切换不新增历史记录或改写 Preferences"],
+      "observable": {"type": "ui_state", "target": "普通/科学控件、历史、主题、角度制、绘图入口和持久化可见状态"},
+      "verification_layers": ["integration", "ui"],
+      "oracle": {"type": "before_after_equivalence", "expected": {"unrelatedNormalState": "unchanged", "unexpectedHistoryWrites": 0}},
+      "environment": {"device_required": true, "capabilities": ["HarmonyOS UI", "local Preferences"]},
+      "priority": "P0"
+    },
+    {
+      "id": "AC-010",
+      "title": "需求行为测试纳入既有测试套件",
+      "source_requirement_ids": ["IR-45-R5"],
+      "category": "compatibility",
+      "level": "feature",
+      "given": ["仓库使用既有 Hypium Local Test 聚合入口"],
+      "when": ["运行注册后的程序员模式与既有回归测试套件"],
+      "then": ["典型转换、U64 边界、非法输入、模式切换、状态操作、呈现契约、键盘契约和既有回归均被执行", "测试报告中零失败且既有套件未被移除"],
+      "observable": {"type": "system_state", "target": "测试聚合清单和最终测试结果"},
+      "verification_layers": ["integration"],
+      "oracle": {"type": "test_registry_and_result", "expected": {"requiredBehaviorGroups": 8, "failures": 0, "existingSuitesPreserved": true}},
+      "environment": {"device_required": false, "capabilities": ["Hvigor", "Hypium Local Test"]},
+      "priority": "P0"
+    }
+  ],
+  "coverage_assessment": [
+    {
+      "source_requirement_id": "IR-45-R1",
+      "dimensions": {
+        "normal": {"status": "covered", "ac_ids": ["AC-001"], "reason": ""},
+        "boundary": {"status": "covered", "ac_ids": ["AC-002"], "reason": ""},
+        "exception": {"status": "covered", "ac_ids": ["AC-002"], "reason": ""},
+        "user_visible": {"status": "covered", "ac_ids": ["AC-001", "AC-002"], "reason": ""},
+        "state_sync": {"status": "covered", "ac_ids": ["AC-001", "AC-002"], "reason": ""},
+        "integration": {"status": "covered", "ac_ids": ["AC-001", "AC-002"], "reason": ""},
+        "environment": {"status": "covered", "ac_ids": ["AC-002"], "reason": ""}
+      }
+    },
+    {
+      "source_requirement_id": "IR-45-R2",
+      "dimensions": {
+        "normal": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-006"], "reason": ""},
+        "boundary": {"status": "covered", "ac_ids": ["AC-005"], "reason": ""},
+        "exception": {"status": "covered", "ac_ids": ["AC-005"], "reason": ""},
+        "user_visible": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-005", "AC-006"], "reason": ""},
+        "state_sync": {"status": "covered", "ac_ids": ["AC-005", "AC-006"], "reason": ""},
+        "integration": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-005", "AC-006"], "reason": ""},
+        "environment": {"status": "not_applicable", "ac_ids": [], "reason": "四种进制输入不依赖网络、权限、相机、文件或其他外部设备能力"}
+      }
+    },
+    {
+      "source_requirement_id": "IR-45-R3",
+      "dimensions": {
+        "normal": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-006"], "reason": ""},
+        "boundary": {"status": "covered", "ac_ids": ["AC-008"], "reason": ""},
+        "exception": {"status": "covered", "ac_ids": ["AC-008"], "reason": ""},
+        "user_visible": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-006", "AC-008"], "reason": ""},
+        "state_sync": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-006"], "reason": ""},
+        "integration": {"status": "covered", "ac_ids": ["AC-003", "AC-004", "AC-006", "AC-008"], "reason": ""},
+        "environment": {"status": "not_applicable", "ac_ids": [], "reason": "精确转换为本地纯内存行为，不依赖网络、权限或设备专有能力"}
+      }
+    },
+    {
+      "source_requirement_id": "IR-45-R4",
+      "dimensions": {
+        "normal": {"status": "covered", "ac_ids": ["AC-007"], "reason": ""},
+        "boundary": {"status": "covered", "ac_ids": ["AC-008"], "reason": ""},
+        "exception": {"status": "covered", "ac_ids": ["AC-005", "AC-008"], "reason": ""},
+        "user_visible": {"status": "covered", "ac_ids": ["AC-005", "AC-007", "AC-008"], "reason": ""},
+        "state_sync": {"status": "covered", "ac_ids": ["AC-005", "AC-007", "AC-008"], "reason": ""},
+        "integration": {"status": "covered", "ac_ids": ["AC-005", "AC-007", "AC-008"], "reason": ""},
+        "environment": {"status": "not_applicable", "ac_ids": [], "reason": "错误和恢复路径为本地输入状态，不依赖外部环境能力"}
+      }
+    },
+    {
+      "source_requirement_id": "IR-45-R5",
+      "dimensions": {
+        "normal": {"status": "covered", "ac_ids": ["AC-001", "AC-009", "AC-010"], "reason": ""},
+        "boundary": {"status": "covered", "ac_ids": ["AC-002", "AC-010"], "reason": ""},
+        "exception": {"status": "covered", "ac_ids": ["AC-010"], "reason": ""},
+        "user_visible": {"status": "covered", "ac_ids": ["AC-001", "AC-002", "AC-009"], "reason": ""},
+        "state_sync": {"status": "covered", "ac_ids": ["AC-001", "AC-002", "AC-009"], "reason": ""},
+        "integration": {"status": "covered", "ac_ids": ["AC-001", "AC-002", "AC-009", "AC-010"], "reason": ""},
+        "environment": {"status": "covered", "ac_ids": ["AC-002", "AC-009", "AC-010"], "reason": ""}
+      }
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "AS-001",
+      "decision": "支持范围采用无符号 64 位整数 0..2^64-1，不支持负数、补码或可选字长。",
+      "rationale": "Issue 要求边界与超范围反馈但未指定符号模型；U64 是程序员转换器中安全、明确、可逆且不扩展到算术表达式的最小常规范围。"
+    },
+    {
+      "id": "AS-002",
+      "decision": "首次进入程序员模式采用 DEC 空输入，两模式仅在当前页面生命周期内分别保留状态。",
+      "rationale": "十进制是最保守默认值；页面内隔离满足状态稳定要求，同时避免新增持久化 schema 和迁移。"
+    },
+    {
+      "id": "AS-003",
+      "decision": "切换输入进制时保持数值语义并规范化草稿；HEX 输出统一大写，不接受进制前缀。",
+      "rationale": "这是常规转换器的可逆行为，可避免把相同文本重新解释为另一数值并收窄输入语法。"
+    },
+    {
+      "id": "AS-004",
+      "decision": "模式过渡采用 180ms ease-in-out、opacity 与 y=4vp 位移，动画不提交业务状态。",
+      "rationale": "轻量、局部、可取消且不引入异步业务回调，满足流畅性并降低快速切换错态风险。"
+    },
+    {
+      "id": "AS-005",
+      "decision": "规划沿用仓库现有单 entry HAP、ArkUI V1 @State、无新增权限/网络/依赖/路由的实现边界。",
+      "rationale": "符合现有代码约定，最小化权限与范围并保持普通计算器向后兼容。"
+    }
+  ],
+  "out_of_scope": [
+    "位运算与程序员算术表达式",
+    "负数、补码、可选字长和浮点进制转换",
+    "0x/0b/0o 前缀、数字分组和外部键盘专项适配",
+    "程序员模式历史、跨应用重启持久化、复制或粘贴增强",
+    "新增权限、网络服务、后台任务、第三方依赖或部署模块"
+  ]
+}

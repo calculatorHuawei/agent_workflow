@@ -98,3 +98,33 @@ APPLYING 已完成。本次按指令不执行归档或审批；后续仅在独�
 - 源码完整性：Task 33 没有永久修改产品源码；本次提交仅承接已认证的 Planning/Implementing 制品更新，并增加 APPLYING 状态与命令日志。
 - 日志：`logs/test-red-task33.txt`、`logs/test-result-red-task33.txt`、`logs/test-final-task33.txt`、`logs/test-result-final-task33.txt`、`logs/build-final-task33.txt`、`logs/codelinter-final-task33.json`。
 - 阶段边界：仅执行 APPLYING；未执行 ARCHIVING、审批或合并。
+
+## 2026-10-24 Task 39 APPLYING 认证运行
+
+### 前置与环境
+- Planning checkpoint 与 Implementing checkpoint 均为 `completed`；proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、tasks、todo 均存在且非空，设计审视为批准且无 blocker。
+- 项目识别为 HarmonyOS/Hvigor；Hvigor 版本 `6.24.2`。隔离 `HVIGOR_USER_HOME` 的预检查构建输出 `BUILD SUCCESSFUL`，DevEco CodeLinter error 门禁退出 0。
+- 首次测试尝试因隔离 worktree 尚未安装 `@ohos/hypium` 止于编译，未冒充 RED；遵循 local-test 指引执行锁定依赖的 `ohpm install --all` 后重跑。
+
+### 七任务 RED-GREEN-REFACTOR
+| 任务 | RED 受控缺失行为 | GREEN | REFACTOR |
+|------|------------------|-------|----------|
+| Task 1.1 | HEX 输出改为小写，典型值/规范化断言失败 | 精确恢复大写规范输出 | 复核 converter 纯业务边界，无额外改动 |
+| Task 1.2 | BIN 最大输入长度临时放宽为 65，超长拒绝断言失败 | 恢复 64 位早停门禁 | 复核字符串精确算法与 O(n) 门禁 |
+| Task 2.1 | 非法 append 临时污染 input/result，原子性与恢复断言失败 | 恢复最后有效值的不可变副本 | 复核状态操作无异步副作用 |
+| Task 3.1 | 模式选择临时返回旧模式，双向/最终选择断言失败 | 恢复同步 target 选择 | 复核普通状态不接入清理回调 |
+| Task 3.2 | 四行展示映射临时移除，presentation contract 失败 | 恢复一次性四行映射 | 复核反馈与结果无双真源 |
+| Task 3.3 | 键盘启用临时恒真，BIN/OCT/DEC 禁用断言失败 | 恢复 converter 共源字符规则 | 复核 `180ms + 4vp` 静态契约 |
+| Task 4.1 | 支持进制门禁临时恒真，不支持 radix 回归断言失败 | 恢复 INTERNAL 门禁 | 复核聚合入口和配置范围 |
+
+- RED 权威结果：71 run / 58 pass / 13 expected failures / 0 errors；失败原因均为上述功能缺失，不是语法或环境错误。
+- GREEN：通过反向补丁精确恢复继承实现；`git diff --exit-code -- opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets` 通过，随后 71/71。
+- REFACTOR：共享 converter 合法性规则、不可变状态边界、页面同步编排和测试聚合已满足设计，无需范围外重写；最终全量测试再次 71/71。
+
+### 最终验证
+- Local Test：`Tests run: 71, Failure: 0, Error: 0, Pass: 71, Ignore: 0`。
+- HAP：`assembleHap` 输出 `BUILD SUCCESSFUL`；仓库无 signingConfig，产物保持 unsigned。
+- CodeLinter：退出码 0；0 error / 127 warning / 0 suggestion。警告为既有样式/性能规则，不阻塞 error 门禁。
+- 产品源码完整性：Task 39 未永久修改 `opencalc/entry/src/main`、`opencalc/entry/src/test` 或 `opencalc/code-linter.json5`。
+- 证据：`logs/test-red-task39.txt`、`logs/test-result-red-task39.txt`、`logs/test-final-task39.txt`、`logs/test-result-final-task39.txt`、`logs/build-final-task39.txt`、`logs/codelinter-final-task39.json`、`logs/refactor-audit-task39.txt`。
+- 阶段边界：本次仅执行 MigBot APPLYING；未执行 ARCHIVING、审批、合并或归档写入。

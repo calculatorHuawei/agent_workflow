@@ -6,22 +6,23 @@
 - 变更类型：新增功能（new_requirement）
 - 关联 Issue：#45
 - 关联全局文件：`specs/spec.md` / `specs/arch.md` / `specs/design.md`
-- 设计输入：`proposal.md` / `delta-spec.md` / `info.md` / `new-arch.md` / `delta-design.md` / `20261023-programmer-mode-fmea分析表.md` / `design-review.md`
+- 设计输入：`proposal.md` / `delta-spec.md` / `acceptance-criteria.json` / `info.md` / `new-arch.md` / `delta-design.md` / `20261023-programmer-mode-fmea分析表.md` / `design-review.md` / `todo.md`
 - 开发阶段：T0 精确转换 → T1 不可变状态操作 → T2 页面集成 → T3 回归与交接
 - 预计任务数：7
 - 任务颗粒度：每项预计 1–2 小时，均在 APPLYING 阶段按 RED → GREEN → REFACTOR 执行
-- 本次分解基线：Task 33 PLANNING checkpoint（HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c`，设计审视已批准）
+- 本次分解基线：Task 39 PLANNING checkpoint（HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c`，设计审视已批准；AC validator 记录为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`）
 
 ## Planning 制品核验
 
 - [x] `proposal.md`：功能边界、U64 安全默认值、状态隔离与验收目标明确。
 - [x] `delta-spec.md`：IR-45-R1~R5、SC001~003、SR-01~05 及验收门禁完整可追溯。
+- [x] `acceptance-criteria.json`：5 条 source IR 与 AC-001~AC-010 均为 feature level，含客观 oracle、验证层级与环境责任；Planning 校验器记录 exit 0。
 - [x] `info.md`：实际代码路径、API 12、Hypium 聚合入口、构建命令和回归范围明确。
 - [x] `new-arch.md`：单 entry HAP 增量架构及 `CalculatorPage → ProgrammerConverter → Models` 依赖方向明确。
 - [x] `delta-design.md`：接口、状态、错误、UI、动画、响应式、T0~T3 顺序及精确算法回退策略明确。
 - [x] `20261023-programmer-mode-fmea分析表.md`：CM-01~06 已映射到 SR 与测试门禁。
 - [x] `design-review.md`：审视结论为“通过”，无 Planning blocker；`bigint` 语法和设备动画属于后续验证项。
-- [x] `todo.md`：2026-10-24 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
+- [x] `todo.md`：2026-10-24 Task 39 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
 
 ## 任务列表
 
@@ -44,12 +45,14 @@
 - `isDigitAllowed` 对 BIN/OCT/DEC/HEX 的 `0-9/A-F` 合法矩阵与 SR-02 一致。
 - 新增类型不修改既有模型字段语义，converter 不依赖 ArkUI、Preferences、网络或 IO。
 
-**追溯**：IR-45-R2/R3；SR-01；SC002-UC001；AR-01/05；CM-01/03  
+**需求追溯**：IR-45-R2/R3 → AC-003/004；SR-01；SC002-UC001；AR-01/05；CM-01/03
+**Developer 验证**：Hypium 单元测试先 RED，精确断言 DEC `10` 与 HEX `FF` 的四行结果、大小写和字符矩阵；GREEN 后确认 converter 无 ArkUI/IO/浮点依赖。
+**Tester 验证请求**：模拟器 UI 输入 DEC `10`、HEX `FF`，按 AC-003/004 的精确 oracle 核对输入区和四行展示。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 #### Task 1.2：补齐 U64 边界、错误分类与精确算法回退
 
-**描述**：扩充 RED 用例覆盖各进制的 `0`、U64_MAX、U64_MAX+1、负号、前缀、空格、分隔符、小写规范化与超长输入；实现逐字符范围门禁和 O(n) 早停。优先验证 ArkTS `bigint` 编译能力；若产品编译不接受，则保持公共接口不变，改用精确字符串算法，严禁降级为 `number`。
+**描述**：扩充 RED 用例覆盖各进制的 `0`、U64_MAX、U64_MAX+1、负号、前缀、空格、分隔符、小写规范化与超长输入；按获批设计实现十进制字符串乘加、比较、长除及逐字符范围门禁和 O(n) 早停，严禁降级为 `number` 或引入未经规划验证的 `bigint` 源语法。
 
 **涉及文件**：
 - 实现：`opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets`
@@ -63,7 +66,9 @@
 - BIN 64 位、HEX 16 位等最大有效输入可处理；明显超长输入快速拒绝，算法 O(n)、无 IO。
 - 编译与单测证明实现未通过浮点 `number` 处理 U64。
 
-**追溯**：IR-45-R3/R4；SR-01/05；SC003-UC002；AR-01/05；TM-01；CM-01/02/05  
+**需求追溯**：IR-45-R3/R4 → AC-008；SR-01/05；SC003-UC002；AR-01/05；TM-01；CM-01/02/05
+**Developer 验证**：Hypium 单元测试覆盖 `0`、U64_MAX、U64_MAX+1、64 位 BIN、16 位 HEX、超长与非法输入，并以产品编译证明无浮点精度降级。
+**Tester 验证请求**：模拟器核对边界成功、越界/超长明确反馈和无部分结果；设备性能观察归 Tester，不以单元测试关闭。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 ### 阶段 2：不可变状态操作（T1）
@@ -85,7 +90,9 @@
 - 退格重算剩余值，删除最后一位与 AC 均进入 `EMPTY` 且 `result=null`；重复清空幂等。
 - 非法或越界后可通过合法输入、退格或清空恢复，所有状态更新均为新对象且无异步副作用。
 
-**追溯**：IR-45-R2/R3/R4；SR-02/05；SC002-UC002、SC003-UC001；AR-02/05；CM-03/06  
+**需求追溯**：IR-45-R2/R3/R4 → AC-005/006/007；SR-02/05；SC002-UC002、SC003-UC001；AR-02/05；CM-03/06
+**Developer 验证**：Hypium 状态测试先证明非法追加、换进制、退格和清空失败/恢复序列；以深度等价 oracle 验证失败操作不污染最后有效状态。
+**Tester 验证请求**：模拟器执行 BIN 非法键、DEC `10`→BIN、EMPTY→VALID 恢复路径，核对 UI 状态与业务 oracle 一致。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 ### 阶段 3：主页面与程序员面板集成（T2）
@@ -106,7 +113,9 @@
 - 180ms 内连续模式选择以最后一次选择为准，不出现双分支或业务状态回调错序。
 - 不新增路由、Preferences key、权限、依赖或持久化写入。
 
-**追溯**：IR-45-R1/R5；SR-03/04/05；SC001-UC001/002；AR-03/04；CM-04  
+**需求追溯**：IR-45-R1/R5 → AC-001/002/009；SR-03/04/05；SC001-UC001/002；AR-03/04；CM-04
+**Developer 验证**：状态契约/集成测试验证默认模式、幂等切换、最终模式和普通状态快照；构建确认不新增路由、权限、依赖或 Preferences key。
+**Tester 验证请求**：真机/模拟器执行双向及 180ms 内快速切换，核对唯一可交互面板、两侧状态保持和普通历史无意外写入。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 #### Task 3.2：渲染四进制结果、进制选择与内联反馈
@@ -125,7 +134,9 @@
 - 进制切换保持数值并重写 input；选中状态不能只依赖颜色表达。
 - 程序员面板复用现有主题 getter，在 Light/Dark/AMOLED 下不新增资源或偏好项。
 
-**追溯**：IR-45-R2/R3/R4；SR-01/02/03；SC002、SC003；AR-02/03  
+**需求追溯**：IR-45-R2/R3/R4 → AC-003/004/006/007/008；SR-01/02/03；SC002、SC003；AR-02/03
+**Developer 验证**：页面消费契约测试和构建核对结果对象一次性映射、错误不带部分结果、进制切换及主题 getter 复用。
+**Tester 验证请求**：模拟器在三种主题下核对四行结果、选中态、EMPTY/INVALID_DIGIT/OUT_OF_RANGE 文案与恢复行为。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 #### Task 3.3：接入受限键盘、轻量动画与横竖屏布局
@@ -144,7 +155,9 @@
 - 动画只影响呈现，不用延时提交或完成回调修改业务状态；快速切换无明显空白帧、点击穿透或闪烁。
 - phone/tablet 横竖屏中模式入口、反馈、AC/退格和四行结果可见可操作，64 位 BIN 结果不覆盖其他行。
 
-**追溯**：IR-45-R1/R2/R5；SR-02/03/05；SC001、SC002-UC002；AR-03/05；CM-03/04/05  
+**需求追溯**：IR-45-R1/R2/R5 → AC-002/005/009；SR-02/03/05；SC001、SC002-UC002；AR-03/05；CM-03/04/05
+**Developer 验证**：键矩阵/handler 集成测试与构建核对共源合法性、整体状态替换及 `180ms + 4vp` 静态契约。
+**Tester 验证请求**：phone/tablet 真机或模拟器验证禁用键可访问性、动画无闪烁/点击穿透、快速切换及横竖屏触控与 64 位 BIN 可读性。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 ### 阶段 4：聚合、回归与验证交接（T3）
@@ -166,7 +179,9 @@
 - 普通基础/科学计算、历史读取/删除/点击、主题/角度、绘图入口回归通过，Preferences schema 与权限/依赖清单无变化。
 - Tester 交接明确覆盖双向/快速切换、180ms 动画无闪烁、phone/tablet 横竖屏布局和禁用键可访问性。
 
-**追溯**：IR-45-R1~R5；SR-01~05；AR-04/05；Issue #45 全部验收标准  
+**需求追溯**：IR-45-R1~R5 → AC-001~010；SR-01~05；AR-04/05；Issue #45 全部验收标准
+**Developer 验证**：完整 Hypium 聚合、产品构建与 lint 全绿；注册清单覆盖 8 类行为且既有套件保留，并审查普通链路及配置无范围外变更。
+**Tester 验证请求**：在目标设备完成 AC-001~009 的 UI/E2E oracle，保留动画、旋转、快速切换、触控尺寸和普通功能回归证据；AC-010 核对完整测试注册与零失败结果。
 **TDD**：[x] RED / [x] GREEN / [x] REFACTOR
 
 ## 依赖关系与并行性
@@ -199,6 +214,23 @@ Task 1.1 → Task 1.2 → Task 2.1 → Task 3.1 → Task 3.2 → Task 3.3 → Ta
 | Task 3.3 | 构建 + 键矩阵核对；动画/响应式交 Tester | APPLYING / Tester |
 | Task 4.1 | 全量 Hypium、产品构建、普通功能回归、UI 用例交接 | APPLYING / Tester |
 
+## AC 覆盖自检
+
+| AC | 实现任务 | Developer 验证责任 | Tester 验证责任 |
+|----|----------|--------------------|-----------------|
+| AC-001 | Task 3.1、4.1 | 模式往返与普通状态快照集成契约 | 设备端两侧状态、历史和四行结果 |
+| AC-002 | Task 3.1、3.3、4.1 | 最终模式及 180ms/4vp 静态/集成契约 | 快速切换、唯一点击层、动画流畅性 |
+| AC-003 | Task 1.1、3.2、4.1 | DEC 10 精确转换单元/集成 oracle | UI 输入与四行展示 |
+| AC-004 | Task 1.1、3.2、4.1 | HEX FF 精确转换及规范化 oracle | UI 大写、无前缀四行展示 |
+| AC-005 | Task 2.1、3.3、4.1 | 合法矩阵和非法追加原子性 | 禁用键可访问状态及无有效提交 |
+| AC-006 | Task 2.1、3.2、4.1 | DEC→BIN 状态转换契约 | 进制、草稿、结果与键盘同步 |
+| AC-007 | Task 2.1、3.2、4.1 | EMPTY→VALID 状态序列 | 文案、占位和恢复交互 |
+| AC-008 | Task 1.2、3.2、4.1 | U64 边界、超长和无部分结果 | 边界/错误呈现与设备响应性 |
+| AC-009 | Task 3.1、3.3、4.1 | 普通链路快照、配置与构建回归 | 普通/科学/历史/主题/角度/绘图 E2E |
+| AC-010 | Task 4.1 | 完整测试注册、8 类行为、零失败 | 核对执行结果及既有套件保留 |
+
+自检结论：AC-001~010 均至少关联一个实现任务，所有 unit/integration/ui 层级均已分配；涉及动画、触控、横竖屏、设备响应和用户可见状态的 AC 明确保留 Tester 责任，未以 Developer 单测提前关闭。
+
 ## 阶段边界
 
-Task 33 的 IMPLEMENTING 任务分解与排序已由本次独立 APPLYING 阶段消费。七项 TDD 标记均由受控 RED、精确恢复 GREEN 和 REFACTOR 审视的真实命令证据支持；Task 33 未永久修改产品源码，未进入 ARCHIVING 或审批。
+Task 39 的 IMPLEMENTING 任务分解已由本次独立 APPLYING 阶段消费。七项任务均以受控可逆行为变异完成 RED（71 run / 58 pass / 13 expected failures / 0 errors），精确恢复继承实现后完成 GREEN（71/71），并在 REFACTOR 审视后再次通过全量测试、真实 HAP 构建和 CodeLinter error 门禁。本阶段未进入 ARCHIVING、审批或合并。

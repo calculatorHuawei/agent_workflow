@@ -494,3 +494,15 @@ end note
 ## 13. 2026-10-24 PLANNING 设计复核
 
 本次重新以 `proposal.md`、`delta-spec.md` 和 `info.md` 为输入执行 `mod-design` 自验证。D1~D10、AR↔SR↔UC 追溯和验收门禁仍完整，组件边界不变。结合 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 的仓库约定，设计将精确字符串乘加/长除从候选回退提升为默认算法，并把操作结果契约校正为 `state + error`，消除未落地的 `accepted` 双真源；这些修正保持全部外部行为和验收标准不变。Reviewer 的 changes-requested 仅要求补齐可审计过程证据；本次不修改产品源码或 `tasks.md`。
+
+## 14. Task 39 mod-design 自验证
+
+以 Task 39 复核后的 `proposal.md`、`delta-spec.md`、`acceptance-criteria.json` 和 `info.md` 为输入重新执行增量设计自验证：
+
+1. **功能一致性**：D2/D3 覆盖 AC-001~010 的模式切换、四进制输入、精确同步、错误恢复、兼容和测试门禁。
+2. **页面一致性**：D6~D8 保持单主页面、受限键盘、四行结果、内联反馈、180ms opacity + 4vp translation；不新增路由。
+3. **数据一致性**：D5 仅使用页面内 `ProgrammerState` 与既有普通状态，不增加数据库或 Preferences key。
+4. **权限与 Kit 一致性**：D9 不新增权限、网络、后台、系统能力或第三方依赖。
+5. **仓库一致性**：HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c` 的单 HAP、ArkUI V1、`state + error` 契约和字符串精确算法均落在既有设计边界内。
+
+**设计结论**：无需变更 D1~D10 的组件方案；新增的 AC 契约提高可追溯性，不改变实现范围。Task 39 不进入实现阶段。

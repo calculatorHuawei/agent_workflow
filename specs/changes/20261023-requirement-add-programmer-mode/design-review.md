@@ -121,3 +121,50 @@ Reviewer 指出的旧 run manifest 缺少 session source/snapshot/hash 属于外
 | 阶段边界 | 通过 | 只更新 Planning 制品；未修改 `tasks.md`、产品源码，未实施、测试、提交、推送或归档 |
 
 **最终判定：批准，PLANNING 完成并可供后续阶段消费；本次在此停止。**
+
+## 11. Task 39 独立设计审视与 AC Quality Gate
+
+### 11.1 完整性评估
+
+- [x] `proposal.md`：非空，包含初始化、意图、IR、假设、范围和 rationale。
+- [x] `delta-spec.md`：非空，包含完整 SC/UC、SR、DFX、IR×UC×SR×AC 追溯。
+- [x] `acceptance-criteria.json`：非空，包含 5 条 IR、10 条 feature-level AC、逐 IR 七维覆盖、假设和范围外清单。
+- [x] `info.md`：非空，基于 HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c` 的代码仓现状。
+- [x] `new-arch.md`：非空；复杂度 M 且 entry HAP 内新增独立业务边界，保留架构前置说明。
+- [x] `delta-design.md`：非空，D1~D10 完整并通过 `mod-design` 自验证。
+- [x] FMEA：既有分析非空，CM-01~05 已进入 SR 与设计门禁。
+- [x] `design-review.md`、`todo.md`：本次复核记录齐全。
+- [x] `tasks.md`：仅作为既有历史存在，Task 39 未创建或修改。
+
+### 11.2 一致性与语义门禁
+
+| 检查 | 结果 | 说明 |
+| ---- | ---- | ---- |
+| Issue → IR | 通过 | 模式入口、四进制、合法字符、同步结果、动画/状态、错误反馈、兼容与测试均保留为 IR-45-R1~R5 |
+| IR → AC | 通过 | 每条 IR 至少关联一个 feature-level AC；无需求被静默删除或改成仅函数级验收 |
+| 七维覆盖 | 通过 | normal/boundary/exception/user_visible/state_sync/integration/environment 均为 covered 或有具体 N/A 理由 |
+| UI/ArkUI 风险 | 通过 | AC-001/002/005/006/007/009 覆盖 `@State` 刷新、条件分支、模式/进制切换、重复点击层和父页面状态隔离 |
+| 语义 Oracle | 通过 | 10/FF、键矩阵、U64 边界、EMPTY→VALID、前后快照和测试注册均有确定值或谓词 |
+| proposal → spec | 通过 | F1~F5、R1~R5、默认假设和不做范围一致 |
+| spec → architecture/design | 通过 | SR-01~05 与 D1~D10 的 converter、状态、UI、兼容和门禁一一对应 |
+| codebase → design | 通过 | 单 entry HAP、V1 `@State`、`state + error`、字符串精确算法、180ms/4vp 与当前代码约定一致 |
+| 权限与兼容 | 通过 | 不新增权限、网络、后台、依赖、路由、持久化或部署模块；普通链路保持兼容 |
+
+### 11.3 AC 校验器
+
+- **命令**：`python <migbot-increment-planning>/scripts/validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`
+- **退出码**：`0`
+- **结果**：`VALID: 5 source requirement(s), 10 acceptance criterion/criteria`
+- **独立语义复审**：通过；重新对照 Issue #45 原文，不依赖旧摘要。验证器通过之外，人工确认了每条 AC 的用户操作、可观察结果、层级与 oracle。
+
+### 11.4 假设审视
+
+U64 非负范围、页面内状态、数值保持换进制、大写无前缀、180ms/4vp 轻量动画及无新增权限/依赖均为安全、可逆、局部、常规且向后兼容的默认值，理由已记录在 `acceptance-criteria.json.assumptions`。它们不需要凭据、付费服务、隐私/合规决策、破坏性动作或 Issue 外扩，因此无 Planning blocker。
+
+### 11.5 阶段边界与结论
+
+- 产品源码、测试源码、构建配置和 `tasks.md` 均未由 Task 39 修改。
+- 未运行 IMPLEMENTING、APPLYING、产品测试/构建、提交、推送、审批或 ARCHIVING。
+- Reviewer 所指出的旧 Developer session 缺少快照/哈希是本次重新执行 PLANNING 的原因；本次只产出真实规划过程和制品，不伪造历史证据。
+
+**Task 39 最终判定：批准。PLANNING completed，制品可供后续 phase 消费；本次在此停止。**

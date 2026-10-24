@@ -228,3 +228,14 @@ CalculatorPage（模式状态、普通状态、程序员状态、动画）
 - **执行上下文**：在独立分支 `agent/pull_request-49-task-33`、精确基线 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 上重新执行 PLANNING；该 HEAD 已包含先前实现，本次仅把它作为代码仓现状与设计一致性输入。
 - **顺序与边界**：依次完成初始化/意图确认、`rq-parse`、授权式 `rq-clarify`、spec/场景/追溯、`rq-codebase`、复杂度、架构、`mod-design` 和设计审视；未进入 IMPLEMENTING/APPLYING/ARCHIVING。
 - **安全默认**：继续采用 U64 非负、无前缀/补码/位运算、页面内状态隔离、数值保持换进制、180ms/4vp 轻量过渡和无新增权限/依赖/持久化；这些选择均可逆、局部且向后兼容。
+
+## 13. Task 39 PLANNING 独立复核
+
+- **初始化确认**：复用有效的 `specs/initialized.flag`。`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 及全局 spec/arch/design 均存在；按 init 的已初始化路径只复核 Git 与会话，不重写初始化标记或 README。
+- **Git 确认**：当前为非 main/master 的独立分支 `agent/pull_request-49-task-39`，规划输入基线 HEAD 为 `9b3629c473317b22781ad3cb415b2dcc7346a86c`。既有产品实现只作为 `rq-codebase` 的只读现状，不授权源代码修改。
+- **意图分类**：Issue #45 的产品意图是“新增功能”；payload 的 `change_type=bugfix` 与 `run_reason=reviewer_feedback` 仅描述证据补正原因，不改变功能分类、目录名或产品范围。
+- **rq-parse 结果**：领域为 UI/交互、精确整数业务逻辑、页面状态和可靠性；影响表现层、业务层及内存态模型，不涉及网络、权限、后台或持久化迁移。原始要求稳定归一为 IR-45-R1~R5。
+- **rq-clarify 结果**：U64 范围、页面内双状态、数值保持换进制、大写无前缀、180ms/4vp 过渡均属安全、可逆且 Issue 内的普通歧义，依据 assignment 自主采用并在 `acceptance-criteria.json.assumptions` 记录理由；无须人工确认。
+- **AC 门禁补正**：新增 `acceptance-criteria.json`，定义 5 条原始 IR、10 条 feature-level AC 及逐 IR 七维覆盖；相同 AC 编号和语义已镜像到 `delta-spec.md` §7/§8/§10/§11。
+- **范围与兼容性**：继续排除位运算、负数/补码、浮点、多字长、持久化和新增权限/依赖；普通计算、历史、设置和绘图保持向后兼容。
+- **阶段边界**：Task 39 只执行 PLANNING，不创建或修改 `tasks.md`，不修改产品源码，不实施、测试产品、提交、推送、审批或归档。
