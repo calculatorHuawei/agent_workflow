@@ -10,7 +10,7 @@
 - 开发阶段：T0 精确转换 → T1 不可变状态操作 → T2 页面集成 → T3 回归与交接
 - 预计任务数：7
 - 任务颗粒度：每项预计 1–2 小时，均在 APPLYING 阶段按 RED → GREEN → REFACTOR 执行
-- 本次分解基线：Task 39 PLANNING checkpoint（HEAD `9b3629c473317b22781ad3cb415b2dcc7346a86c`，设计审视已批准；AC validator 记录为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`）
+- 本次分解基线：Task 42 PLANNING checkpoint（HEAD `49054a10f21f83f1f46a538df6d097dd32f87681`，设计审视已批准；本次重新执行 AC validator，结果为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`）
 
 ## Planning 制品核验
 
@@ -22,7 +22,7 @@
 - [x] `delta-design.md`：接口、状态、错误、UI、动画、响应式、T0~T3 顺序及精确算法回退策略明确。
 - [x] `20261023-programmer-mode-fmea分析表.md`：CM-01~06 已映射到 SR 与测试门禁。
 - [x] `design-review.md`：审视结论为“通过”，无 Planning blocker；`bigint` 语法和设备动画属于后续验证项。
-- [x] `todo.md`：2026-10-24 Task 39 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
+- [x] `todo.md`：2026-10-24 Task 42 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
 
 ## 任务列表
 
@@ -233,4 +233,4 @@ Task 1.1 → Task 1.2 → Task 2.1 → Task 3.1 → Task 3.2 → Task 3.3 → Ta
 
 ## 阶段边界
 
-Task 39 的 IMPLEMENTING 任务分解已由本次独立 APPLYING 阶段消费。七项任务均以受控可逆行为变异完成 RED（71 run / 58 pass / 13 expected failures / 0 errors），精确恢复继承实现后完成 GREEN（71/71），并在 REFACTOR 审视后再次通过全量测试、真实 HAP 构建和 CodeLinter error 门禁。本阶段未进入 ARCHIVING、审批或合并。
+Task 42 的 IMPLEMENTING 阶段已完成任务分解；后续独立 APPLYING 阶段已对全部七项任务完成受控 RED-GREEN-REFACTOR，并保留本节 IR/AC 追溯及 Developer/Tester 责任。未执行审批或归档。

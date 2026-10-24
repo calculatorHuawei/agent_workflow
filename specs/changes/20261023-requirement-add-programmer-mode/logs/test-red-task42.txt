@@ -1,0 +1,5 @@
+Command: HVIGOR_USER_HOME=...hvigor-home-task-42 hvigorw --no-daemon test -p module=entry -p coverage=false
+Environment bootstrap: the first attempt stopped before test execution because @ohos/hypium was not installed; it is not counted as RED.
+Controlled RED result after ohpm install --all: BUILD SUCCESSFUL; behavioral assertions failed as intended.
+Authoritative count: 71 run / 58 pass / 13 failure / 0 error / 0 ignore.
+Failures cover all seven tasks: uppercase conversion, BIN length gate, append atomicity/recovery, mode selection, result rows, keyboard enablement/submission, and unsupported-radix regression.

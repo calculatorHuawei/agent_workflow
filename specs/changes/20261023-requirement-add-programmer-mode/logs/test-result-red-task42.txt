@@ -1,0 +1,2 @@
+Tests run: 71, Failure: 13, Error: 0, Pass: 58, Ignore: 0
+All 13 failures were intentional behavioral failures from seven reversible task-contract mutations.

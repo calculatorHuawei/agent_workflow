@@ -197,3 +197,12 @@ Programmer key/radix event
 - **实现约定**：转换路径使用字符串精确算法而非浮点 `number`；页面模式切换使用同步单值状态，`UIContext.animateTo` 与 `TransitionEffect` 均为 180ms，内容位移为 y=4vp。
 - **测试约定**：`entry/src/test/List.test.ets` 聚合既有绘图和程序员转换套件。Task 39 不运行测试，只把现有注册方式作为后续验证层级设计输入。
 - **影响与风险**：继续约束 U64 精度、非法输入原子性、快速切换、重复点击区域、响应式状态刷新以及普通历史兼容；无需新增模块、依赖或权限。
+
+## 13. Task 42 rq-codebase 只读复核
+
+- **基线**：分支 `agent/pull_request-49-task-42`，精确 HEAD `49054a10f21f83f1f46a538df6d097dd32f87681`；工作树在复核前干净。
+- **架构与状态**：项目仍为单 `entry` HAP、单 `CalculatorPage`；ArkUI V1 `@State` 分别保存普通字段和 `ProgrammerState`，条件渲染不复用或清空普通表达式、结果、历史、主题、角度或绘图状态。
+- **业务契约**：`ProgrammerConverter` 继续采用十进制字符串乘加/比较/长除，不经浮点 `number` 承担 U64；`ProgrammerOperationResult` 使用 `state + error`，非法追加保留最后有效 input/result。
+- **交互约定**：键盘启停委托 `ProgrammerConverter.isDigitAllowed`；模式切换为同步单值状态，UI 使用 180ms `EaseInOut`、opacity 和 y=4vp transition；不新增路由或持久化。
+- **构建与权限**：API 12、phone/tablet、auto rotation、既有 VIBRATE 权限和既有 Hypium devDependency 均不变。本仓库含既有本机签名配置路径，但本需求不读取、修改或扩展签名凭据；签名可用性不影响本地规划。
+- **风险与验证责任**：精度、边界、状态原子性可由本地单元/集成层覆盖；设备动画流畅度、触控目标和横竖屏由后续 Tester 负责。Task 42 不运行产品测试或构建。

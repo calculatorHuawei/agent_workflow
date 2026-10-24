@@ -168,3 +168,53 @@ U64 非负范围、页面内状态、数值保持换进制、大写无前缀、1
 - Reviewer 所指出的旧 Developer session 缺少快照/哈希是本次重新执行 PLANNING 的原因；本次只产出真实规划过程和制品，不伪造历史证据。
 
 **Task 39 最终判定：批准。PLANNING completed，制品可供后续 phase 消费；本次在此停止。**
+
+## 12. Task 42 独立 PLANNING 设计审视
+
+### 12.1 初始化、意图与阶段边界
+
+| 检查项 | 结果 | 依据 |
+| ------ | ---- | ---- |
+| 初始化 | 通过 | `specs/initialized.flag` 有效；`opencalc`、`specs/changes`、`opencalc/entry/src/test` 与全局 spec/arch/design 均存在 |
+| Git 分支 | 通过 | 独立非主分支 `agent/pull_request-49-task-42`，基线 HEAD `49054a10f21f83f1f46a538df6d097dd32f87681` |
+| 产品意图 | 通过 | Issue #45 为新增功能；payload `bugfix` 只表示 Reviewer 过程证据补正 |
+| 阶段范围 | 通过 | 仅 PLANNING；未修改产品/测试源码、构建配置或 `tasks.md`，未进入后续 phase |
+
+### 12.2 制品完整性
+
+- [x] `proposal.md`：非空，包含 rq-parse 结果、授权式 rq-clarify 决策、边界与 rationale。
+- [x] `delta-spec.md`：非空，包含 3 个场景、6 个 UC、5 个 SR、DFX/FMEA 和验收总表。
+- [x] `acceptance-criteria.json`：非空，包含 5 条 IR、10 条 feature-level AC、逐 IR 七维覆盖、5 条假设和范围外清单。
+- [x] `info.md`：非空，基于精确 HEAD 的实际代码、接口、构建、权限和测试约定。
+- [x] `new-arch.md`：非空；复杂度 M 且 entry 内新增业务边界，架构前置、兼容和迁移结论完整。
+- [x] `delta-design.md`：非空，D1~D10 及 AR↔SR↔UC 门禁完整。
+- [x] `20261023-programmer-mode-fmea分析表.md`：非空，CM-01~05 已进入 SR/设计门禁。
+- [x] `design-review.md`、`todo.md`：本次 Planning 记录已刷新。
+- [x] `tasks.md`：仅作为既有历史存在，Task 42 未创建或修改。
+
+### 12.3 独立一致性与 AC Quality Gate
+
+| 检查 | 结果 | 说明 |
+| ---- | ---- | ---- |
+| Issue → IR | 通过 | 模式、四进制、合法字符、同步结果、动画/状态、错误、兼容和测试均保留 |
+| IR → AC | 通过 | 每条 IR 至少一个 feature-level AC；无仅以函数存在或“无崩溃”代替用户语义 |
+| 七维覆盖 | 通过 | normal/boundary/exception/user_visible/state_sync/integration/environment 全部 covered 或有具体 N/A 理由 |
+| ArkUI 风险 | 通过 | 覆盖 `@State` 刷新、条件渲染、模式/进制切换、快速重复操作、禁用键和状态隔离 |
+| 语义 Oracle | 通过 | 10/FF、键矩阵、U64、EMPTY→VALID、前后快照、动画契约和测试注册均有确定 oracle |
+| proposal → spec | 通过 | F1~F5、R1~R5、IR-45-R1~R5、假设与排除范围一致 |
+| spec → arch/design | 通过 | SR-01~05、CM-01~05 与 AR-01~05/D1~D10 闭合 |
+| codebase → design | 通过 | 单 HAP、V1 `@State`、字符串精确算法、`state + error`、共享键规则、180ms/4vp 一致 |
+| 权限/兼容 | 通过 | 无新增权限、网络、后台、依赖、路由、持久化或部署模块；普通链路保持兼容 |
+
+### 12.4 AC 校验器
+
+- **命令**：`python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`
+- **退出码**：`0`
+- **结果**：`VALID: 5 source requirement(s), 10 acceptance criterion/criteria`
+- **语义复审**：通过；校验器之外已重新对照 Issue 原文、当前代码约定及每条 AC 的用户操作、可见结果、验证层级和 oracle。
+
+### 12.5 假设与风险判定
+
+U64 非负范围、页面内状态、数值保持换进制、大写无前缀、180ms/4vp 动画、单 entry HAP 和无新增权限/依赖均为安全、可逆、局部且向后兼容的默认值，理由已在 `acceptance-criteria.json.assumptions` 记录。设备动画流畅度、触控目标与横竖屏仍是后续 Tester 验证项，不构成设计 blocker。
+
+**Task 42 最终判定：批准。PLANNING completed；制品可供后续独立 IMPLEMENTING phase 消费。本次在此停止。**

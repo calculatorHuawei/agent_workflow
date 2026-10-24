@@ -1,0 +1,7 @@
+REFACTOR audit result: no permanent product rewrite required.
+- ProgrammerConverter shares digit legality between business validation and keyboard enablement.
+- State operations return complete new objects and preserve the last valid state on rejection.
+- Result rows derive from one ConversionResult and suppress partial output on errors.
+- Calculator mode selection is synchronous; UI uses 180ms EaseInOut and opacity + translate y=4.
+- List.test.ets registers both PlotFunction.test and ProgrammerConverter.test.
+- git diff --exit-code passed for opencalc/entry/src/main, opencalc/entry/src/test, and opencalc/code-linter.json5 after restoration.

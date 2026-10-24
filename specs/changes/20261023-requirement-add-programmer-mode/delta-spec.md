@@ -834,3 +834,11 @@ Reviewer 反馈针对旧 Developer 会话证据不可审计，不涉及产品结
 ## 15. Task 33 PLANNING 规格门禁
 
 在 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 上复核所有 6 个 UC、5 个 SR、CM-01~CM-05 与验收矩阵：追溯闭合，无新增范围。为消除实现前假设与当前仓库约定的偏差，精度约束明确采用已验证的十进制字符串乘加/长除作为默认；该澄清不改变任何外部行为或验收标准。
+
+## 16. Task 42 PLANNING 规格与 AC 独立门禁
+
+- **原文复核**：重新对照 Issue #45 原文，模式入口、BIN/OCT/DEC/HEX、合法字符、同步转换、轻量动画、状态稳定、错误反馈、兼容与测试承诺均保留在 IR-45-R1~R5 中，没有静默删除或降级。
+- **场景与追溯**：SC-001~003、6 个 UC、SR-01~05、CM-01~05 和 AC-001~010 仍闭合覆盖正常、边界、异常、用户可见、状态同步、跨层集成与环境七个维度。
+- **机器门禁**：执行 `python <migbot-increment-planning>/scripts/validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`，退出码 `0`，结果为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`。
+- **语义门禁**：DEC 10、HEX FF、四进制键矩阵、U64 边界、EMPTY→VALID 恢复、模式往返快照、180ms/4vp 过渡及测试注册均有 feature-level、可观察且确定的 oracle；UI 要求包含 `integration`/`ui` 层级。
+- **结论**：规格基线无需扩张或改写。继续排除位运算、负数/补码、浮点、多字长、持久化、网络、权限、后台与第三方依赖；无 Planning blocker。
