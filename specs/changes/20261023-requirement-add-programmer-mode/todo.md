@@ -409,3 +409,50 @@ IMPLEMENTING — completed（Task 48，2026-10-24）。已消费获批的 Task 4
 | Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
 
 **Task 48 APPLYING 判定：completed。仅执行 APPLYING；未执行 ARCHIVING、审批或合并。**
+
+#### 2026-10-24 Task 54 PLANNING 独立执行步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase PLANNING Step 1: 用户意图理解 | ✅ 已完成（Issue 产品意图=新增功能；payload bugfix=过程证据补正） | 2026-10-24 |
+| Phase PLANNING Step 1.1: Git 分支检查 | ✅ 已完成（独立非主分支；HEAD 091c3a46） | 2026-10-24 |
+| Phase PLANNING Step 2: 需求理解 (rq-parse) | ✅ 已完成（IR-45-R1~R5） | 2026-10-24 |
+| Phase PLANNING Step 3: 需求澄清 (rq-clarify) | ✅ 已完成（授权自主采用安全、可逆、Issue 内默认） | 2026-10-24 |
+| Phase PLANNING Step 4: 需求spec设计 | ✅ 已完成（5 IR / 10 AC） | 2026-10-24 |
+| Phase PLANNING Step 4.1: 场景与用例设计 | ✅ 已完成（SC-001~003 / 6 UC） | 2026-10-24 |
+| Phase PLANNING Step 4.2: AC Quality Gate 与 FMEA/SR 追溯 | ✅ 已完成（validator exit 0；CM-01~06） | 2026-10-24 |
+| Phase PLANNING Step 5: 代码仓理解 (rq-codebase) | ✅ 已完成（只读 assigned HEAD 091c3a46） | 2026-10-24 |
+| Phase PLANNING Step 6: 需求复杂度评估 | ✅ 已完成（M；4 个关注模块；entry 内部架构边界） | 2026-10-24 |
+| Phase PLANNING Step 7: 架构设计 | ✅ 已完成（new-arch 复核；无权限/部署扩张） | 2026-10-24 |
+| Phase PLANNING Step 8: 组件设计 (mod-design) | ✅ 已完成（D1~D10 自验证） | 2026-10-24 |
+| Phase PLANNING Step 9: 设计审视 | ✅ 已完成（批准） | 2026-10-24 |
+| Phase PLANNING Step 9.1: 完整性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2: 一致性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2.1: AC 独立质量门禁 | ✅ 已完成（5 IR / 10 AC，语义复审通过） | 2026-10-24 |
+| Phase PLANNING Step 9.3: 规范性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.4: 产出审视报告 | ✅ 已完成 | 2026-10-24 |
+
+**Task 54 PLANNING 判定：completed。仅刷新 Planning 制品；未创建或修改 `tasks.md`，未进入 IMPLEMENTING/APPLYING/ARCHIVING。**
+
+#### 2026-10-24 Task 54 APPLYING 独立执行步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase APPLYING Step 3.0: 环境检查 | ✅ 已完成（HarmonyOS/Hvigor 6.24.2） | 2026-10-24 |
+| Phase APPLYING Step 3.0.1: 检测项目类型 | ✅ 已完成（HarmonyOS/Hvigor） | 2026-10-24 |
+| Phase APPLYING Step 3.0.2: 检查编译环境 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.0.3: 尝试编译项目 | ✅ 已完成（BUILD SUCCESSFUL） | 2026-10-24 |
+| Phase APPLYING Step 3.0.4: 检查测试环境 | ✅ 已完成（锁定依赖已安装） | 2026-10-24 |
+| Phase APPLYING Step 3.0.5: 环境问题处理 | ✅ 已完成（纠正一次仓库级制品相对路径；隔离 Hvigor/CodeLinter home） | 2026-10-24 |
+| Phase APPLYING Step 3.1: 确认应用条件 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.1.1: 确认编码准备就绪 | ✅ 已完成（Planning/Implementing checkpoint completed；7 项任务、设计批准） | 2026-10-24 |
+| Phase APPLYING Step 3.1.2: 检查代码质量 | ✅ 已完成（build/lint 通过） | 2026-10-24 |
+| Phase APPLYING Step 3.2: 代码应用 | ✅ 已完成（tdd-enforcer） | 2026-10-24 |
+| Phase APPLYING Step 3.2.1: 七任务 RED-GREEN-REFACTOR | ✅ 已完成（RED 13 expected failures；GREEN/REFACTOR 71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.2: 运行全量测试 | ✅ 已完成（71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.3: 执行 lint 检查 | ✅ 已完成（0 error / 127 warning） | 2026-10-24 |
+| Phase APPLYING Step 3.2.4: 执行集成测试 | ✅ 已完成（真实 HAP 构建；设备视觉交 Tester） | 2026-10-24 |
+| Phase APPLYING Step 3.3: 更新任务状态 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
+
+**Task 54 APPLYING 判定：completed。仅执行 APPLYING；未执行 ARCHIVING、审批、合并或归档。**

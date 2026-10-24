@@ -265,3 +265,12 @@ CalculatorPage（模式状态、普通状态、程序员状态、动画）
 - **授权式澄清（rq-clarify）**：U64 非负范围、页面内双状态、换进制保持数值、大写无前缀、180ms/4vp 轻量过渡均为 Issue 内安全、可逆、常规且向后兼容的默认。依据 assignment 授权自主确认，继续以 `acceptance-criteria.json.assumptions` 保存决策与 rationale。
 - **范围与权限**：保持单 entry HAP、ArkUI V1、纯本地精确字符串转换；不新增权限、网络、后台、第三方服务、依赖、持久化或路由。既有实现仅供代码仓理解，不反向扩大需求。
 - **阶段边界**：Task 48 只执行 PLANNING。既有 `tasks.md`、产品/测试源码、构建配置与 APPLYING 证据均不修改；不执行 IMPLEMENTING/APPLYING/ARCHIVING，不提交、推送、审批或归档。
+
+## 17. Task 54 PLANNING 独立执行记录
+
+- **初始化确认**：复用有效的 `specs/initialized.flag`；已验证 `PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 及全局 spec/arch/design 均存在。按初始化 skill 的已初始化路径，仅复核 Git 与会话恢复状态，不重写初始化标记或 README。
+- **Git 与原始需求**：当前为独立非主分支 `agent/pull_request-49-task-54`，只读规划基线为 PR #49 HEAD `091c3a46e21c127d41b82cbf388e4e7b7acb800f`。通过 `gh issue view 45 --comments` 直接复核 Issue 原文；Issue 无补充评论，因此 payload 与 GitHub 原文不存在需求冲突。
+- **意图分类（rq-parse）**：产品意图仍为“新增功能”，稳定映射到 IR-45-R1~R5；orchestrator 的 `change_type=bugfix`、`run_reason=reviewer_feedback` 仅描述补齐可认证 PLANNING 过程证据的流程修复，不改变 change 目录、产品范围或验收语义。
+- **授权式澄清（rq-clarify）**：U64 非负范围、页面内双状态、换进制保持数值、HEX 大写且不接受前缀、180ms/4vp 轻量过渡均为安全、可逆、Issue 内且向后兼容的默认值；依据 assignment 授权自主采用，并由 `acceptance-criteria.json.assumptions` 保存每项 rationale。
+- **最小范围**：保持单 `entry` HAP、ArkUI V1 `@State`、纯本地精确字符串转换；不新增权限、网络、后台、第三方服务、依赖、路由、持久化或迁移。现有实现仅作为 `rq-codebase` 的只读事实输入，不反向扩大需求。
+- **阶段边界**：Task 54 仅执行 PLANNING；不创建或修改 `tasks.md`，不修改产品/测试源码，不执行 IMPLEMENTING/APPLYING/ARCHIVING，不提交、推送、审批或归档。

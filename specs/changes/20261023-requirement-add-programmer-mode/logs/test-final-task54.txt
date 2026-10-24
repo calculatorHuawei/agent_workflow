@@ -1,0 +1,22 @@
+> hvigor [32mUP-TO-DATE :entry:default@PreBuild...  [39m
+> hvigor [32mFinished :entry:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :entry:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@GenerateUnitTestTemplate...  [39m
+> hvigor [32mFinished :entry:default@GeneratePkgContextInfo... after 8 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :entry:default@ProcessStartupConfig... after 1 ms [39m
+> hvigor [32mFinished :entry:default@ProcessProfile... after 107 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@GenerateLoaderJson...  [39m
+> hvigor [32mFinished :entry:default@UnitTestProcessProfile... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessResource...  [39m
+> hvigor [32mFinished :entry:default@CompileResource... after 200 ms [39m
+> hvigor [32mFinished :entry:default@ReplaceUnitTestIndexFile... after 3 ms [39m
+> hvigor [32mFinished :entry:default@BuildUnitTestHook... after 1 ms [39m
+> hvigor [32mFinished :entry:default@UnitTestArkTS... after 3 s 569 ms [39m
+> hvigor [32mWindows_NT[39m
+> hvigor [32mFinished :entry:default@GenerateUnitTestResult... after 717 ms [39m
+> hvigor [32mFinished :entry:test... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 8 s 491 ms [39m

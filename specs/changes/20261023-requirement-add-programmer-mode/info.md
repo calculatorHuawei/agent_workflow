@@ -223,3 +223,12 @@ Programmer key/radix event
 - **行为契约**：页面键启停与业务防御校验共用 `programmerKeyEnabled/isDigitAllowed`；操作结果保持 `state + error`；字符串乘加/比较/长除承担 U64 精度，不经浮点 `number`。
 - **交互与兼容**：模式切换使用同步单值状态、180ms `EaseInOut`、opacity 与 y=4vp transition；不新增路由、Preferences key、权限、Kit、HAR/HSP 或外部依赖，普通表达式/历史/设置/绘图链路保持原契约。
 - **测试与风险输入**：`List.test.ets` 继续聚合 PlotFunction 与 ProgrammerConverter 套件；设备动画流畅度、触控目标及 phone/tablet 横竖屏仍属于后续 Tester 层，不构成 Planning blocker。
+
+## 16. Task 54 rq-codebase 只读复核
+
+- **基线与分析范围**：分支 `agent/pull_request-49-task-54`，精确 HEAD `091c3a46e21c127d41b82cbf388e4e7b7acb800f`；按新增功能侧重点只读检查 `Models.ets`、`ProgrammerConverter.ets`、`CalculatorPage.ets`、模块配置及 Hypium 聚合，未修改产品或测试文件。
+- **架构与接口**：仓库保持 API 12 单 `entry` HAP。`CalculatorPage` 以 ArkUI V1 `@State` 隔离普通字段和 `ProgrammerState`；`ProgrammerConverter` 是无 ArkUI、Preferences、网络或外部服务依赖的同步业务边界，操作结果沿用 `state + error` 契约。
+- **数据与算法**：U64 转换使用十进制字符串乘加、比较和长除，避免浮点精度损失；非法或越界追加保留最后有效 input/result，错误状态显式反馈，不提交部分转换结果。
+- **交互与兼容**：UI 键启停和业务防御校验共享 `isDigitAllowed`；模式切换采用同步单值状态、180ms `EaseInOut` 及 opacity/y=4vp transition。普通表达式、结果、历史、设置和绘图状态不由模式切换处理器清空。
+- **构建与集成**：沿用现有 Hypium devDependency 与 `entry/src/test/List.test.ets` 注册方式；无需新增权限、Kit、Preferences key、路由、HAR/HSP、部署单元或外部依赖。已有 VIBRATE 权限和签名配置不属于本需求变更面。
+- **风险与验证责任**：精度、范围、非法输入原子性和状态操作适合 unit/integration；动画流畅度、重复点击触控、phone/tablet 横竖屏属于后续 UI/Tester 验证。该分层不会阻塞 Planning。

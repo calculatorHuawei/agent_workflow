@@ -159,6 +159,39 @@ APPLYING 已完成。本次按指令不执行归档或审批；后续仅在独�
 - 证据：`logs/test-red-task42.txt`、`logs/test-result-red-task42.txt`、`logs/test-green-task42.txt`、`logs/test-result-green-task42.txt`、`logs/test-final-task42.txt`、`logs/test-result-final-task42.txt`、`logs/build-final-task42.txt`、`logs/codelinter-final-task42.json`、`logs/refactor-audit-task42.txt`。
 - 阶段边界：仅执行 MigBot APPLYING；未执行 ARCHIVING、审批、合并或归档写入。
 
+## 2026-10-24 Task 54 APPLYING 认证运行
+
+### 前置与环境
+- 仅执行 MigBot APPLYING；消费题面提供的 completed Planning/Implementing checkpoints，不重跑或声称补造早期 phase provenance。
+- proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、tasks、todo 均存在且非空；Task 54 design-review 结论为批准。AC validator 为 5 IR / 10 AC、exit 0，tasks.md 保持七项有序 T0~T3 任务。
+- 项目识别为 HarmonyOS/Hvigor；Hvigor 版本 `6.24.2`。锁定依赖安装成功；隔离 `HVIGOR_USER_HOME=D:\huawei\Demo\calculatorHuawei\.agent-runtime\hvigor-home-task-54` 的预检查 `assembleHap` 为 `BUILD SUCCESSFUL`。
+- 首次 AC validator 尝试误从 `opencalc` 子目录解析仓库级相对路径，因文件不存在而退出 1；该路径错误发生在任何 RED/产品修改之前。随后从仓库根按精确路径重跑并通过，未将失败冒充制品或测试问题。
+
+### 七任务 RED-GREEN-REFACTOR
+| 任务 | RED 受控缺失行为 | GREEN | REFACTOR |
+|------|------------------|-------|----------|
+| Task 1.1 | HEX 输出临时改为小写 | 恢复大写规范输出 | 复核 converter 纯业务边界 |
+| Task 1.2 | BIN 长度门禁临时放宽至 65 | 恢复 64 位早停 | 复核精确字符串算法与 O(n) 门禁 |
+| Task 2.1 | 非法 append 临时污染 input/result | 恢复失败原子性 | 复核完整新对象与同步操作 |
+| Task 3.1 | 模式选择临时保留旧模式 | 恢复同步 target 选择 | 复核普通状态无清理副作用 |
+| Task 3.2 | 四行结果映射临时移除 | 恢复同一结果对象映射 | 复核反馈与结果单一真源 |
+| Task 3.3 | 键盘启用临时恒真 | 恢复 converter 共源规则 | 复核 180ms opacity + 4vp transition |
+| Task 4.1 | 支持进制门禁临时恒真 | 恢复 INTERNAL 门禁 | 复核 PlotFunction + ProgrammerConverter 聚合 |
+
+- RED：权威 `test_result.txt` 为 71 run / 58 pass / 13 expected behavioral failures / 0 errors；七项任务均命中相应缺失行为。Hvigor 本身对断言失败返回 0，因此 RED 结论以测试结果汇总为准。
+- GREEN：通过反向补丁精确恢复继承实现；`git diff --exit-code -- opencalc/entry/src/main/ets/programmer/ProgrammerConverter.ets` 通过；随后 71 run / 71 pass / 0 failure / 0 error。
+- REFACTOR：复核精确转换、U64 门禁、不可变状态、单一结果映射、共享键规则、同步模式状态及测试聚合，现有边界已满足设计，无需永久产品改动；最终全量测试仍为 71/71。
+
+### 最终门禁
+- Local Test：`Tests run: 71, Failure: 0, Error: 0, Pass: 71, Ignore: 0`。
+- HAP：最终 `assembleHap` 输出 `BUILD SUCCESSFUL`；仓库无 signingConfig，产物为 unsigned。
+- CodeLinter：退出码 0；0 error / 127 warning。警告为既有非阻塞样式/性能规则。
+- 静态契约：`CalculatorPage.ets` 保持 `animateTo duration: 180` 和 opacity/translate y=4；`List.test.ets` 同时注册 PlotFunction 与 ProgrammerConverter 测试套件。
+- 产品源码完整性：`opencalc/entry/src/main`、`opencalc/entry/src/test` 与 `opencalc/code-linter.json5` 相对继承 HEAD 无永久差异。
+- 证据：`logs/test-result-red-task54.txt`、`logs/test-result-green-task54.txt`、`logs/test-final-task54.txt`、`logs/test-result-final-task54.txt`、`logs/build-final-task54.txt`、`logs/codelinter-final-task54.json`、`logs/refactor-audit-task54.txt`。
+- Reviewer 遗留项：早期 PLANNING/IMPLEMENTING session 的 hash-addressed provenance 不属于本 APPLYING-only phase；本次不伪造、不归档、不审批。
+- 阶段边界：仅执行 MigBot APPLYING；未执行 ARCHIVING、审批、合并或归档写入。
+
 ## 2026-10-24 Task 48 APPLYING 认证运行
 
 ### 前置与环境
