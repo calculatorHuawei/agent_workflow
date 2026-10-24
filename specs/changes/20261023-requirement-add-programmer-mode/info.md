@@ -215,3 +215,11 @@ Programmer key/radix event
 - **精度与交互约定**：U64 转换继续采用十进制字符串乘加、比较和长除，不经浮点 `number`；模式切换使用同步单值状态、180ms `EaseInOut`、opacity 与 y=4vp transition，条件渲染只保留一个可交互面板。
 - **构建与集成**：API 12、phone/tablet、auto rotation、既有 VIBRATE 权限、Hypium devDependency 与 `List.test.ets` 聚合约定不变；本需求无需新增权限、Kit、依赖、路由、Preferences key、HAR/HSP 或部署单元。
 - **设计输入结论**：现有代码与 proposal/spec/design 的最小架构一致；实现存在不改变本次正向 Planning 的产品边界。设备动画流畅度、触控目标和横竖屏仍保留为后续 Tester 验证责任。
+
+## 15. Task 48 rq-codebase 只读复核
+
+- **基线与范围**：在 `agent/pull_request-49-task-48` 的 assigned HEAD `4224f027f05b93a4900c68c31700897c07dcfafe` 上，只读检查需求相关页面、模型、converter、模块配置与测试聚合；未修改任何产品/测试源码或构建配置。
+- **架构约定**：仓库仍是 API 12 的单 `entry` HAP；`CalculatorPage` 使用 ArkUI V1 `@State` 隔离普通字段和 `ProgrammerState`，`ProgrammerConverter` 保持无 ArkUI/Preferences/网络依赖的纯同步业务边界。
+- **行为契约**：页面键启停与业务防御校验共用 `programmerKeyEnabled/isDigitAllowed`；操作结果保持 `state + error`；字符串乘加/比较/长除承担 U64 精度，不经浮点 `number`。
+- **交互与兼容**：模式切换使用同步单值状态、180ms `EaseInOut`、opacity 与 y=4vp transition；不新增路由、Preferences key、权限、Kit、HAR/HSP 或外部依赖，普通表达式/历史/设置/绘图链路保持原契约。
+- **测试与风险输入**：`List.test.ets` 继续聚合 PlotFunction 与 ProgrammerConverter 套件；设备动画流畅度、触控目标及 phone/tablet 横竖屏仍属于后续 Tester 层，不构成 Planning blocker。

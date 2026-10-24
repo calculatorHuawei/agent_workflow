@@ -1,0 +1,139 @@
+> hvigor [32mUP-TO-DATE :entry:default@PreBuild...  [39m
+> hvigor [32mFinished :entry:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mFinished :entry:default@CreateBuildProfile... after 3 ms [39m
+> hvigor [32mFinished :entry:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mFinished :entry:default@GenerateUnitTestTemplate... after 2 ms [39m
+> hvigor [32mFinished :entry:default@GeneratePkgContextInfo... after 8 ms [39m
+> hvigor [32mFinished :entry:default@MergeProfile... after 4 ms [39m
+> hvigor [32mFinished :entry:default@ProcessRouterMap... after 4 ms [39m
+> hvigor [32mFinished :entry:default@ProcessShareConfig... after 2 ms [39m
+> hvigor [32mFinished :entry:default@ProcessStartupConfig... after 1 ms [39m
+> hvigor [32mFinished :entry:default@ProcessProfile... after 95 ms [39m
+> hvigor [32mFinished :entry:default@GenerateLoaderJson... after 8 ms [39m
+> hvigor [32mFinished :entry:default@UnitTestProcessProfile... after 4 ms [39m
+> hvigor [32mFinished :entry:default@ProcessResource... after 4 ms [39m
+> hvigor [32mFinished :entry:default@CompileResource... after 188 ms [39m
+> hvigor [32mFinished :entry:default@ReplaceUnitTestIndexFile... after 2 ms [39m
+> hvigor [32mFinished :entry:default@BuildUnitTestHook... after 1 ms [39m
+> hvigor [32mFinished :entry:default@UnitTestArkTS... after 4 s 392 ms [39m
+> hvigor [32mWindows_NT[39m
+> hvigor ERROR: Error in converts_decimal_10_to_all_radices, expect a equals A
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:15:36)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in converts_hex_ff_and_normalizes_case, expect ff equals FF
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:23:36)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in accepts_zero_and_u64_max, expect ffffffffffffffff equals FFFFFFFFFFFFFFFF
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:45:37)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in rejects_obviously_overlong_input_before_conversion, expect none equals out_of_range
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:72:70)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in rejects_invalid_append_atomically, expect 12 equals 1
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:82:36)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in supports_backspace_clear_and_recovery, expect invalid_digit equals none
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:107:27)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in defaults_to_normal_and_switches_bidirectionally, expect normal equals programmer
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:127:20)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in is_idempotent_and_last_selection_wins, expect normal equals programmer
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:138:20)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in maps_one_conversion_to_four_result_rows, expect 0 equals 4
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:146:27)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in uses_converter_rules_for_keyboard_enablement, expect false, actualValue is true
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:165:52)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in disabled_key_submission_keeps_last_valid_value, expect 10109 equals 1010
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:176:34)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in rejects_unsupported_radix_as_internal_error, expect none equals internal
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:185:28)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor ERROR: Error in round_trips_u64_max_across_all_supported_radices, expect ffffffffffffffff equals FFFFFFFFFFFFFFFF
+> hvigor ERROR:     at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+> hvigor ERROR:     at anonymous (entry/src/test/ProgrammerConverter.test.ets:196:27)
+> hvigor ERROR:     at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+> hvigor ERROR:     at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+> hvigor ERROR:     at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+> hvigor ERROR:     at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+> hvigor ERROR:     at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+> hvigor [32mFinished :entry:default@GenerateUnitTestResult... after 1 s 139 ms [39m
+> hvigor [32mFinished :entry:test... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 9 s 536 ms [39m

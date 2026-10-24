@@ -159,6 +159,36 @@ APPLYING 已完成。本次按指令不执行归档或审批；后续仅在独�
 - 证据：`logs/test-red-task42.txt`、`logs/test-result-red-task42.txt`、`logs/test-green-task42.txt`、`logs/test-result-green-task42.txt`、`logs/test-final-task42.txt`、`logs/test-result-final-task42.txt`、`logs/build-final-task42.txt`、`logs/codelinter-final-task42.json`、`logs/refactor-audit-task42.txt`。
 - 阶段边界：仅执行 MigBot APPLYING；未执行 ARCHIVING、审批、合并或归档写入。
 
+## 2026-10-24 Task 48 APPLYING 认证运行
+
+### 前置与环境
+- Planning 与 Implementing checkpoint 均为 `completed`；全部规划制品、获批 design-review、tasks 与 todo 均存在且非空。
+- 项目识别为 HarmonyOS/Hvigor；Hvigor 版本 `6.24.2`。隔离环境的预检查与最终 `assembleHap` 均输出 `BUILD SUCCESSFUL`。
+- 锁定依赖安装成功；AC validator 通过 5 IR / 10 AC。
+
+### 七任务 RED-GREEN-REFACTOR
+| 任务 | RED 受控缺失行为 | GREEN | REFACTOR |
+|------|------------------|-------|----------|
+| Task 1.1 | HEX 输出临时改为小写 | 恢复大写规范输出 | 复核 converter 纯业务边界 |
+| Task 1.2 | BIN 长度门禁临时放宽至 65 | 恢复 64 位早停 | 复核精确字符串算法与 O(n) 门禁 |
+| Task 2.1 | 非法 append 临时污染 input/result | 恢复失败原子性 | 复核完整新对象与同步操作 |
+| Task 3.1 | 模式选择临时保留旧模式 | 恢复同步 target 选择 | 复核普通状态无清理副作用 |
+| Task 3.2 | 四行结果映射临时移除 | 恢复同一结果对象映射 | 复核反馈与结果单一真源 |
+| Task 3.3 | 键盘启用临时恒真 | 恢复 converter 共源规则 | 复核 180ms opacity + 4vp transition |
+| Task 4.1 | 支持进制门禁临时恒真 | 恢复 INTERNAL 门禁 | 复核测试聚合 |
+
+- RED：71 run / 58 pass / 13 expected behavioral failures / 0 errors；七项任务均命中对应缺失行为。
+- GREEN：反向补丁精确恢复继承实现；产品转换器无永久差异；71/71。
+- REFACTOR：共享转换、状态、展示、键盘与页面编排边界满足设计，无需永久产品改动；最终测试仍为 71/71。
+
+### 最终门禁
+- Local Test：`Tests run: 71, Failure: 0, Error: 0, Pass: 71, Ignore: 0`。
+- HAP：`BUILD SUCCESSFUL`；仓库无 signingConfig，产物为 unsigned。
+- CodeLinter：退出码 0；0 error / 127 warning / 0 suggestion。
+- 产品源码完整性：`opencalc/entry/src/main`、`opencalc/entry/src/test` 与 `opencalc/code-linter.json5` 相对继承 HEAD 无永久变更。
+- 证据：`logs/test-red-task48.txt`、`logs/test-result-red-task48.txt`、`logs/test-green-task48.txt`、`logs/test-result-green-task48.txt`、`logs/test-final-task48.txt`、`logs/test-result-final-task48.txt`、`logs/build-final-task48.txt`、`logs/codelinter-final-task48.json`、`logs/refactor-audit-task48.txt`。
+- 阶段边界：仅执行 MigBot APPLYING；未执行 ARCHIVING、审批、合并或归档写入。
+
 ## 2026-10-24 Task 45 APPLYING 认证运行
 
 ### 前置与环境

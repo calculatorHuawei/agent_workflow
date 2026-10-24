@@ -850,3 +850,12 @@ Reviewer 反馈针对旧 Developer 会话证据不可审计，不涉及产品结
 - **机器门禁**：执行 `python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`，退出码 `0`，输出 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`。
 - **语义门禁**：DEC 10、HEX FF、四进制键矩阵、换进制状态同步、EMPTY→VALID 恢复、U64 边界、普通状态往返、180ms/4vp 过渡与测试聚合均具有可观察结果、适当验证层级和确定 oracle。
 - **假设结论**：AS-001~005 均安全、可逆、最小权限且不扩大 Issue；继续排除位运算、负数/补码、浮点、多字长、持久化、网络、后台、第三方服务与新增权限。无 PLANNING blocker。
+
+## 18. Task 48 PLANNING 规格与 AC 独立门禁
+
+- **Issue 原文复核**：直接以 payload 中的 Issue #45 原文为上游，确认模式入口、BIN/OCT/DEC/HEX、合法字符约束、输入变化同步转换、轻量动画、状态稳定、空/非法/越界反馈、兼容与测试承诺完整保留在 IR-45-R1~R5。
+- **场景与追溯**：SC-001~003、6 个 UC、SR-01~05、CM-01~06 与 AC-001~010 闭合；每条 IR 都关联 feature-level AC，七维覆盖均为 `covered` 或给出具体 `not_applicable` 理由。
+- **机器门禁**：Task 48 运行 bundled AC validator，退出码为 `0`，输出 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`。
+- **语义门禁**：DEC 10、HEX FF、键矩阵、换进制状态同步、EMPTY→VALID、U64 边界、普通状态往返、180ms/4vp 最终态与测试注册均有用户可观察结果、适当验证层级和确定 oracle。
+- **可靠性门禁**：依据 dfr-fmea-general 及 A/B/AppFreeze 故障模式库复核，精度、范围、非法输入、快速切换、主线程输入时延与空态风险均已转化为 SR-01~05 和可验证措施，无需新增外部监控或权限。
+- **假设与范围**：AS-001~005 仍是安全、可逆、局部、最小权限且向后兼容的默认；继续排除位运算、负数/补码、浮点、多字长、跨重启持久化、网络、后台、第三方服务与新增权限。无 PLANNING blocker。

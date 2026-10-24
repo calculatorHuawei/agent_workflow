@@ -189,3 +189,7 @@ mode event → synchronous CalculatorMode update → ArkUI transition
 ### 7.6 Task 45 架构复核
 
 在精确 HEAD `aeb8f4e8a60bda04651c9c69af034cac28606d17` 上按 Planning Step 7 复核后，§2 的单 `entry` HAP、单主页面、独立纯业务 converter、普通/程序员页面内状态隔离及既有 Preferences 边界仍是满足 Issue #45 的最小架构。无需新增外部实体、部署单元、权限、依赖、路由、接口版本或持久化迁移；本次保留 `new-arch.md` 作为内部架构增量说明，不扩大产品或平台范围。
+
+### 7.7 Task 48 架构复核
+
+在 assigned PR HEAD `4224f027f05b93a4900c68c31700897c07dcfafe` 上按 Planning Step 7 复核，§2 的单 `entry` HAP、同页条件分支、普通/程序员内存态隔离和独立纯业务 converter 仍是满足 IR-45-R1~R5 的最小架构。当前实现存在不改变正向设计结论；无需新增外部实体、部署单元、权限、依赖、路由、接口版本、持久化 schema 或迁移。Task 48 保留本架构增量并拒绝任何 Issue 外扩张。

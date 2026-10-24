@@ -256,3 +256,12 @@ CalculatorPage（模式状态、普通状态、程序员状态、动画）
 - **rq-parse 结果**：需求稳定归一为 IR-45-R1~R5，领域覆盖 UI/交互、精确整数转换、ArkUI 页面状态与可靠性；影响表现层、业务层和内存态模型，不涉及网络、后台、隐私、权限或持久化迁移。
 - **rq-clarify 结果**：U64 非负范围、页面内状态隔离、换进制保持数值、大写无前缀、180ms/4vp 轻量过渡均属于 Issue 内安全、可逆、常规且向后兼容的默认值。依据 assignment 的自治授权直接采用，并继续以 `acceptance-criteria.json.assumptions` 记录决策与 rationale，无需人工确认。
 - **阶段边界**：Task 45 仅执行 PLANNING。既有实现与测试只作为 `rq-codebase` 的只读仓库现状；不创建或修改 `tasks.md`，不修改产品/测试源码，不进入 IMPLEMENTING/APPLYING/ARCHIVING，不提交、推送、审批或归档。
+
+## 16. Task 48 PLANNING 独立执行记录
+
+- **初始化确认**：复用有效的 `specs/initialized.flag`；`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 及全局 spec/arch/design 均存在。按 worker entry gate 不重跑初始化、不改标记或 README。
+- **Git 与输入基线**：当前分支为独立非主分支 `agent/pull_request-49-task-48`，只读规划基线是 assigned PR #49 HEAD `4224f027f05b93a4900c68c31700897c07dcfafe`；工作树进入本阶段时无未提交变更。
+- **意图分类（rq-parse）**：Issue #45 的产品意图继续判定为“新增功能”；payload 的 `change_type=bugfix` 与 `run_reason=reviewer_feedback` 只表示修复缺失的可认证阶段证据，不改变功能范围、change 目录、IR 或 AC。
+- **授权式澄清（rq-clarify）**：U64 非负范围、页面内双状态、换进制保持数值、大写无前缀、180ms/4vp 轻量过渡均为 Issue 内安全、可逆、常规且向后兼容的默认。依据 assignment 授权自主确认，继续以 `acceptance-criteria.json.assumptions` 保存决策与 rationale。
+- **范围与权限**：保持单 entry HAP、ArkUI V1、纯本地精确字符串转换；不新增权限、网络、后台、第三方服务、依赖、持久化或路由。既有实现仅供代码仓理解，不反向扩大需求。
+- **阶段边界**：Task 48 只执行 PLANNING。既有 `tasks.md`、产品/测试源码、构建配置与 APPLYING 证据均不修改；不执行 IMPLEMENTING/APPLYING/ARCHIVING，不提交、推送、审批或归档。

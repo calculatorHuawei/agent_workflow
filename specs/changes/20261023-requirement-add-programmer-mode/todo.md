@@ -3,7 +3,7 @@
 ## 当前进行中的任务
 | 任务名称 | 类型 | 状态 | 开始日期 |
 |----------|------|------|----------|
-| requirement-add-programmer-mode | 新增功能 | IMPLEMENTING 已完成（Task 45 独立执行） | 2026-10-23 |
+| requirement-add-programmer-mode | 新增功能 | IMPLEMENTING 已完成（Task 48 独立执行） | 2026-10-23 |
 
 ## 任务详情
 
@@ -15,11 +15,11 @@
 - 关联 Issue：#45
 - 关联全局文件：specs/spec.md / specs/arch.md / specs/design.md
 - 开始日期：2026-10-23
-- git_branch_adopted: true（当前独立复核分支 `agent/pull_request-49-task-45`）
+- git_branch_adopted: true（当前独立复核分支 `agent/pull_request-49-task-48`）
 - 初始化：有效（复用 `specs/initialized.flag`，未重新初始化）
 
 #### 当前阶段
-IMPLEMENTING — completed（Task 45，2026-10-24）。已消费获批的 Task 45 PLANNING checkpoint，逐项核验九项 Planning 制品和 AC validator，将设计刷新为 7 个有序、可测试的 T0~T3 任务；仅修改 `tasks.md` 与 `todo.md`，未进入 APPLYING/ARCHIVING。
+IMPLEMENTING — completed（Task 48，2026-10-24）。已消费获批的 Task 48 PLANNING checkpoint，逐项核验九项 Planning 制品和 bundled AC validator，将设计刷新为 7 个有序、可测试的 T0~T3 任务；仅修改 `tasks.md` 与 `todo.md`，未进入 APPLYING/ARCHIVING。
 
 #### 进度
 | 步骤 | 状态 | 完成时间 |
@@ -77,9 +77,10 @@ IMPLEMENTING — completed（Task 45，2026-10-24）。已消费获批的 Task 4
 - 工作量等级：M；流程判定为复杂（影响页面、模型、业务组件、测试并新增内部数据流）。
 - 架构：entry HAP 内部新增 `ProgrammerConverter`；无部署/权限/依赖/持久化架构扩张。
 - `new-arch.md`：已产出。
-- `tasks.md`：Task 45 已依据获批设计和 AC-001~010 复核并刷新为 7 个 T0~T3 任务；保留精确 HEAD 上的既有 TDD 历史状态，并明确本次未执行 APPLYING，Developer/Tester 验证责任完整。
+- `tasks.md`：Task 48 已依据获批设计和 AC-001~010 复核并刷新为 7 个 T0~T3 任务；保留 assigned HEAD 上的既有 TDD 历史状态，并明确本次未执行 APPLYING，Developer/Tester 验证责任完整。
 
 #### 最近更新
+- 2026-10-24：Task 48 仅执行 MigBot IMPLEMENTING。逐项核验 proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、todo 均存在且非空；重新执行 bundled AC validator 得到 5 IR / 10 AC、exit 0，Task 48 设计审视批准且无 blocker。将获批设计复核并排序为 7 个 T0~T3 任务，确认 AC-001~010、Developer/Tester 验证层级和关键路径全覆盖。仅更新 `tasks.md` 与 `todo.md`；未修改产品/测试源码，未运行 APPLYING、测试、构建或 lint，未提交、推送、审批或归档。
 - 2026-10-24：Task 45 仅执行 MigBot IMPLEMENTING。逐项核验 proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、todo 均存在且非空；重新执行 AC validator 得到 5 IR / 10 AC、exit 0，设计审视批准且无 blocker。将获批设计复核并排序为 7 个 T0~T3 任务，确认 AC-001~010、Developer/Tester 验证层级和依赖关键路径全覆盖。仅更新 `tasks.md` 与 `todo.md`；未修改产品/测试源码，未运行 APPLYING、测试、构建或 lint，未提交、推送、审批或归档。
 - 2026-10-24：Task 42 仅执行 MigBot IMPLEMENTING。逐项核验 proposal、delta-spec、acceptance-criteria、info、new-arch、FMEA、delta-design、design-review、todo 均存在且非空；重新执行 AC validator 得到 5 IR / 10 AC、exit 0，设计审视批准且无 blocker。将获批设计分解并排序为 7 个 T0~T3 任务，补齐 AC→Task→验证责任并将 TDD 标记重置为待执行。未修改产品/测试源码，未运行 APPLYING、测试、构建或 lint，未提交、推送、审批或归档。
 - 2026-10-24：Task 42 仅执行 MigBot PLANNING。在分支 `agent/pull_request-49-task-42`、HEAD `49054a10f21f83f1f46a538df6d097dd32f87681` 复用有效初始化并确认产品意图仍为新增功能；依序复核 IR-45-R1~R5、授权式普通歧义、3 场景/6 UC/5 SR/FMEA、实际代码约定、复杂度 M、架构和 D1~D10。AC validator 为 5 IR / 10 AC、exit 0，独立设计审视批准。未创建或修改 `tasks.md`，未修改产品/测试源码，未运行构建/测试/lint，未提交、推送、审批或归档。
@@ -346,3 +347,65 @@ IMPLEMENTING — completed（Task 45，2026-10-24）。已消费获批的 Task 4
 | Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
 
 **Task 45 APPLYING 判定：completed。仅执行 APPLYING；未执行 ARCHIVING、审批或合并。**
+
+#### 2026-10-24 Task 48 PLANNING 独立执行步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase PLANNING Step 1: 用户意图理解 | ✅ 已完成（Issue 产品意图=新增功能；payload bugfix=过程证据补正） | 2026-10-24 |
+| Phase PLANNING Step 1.1: Git 分支检查 | ✅ 已完成（独立非主分支；HEAD 4224f027） | 2026-10-24 |
+| Phase PLANNING Step 2: 需求理解 (rq-parse) | ✅ 已完成（IR-45-R1~R5） | 2026-10-24 |
+| Phase PLANNING Step 3: 需求澄清 (rq-clarify) | ✅ 已完成（assignment 授权自主采用安全、可逆、Issue 内默认） | 2026-10-24 |
+| Phase PLANNING Step 4: 需求spec设计 | ✅ 已完成（5 IR / 10 AC） | 2026-10-24 |
+| Phase PLANNING Step 4.1: 场景与用例设计 | ✅ 已完成（SC-001~003 / 6 UC） | 2026-10-24 |
+| Phase PLANNING Step 4.2: AC Quality Gate 与 FMEA/SR 追溯 | ✅ 已完成（validator exit 0；CM-01~06） | 2026-10-24 |
+| Phase PLANNING Step 5: 代码仓理解 (rq-codebase) | ✅ 已完成（只读 assigned HEAD 4224f027） | 2026-10-24 |
+| Phase PLANNING Step 6: 需求复杂度评估 | ✅ 已完成（M；4 个关注模块；entry 内部架构边界） | 2026-10-24 |
+| Phase PLANNING Step 7: 架构设计 | ✅ 已完成（new-arch 复核；无权限/部署扩张） | 2026-10-24 |
+| Phase PLANNING Step 8: 组件设计 (mod-design) | ✅ 已完成（D1~D10 自验证） | 2026-10-24 |
+| Phase PLANNING Step 9: 设计审视 | ✅ 已完成（批准） | 2026-10-24 |
+| Phase PLANNING Step 9.1: 完整性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2: 一致性与独立 AC 检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.2.1: AC 独立质量门禁 | ✅ 已完成（5 IR / 10 AC，语义复审通过） | 2026-10-24 |
+| Phase PLANNING Step 9.3: 规范性检查 | ✅ 已完成 | 2026-10-24 |
+| Phase PLANNING Step 9.4: 产出审视报告 | ✅ 已完成 | 2026-10-24 |
+
+**Task 48 PLANNING 判定：completed。仅刷新 Planning 制品；未创建或修改 `tasks.md`，未进入 IMPLEMENTING/APPLYING/ARCHIVING。**
+
+#### 2026-10-24 Task 48 IMPLEMENTING 独立执行步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase IMPLEMENTING Step 2.1: 任务分解 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.1: 阅读设计文档 | ✅ 已完成（9 项 Planning 输入均存在且非空） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.2: 识别代码组件 | ✅ 已完成（模型、converter、状态操作、页面、测试聚合） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.1.3: 拆分为最小可开发任务 | ✅ 已完成（7 项，每项 1–2 小时） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2: 任务排序 | ✅ 已完成 | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.1: 确定任务依赖关系 | ✅ 已完成（T0→T1→T2→T3） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.2.2: 制定开发顺序 | ✅ 已完成（7 项关键路径明确） | 2026-10-24 |
+| Phase IMPLEMENTING Step 2.3: 产出 tasks.md | ✅ 已完成（AC-001~010 全覆盖） | 2026-10-24 |
+
+**Task 48 IMPLEMENTING 判定：completed。仅刷新 `tasks.md` 与 `todo.md`；等待独立 APPLYING 阶段闸门。**
+
+#### 2026-10-24 Task 48 APPLYING 独立执行步骤
+
+| 步骤 | 状态 | 完成时间 |
+|------|------|----------|
+| Phase APPLYING Step 3.0: 环境检查 | ✅ 已完成（HarmonyOS/Hvigor 6.24.2） | 2026-10-24 |
+| Phase APPLYING Step 3.0.1: 检测项目类型 | ✅ 已完成（HarmonyOS/Hvigor） | 2026-10-24 |
+| Phase APPLYING Step 3.0.2: 检查编译环境 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.0.3: 尝试编译项目 | ✅ 已完成（BUILD SUCCESSFUL） | 2026-10-24 |
+| Phase APPLYING Step 3.0.4: 检查测试环境 | ✅ 已完成（锁定依赖已安装） | 2026-10-24 |
+| Phase APPLYING Step 3.0.5: 环境问题处理 | ✅ 已完成（隔离 Hvigor/CodeLinter home） | 2026-10-24 |
+| Phase APPLYING Step 3.1: 确认应用条件 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.1.1: 确认编码准备就绪 | ✅ 已完成（7 项任务、设计批准） | 2026-10-24 |
+| Phase APPLYING Step 3.1.2: 检查代码质量 | ✅ 已完成（build/lint 通过） | 2026-10-24 |
+| Phase APPLYING Step 3.2: 代码应用 | ✅ 已完成（tdd-enforcer） | 2026-10-24 |
+| Phase APPLYING Step 3.2.1: 七任务 RED-GREEN-REFACTOR | ✅ 已完成（RED 13 expected failures；GREEN/REFACTOR 71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.2: 运行全量测试 | ✅ 已完成（71/71） | 2026-10-24 |
+| Phase APPLYING Step 3.2.3: 执行 lint 检查 | ✅ 已完成（0 error / 127 warning / 0 suggestion） | 2026-10-24 |
+| Phase APPLYING Step 3.2.4: 执行集成测试 | ✅ 已完成（真实 HAP 构建；设备视觉交 Tester） | 2026-10-24 |
+| Phase APPLYING Step 3.3: 更新任务状态 | ✅ 已完成 | 2026-10-24 |
+| Phase APPLYING Step 3.4: 产出应用报告 | ✅ 已完成 | 2026-10-24 |
+
+**Task 48 APPLYING 判定：completed。仅执行 APPLYING；未执行 ARCHIVING、审批或合并。**
