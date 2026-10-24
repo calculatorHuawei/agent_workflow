@@ -64,9 +64,9 @@ IR-45-R5 兼容测试 → SC001-UC001 → SR-04 → AR-04/05
 - 超长/超范围输入早停，纯内存 O(n)，无主线程 IO。
 
 ### 5.4 可实现性
-- 当前 SDK API 声明存在 `bigint`，但 ArkTS 产品源码语法仍标记为实施验证项。
-- 若 `bigint` 源语法不可用，设计已提供接口不变的精确字符串算法回退；不允许退化为 `number`。
-- 现有 Hypium 测试聚合入口和主题/布局惯例可复用。
+- 精确转换默认使用十进制字符串乘加/比较/长除，不依赖 `bigint` 源语法，也不允许退化为浮点 `number`。
+- `ProgrammerOperationResult` 采用单一 `error` 枚举表达结果状态，避免额外 `accepted` 布尔值形成双真源。
+- 现有 Hypium 测试聚合入口、程序员套件和主题/布局惯例可复用。
 
 ## 6. 审视中发现并已修正的问题
 | # | 问题 | 级别 | 修正 |
@@ -74,11 +74,13 @@ IR-45-R5 兼容测试 → SC001-UC001 → SR-04 → AR-04/05
 | 1 | 早期草稿把普通范围歧义误标为 blocker 并等待人工确认 | 中 | 按 worker authorization 自动选择 U64 非负与隔离草稿并记录 rationale |
 | 2 | 设计错误模型的内部异常行与枚举图不一致 | 低 | 在 spec 状态和 design enum/state machine 中统一增加 `INTERNAL` 兜底 |
 | 3 | 历史增强草案包含位运算，可能扩大当前 Issue | 中 | 明确排除位运算/表达式/补码/字长，当前 Issue 优先 |
+| 4 | 旧设计要求 `accepted` 字段，但实际模型与测试以 `ProgrammerError` 为唯一判定 | 中 | 将接口设计校正为 `state + error`，保持失败原子性且消除双真源 |
+| 5 | 旧 `info.md` 记录了父提交和实现前测试聚合状态 | 中 | 更新为 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c`，确认 `List.test.ets` 已注册两个套件 |
 
 ## 7. 遗留问题与非阻塞风险
 | 风险 | 状态 | 后续门禁 |
 |------|------|----------|
-| ArkTS 编译器是否接受计划的 `bigint` 源语法 | 非阻塞实施验证 | APPLYING 先做最小编译 + MAX/MAX+1 单测；失败采用精确字符串算法 |
+| 精确字符串算法未来被误改为浮点路径 | 非阻塞维护风险 | 保留 MAX/MAX+1、四进制往返和受控回归门禁 |
 | 动画无闪烁与横竖屏触控尺寸 | 需设备/模拟器证据 | Tester 阶段执行 UI 测试；Developer 不提前声称覆盖 |
 | `CalculatorPage` 已较大 | 可控维护性风险 | 转换算法必须放 `programmer/`，页面只做编排/Builders |
 
@@ -106,3 +108,16 @@ IR-45-R5 兼容测试 → SC001-UC001 → SR-04 → AR-04/05
 | 本次阶段边界 | 通过 | 未触碰产品源码、`tasks.md`、提交、推送、PR、归档或外部系统状态 |
 
 Reviewer 指出的旧 run manifest 缺少 session source/snapshot/hash 属于外层证据保存问题，无法通过伪造历史记录修复。本次采用真实、独立的 PLANNING 执行重新生成可由 orchestrator 捕获的过程，并只更新规划制品；无阻塞条件。
+
+## 10. Task 33 最终审视
+
+| 检查项 | 结果 | 依据 |
+|--------|------|------|
+| 精确基线 | 通过 | 当前分支 `agent/pull_request-49-task-33`，HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` |
+| proposal → spec | 通过 | F1~F5、R1~R5 与 IR-45-R1~R5 一致，普通歧义均有假设和 rationale |
+| spec → architecture/design | 通过 | 6 个 UC、5 个 SR、5 个 AR 及 CM-01~05 闭合追溯 |
+| codebase → design | 通过 | 单 entry HAP、V1 `@State`、字符串精确算法、`state + error` 契约、180ms/4vp 过渡一致 |
+| 最小权限与兼容 | 通过 | 无新增权限、网络、依赖、持久化、路由或部署模块；普通链路不变 |
+| 阶段边界 | 通过 | 只更新 Planning 制品；未修改 `tasks.md`、产品源码，未实施、测试、提交、推送或归档 |
+
+**最终判定：批准，PLANNING 完成并可供后续阶段消费；本次在此停止。**

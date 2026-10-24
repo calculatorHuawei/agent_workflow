@@ -87,3 +87,14 @@ APPLYING 已完成。本次按指令不执行归档或审批；后续仅在独�
 - REFACTOR：复核共享业务边界、纯函数状态更新与 UI 编排未需额外改动；保持同一绿色实现，真实 `opencalc/build-test.bat` 输出 `BUILD SUCCESSFUL`，DevEco CodeLinter 以 error 门禁退出 0（0 error，127 warning）。
 - 环境修复：首次 Local Test 因 `@ohos/hypium` 未安装而编译失败，不计作 RED；按 local-test 指引执行 `ohpm install --all` 后重跑。共享 hvigor daemon 一次超时，改用隔离 `HVIGOR_USER_HOME` 与 `--no-daemon` 后成功。
 - 阶段边界：仅完成 APPLYING；未归档、未审批。
+
+## 2026-10-24 Task 33 APPLYING 认证运行
+
+- 前置核验：Planning checkpoint 与 Implementing checkpoint 均为 `completed`；proposal、delta-spec、info、new-arch、FMEA、delta-design、design-review、todo 和 tasks 均存在且非空，design-review 结论为批准且无 blocker。
+- 环境：HarmonyOS/Hvigor 项目；Hvigor `6.24.2`。共享 daemon 预检查未继续输出，因此权威命令统一使用 `HVIGOR_USER_HOME=D:\huawei\Demo\calculatorHuawei\.agent-runtime\hvigor-home-task-33` 与 `--no-daemon`。首次 Local Test 因 `@ohos/hypium` 未安装而编译失败，不计作 RED；`ohpm install --all` 后恢复。
+- RED：对 Task 1.1、1.2、2.1、3.1、3.2、3.3、4.1 的转换输出、长度门禁、失败原子性、模式选择、展示映射、键盘启停和不支持进制门禁实施受控可逆行为变异。权威 `test_result.txt` 为 71 run / 56 pass / 15 expected failures / 0 errors。
+- GREEN：精确撤销全部变异，并以 `git diff --exit-code` 证明产品转换器恢复到继承 HEAD；全量 Local Test 为 71 run / 71 pass / 0 failure / 0 error。
+- REFACTOR：复核精确字符串算法、不可变状态边界、展示辅助函数和页面编排后无需额外产品代码调整；最终 `assembleHap` 为 `BUILD SUCCESSFUL`，CodeLinter 退出 0，0 error / 127 warning / 0 suggestion。
+- 源码完整性：Task 33 没有永久修改产品源码；本次提交仅承接已认证的 Planning/Implementing 制品更新，并增加 APPLYING 状态与命令日志。
+- 日志：`logs/test-red-task33.txt`、`logs/test-result-red-task33.txt`、`logs/test-final-task33.txt`、`logs/test-result-final-task33.txt`、`logs/build-final-task33.txt`、`logs/codelinter-final-task33.json`。
+- 阶段边界：仅执行 APPLYING；未执行 ARCHIVING、审批或合并。

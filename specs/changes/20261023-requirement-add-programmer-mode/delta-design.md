@@ -15,7 +15,7 @@
 - 框架：ArkTS、Stage 模型、ArkUI 声明式 UI，HarmonyOS API 12。
 - 状态管理：V1 `@State`；所有程序员操作返回新对象并整体赋值，避免嵌套对象变更不可观察。
 - 系统 Kit：沿用 `@kit.ArkUI`、`@kit.AbilityKit`、`@kit.ArkData`；本功能不新增 Kit。
-- 精确整数：内部优先使用 ArkTS `bigint`；若实施编译验证失败，替换为精确字符串进制算法，外部接口不变。[推断]
+- 精确整数：采用十进制字符串乘加、比较与长除法；不依赖 `bigint` 源语法，也不允许经浮点 `number` 中转。
 - Native/HAR/HSP/OHPM：无新增。
 
 ## 2. 功能清单
@@ -200,7 +200,7 @@ export class ProgrammerConverter {
   static changeRadix(state: ProgrammerState, target: Radix): ProgrammerOperationResult
 }
 ```
-`ProgrammerOperationResult` 必须同时包含 `accepted: boolean`、`state: ProgrammerState`；失败时 state 的有效数据与入参一致，仅 error/feedback 可更新。为避免 ArkTS 复杂联合类型限制，优先使用显式 interface + enum。[推断]
+`ProgrammerOperationResult` 包含 `state: ProgrammerState` 与 `error: ProgrammerError`。调用方以 `error === ProgrammerError.NONE` 判断成功；失败时保留入参的有效 `radix/input/result`，仅把结构化错误写入返回状态。该显式 interface + enum 契约避免额外布尔字段与错误枚举产生双真源。
 
 #### 3.5.7 状态管理设计
 ```plantuml
@@ -225,9 +225,9 @@ INTERNAL --> EMPTY : clear
 #### 3.5.8 核心算法
 1. 空字符串直接返回 EMPTY，不解析。
 2. 逐字符映射为 0..15，任一 digit ≥ radix 返回 INVALID_DIGIT。
-3. 使用 `bigint` 累积 `value = value * base + digit`，每步比较 `U64_MAX` 可早停；复杂度 O(n)，额外空间 O(1)。[推断]
-4. 使用精确值的 `toString(2/8/10/16).toUpperCase()` 输出四种表示。[推断]
-5. 若 ArkTS 编译器拒绝上述源码能力，保持接口与测试不变，内部改用十六进制/二进制中间表示和字符串长除法；禁止 `number` 降级。
+3. 逐位执行十进制字符串 `decimal = decimal * base + digit`，每步与 `U64_MAX_DEC` 做长度/字典序比较并早停；不把完整 U64 放入 `number`。
+4. 对精确十进制字符串反复执行小基数长除，生成 BIN/OCT/HEX；DEC 直接规范化。单步只处理安全的小整数 digit/carry。
+5. 输入位数先按 radix 做上限门禁，整体复杂度受 U64 最大 64 个二进制字符约束；任何未来算法替换必须保持接口和全部边界测试不变。
 
 #### 3.5.9 错误处理
 | 错误 | 触发 | UI 文案 | 状态策略 |
@@ -267,7 +267,7 @@ CalculatorPage -> CalculatorPage : synchronous mode assignment
 CalculatorPage -> ArkUI : state invalidation + 180ms transition
 User -> CalculatorPage : digit/radix event
 CalculatorPage -> ProgrammerConverter : immutable operation(currentState,...)
-ProgrammerConverter --> CalculatorPage : accepted + complete new state / error
+ProgrammerConverter --> CalculatorPage : complete state + error enum
 CalculatorPage -> ArkUI : assign programmerState
 @enduml
 ```
@@ -278,11 +278,11 @@ CalculatorPage -> ArkUI : assign programmerState
 #### 3.6.6 接口设计
 页面私有 handler：
 ```typescript
-private onCalculatorModeChange(mode: CalculatorMode): void
+private onCalculatorMode(mode: CalculatorMode): void
 private onProgrammerDigit(digit: string): void
 private onProgrammerBackspace(): void
 private onProgrammerClear(): void
-private onProgrammerRadixChange(radix: Radix): void
+private onProgrammerRadix(radix: Radix): void
 ```
 
 Builders：`ModeSwitchBar`、`ProgrammerPanel`、`ProgrammerResults`、`ProgrammerRadixRow`、`ProgrammerKeypad`、`ProgrammerDigitKey`。
@@ -291,7 +291,7 @@ Builders：`ModeSwitchBar`、`ProgrammerPanel`、`ProgrammerResults`、`Programm
 新增：
 ```typescript
 @State calculatorMode: CalculatorMode = CalculatorMode.NORMAL
-@State programmerState: ProgrammerState = initialProgrammerState()
+@State programmerState: ProgrammerState = ProgrammerConverter.initialState()
 ```
 既有 `expression/result/errorMsg/history/scientific/...` 不重命名、不复用。模式变更不得调用普通 `onAC()`。
 
@@ -299,7 +299,7 @@ Builders：`ModeSwitchBar`、`ProgrammerPanel`、`ProgrammerResults`、`Programm
 无复杂算法；handler 调用业务组件。键启停通过 `isDigitAllowed(label, radix)` 计算，禁用键不绑定有效提交事件或显式 `enabled(false)`。[推断]
 
 #### 3.6.9 错误处理
-操作结果 `accepted=false` 时保留 `input/result/radix`，只展示对应错误；AC/合法输入清除错误。快速切换通过同步幂等状态避免重入异常。
+操作结果 `error !== ProgrammerError.NONE` 时保留最后有效的 `input/result/radix`（EMPTY 的清空语义除外），只更新对应错误；AC/合法输入清除错误。快速切换通过同步幂等状态避免重入异常。
 
 #### 3.6.10 依赖关系
 新增依赖 `ProgrammerConverter` 与 Models 类型；继续依赖现有主题、Preferences、普通引擎和 plot 组件。
@@ -310,7 +310,7 @@ Builders：`ModeSwitchBar`、`ProgrammerPanel`、`ProgrammerResults`、`Programm
 无新增持久化 API；`PreferencesStore` 保持原样。
 
 ### 4.2 业务抽象接口
-见 §3.5.6。接口对 entry 内部导出，返回字符串表示而非暴露可变 `bigint` 状态，减少 UI 与实现细节耦合。
+见 §3.5.6。接口对 entry 内部导出，只暴露字符串表示和结构化错误，不暴露内部十进制字符串运算细节，减少 UI 与算法耦合。
 
 ### 4.3 后台任务与 ExtensionAbility 接口
 无相关实现。
@@ -493,4 +493,4 @@ end note
 
 ## 13. 2026-10-24 PLANNING 设计复核
 
-本次重新以 `proposal.md`、`delta-spec.md` 和 `info.md` 为输入执行 `mod-design` 自验证。D1~D10、AR↔SR↔UC 追溯和验收门禁仍完整，无需改变接口或模块边界。精确字符串乘加/长除实现属于 §1.3、§3.5.8 已定义的 `bigint` 不适配时回退方案，维持同一契约且避免 U64 精度退化。Reviewer 的 changes-requested 仅要求补齐可审计过程证据，不构成设计变更来源；本次不修改产品源码或 `tasks.md`。
+本次重新以 `proposal.md`、`delta-spec.md` 和 `info.md` 为输入执行 `mod-design` 自验证。D1~D10、AR↔SR↔UC 追溯和验收门禁仍完整，组件边界不变。结合 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 的仓库约定，设计将精确字符串乘加/长除从候选回退提升为默认算法，并把操作结果契约校正为 `state + error`，消除未落地的 `accepted` 双真源；这些修正保持全部外部行为和验收标准不变。Reviewer 的 changes-requested 仅要求补齐可审计过程证据；本次不修改产品源码或 `tasks.md`。

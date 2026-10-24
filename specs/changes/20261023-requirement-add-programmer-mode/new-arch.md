@@ -93,7 +93,7 @@ mode event → synchronous CalculatorMode update → ArkUI transition
 
 **实现要点**：
 - 成功返回四行完整结果，失败返回结构化错误，不把异常抛给 UI。
-- 禁止用 `number` 中转 U64；优先 `bigint`，编译不可用时使用字符串长除法等精确算法。
+- 禁止用 `number` 中转 U64；采用十进制字符串乘加、比较和长除法，避免 SDK 源语法依赖并保证 U64 全范围精确。
 - 输出大写、无前缀、无多余前导零。
 
 ### 4.2 扩展主页面模式与程序员 UI
@@ -173,3 +173,7 @@ mode event → synchronous CalculatorMode update → ArkUI transition
 - `delta-spec.md`
 - `info.md`
 - Issue #45
+
+### 7.3 Task 33 架构复核
+
+在精确 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 上复核后，架构仍为单 entry HAP、单主页面、独立纯业务 converter。无需新增模块、权限、依赖、路由、持久化或迁移；本次仅修正规划文字中的精确算法默认值，不改变组件边界。

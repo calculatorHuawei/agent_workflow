@@ -10,6 +10,7 @@
 - 开发阶段：T0 精确转换 → T1 不可变状态操作 → T2 页面集成 → T3 回归与交接
 - 预计任务数：7
 - 任务颗粒度：每项预计 1–2 小时，均在 APPLYING 阶段按 RED → GREEN → REFACTOR 执行
+- 本次分解基线：Task 33 PLANNING checkpoint（HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c`，设计审视已批准）
 
 ## Planning 制品核验
 
@@ -200,4 +201,4 @@ Task 1.1 → Task 1.2 → Task 2.1 → Task 3.1 → Task 3.2 → Task 3.3 → Ta
 
 ## 阶段边界
 
-本文件仅完成 IMPLEMENTING 任务分解与排序。本阶段不修改产品源码、不运行测试或构建、不进入 APPLYING、不提交、不推送、不归档。
+Task 33 的 IMPLEMENTING 任务分解与排序已由本次独立 APPLYING 阶段消费。七项 TDD 标记均由受控 RED、精确恢复 GREEN 和 REFACTOR 审视的真实命令证据支持；Task 33 未永久修改产品源码，未进入 ARCHIVING 或审批。

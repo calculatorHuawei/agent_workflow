@@ -3,7 +3,7 @@
 ## 1. 基本信息
 - **需求类别**：新增功能；当前产品不存在程序员模式，Issue #45 要求新增独立能力。
 - **需求名称**：程序员模式与 BIN/OCT/DEC/HEX 转换。
-- **分析时间**：2026-10-23。
+- **分析时间**：2026-10-24（Task 33 PLANNING 复核）。
 - **分析范围**：`opencalc/entry` 主页面、计算逻辑、模型、偏好、构建与本地测试。
 - **重点分析类别**：架构与约束、公共组件、接口契约、影响范围、构建集成、风险与测试。
 - **约束边界**：仅规划；未修改产品源码、构建配置或测试源码。
@@ -25,6 +25,7 @@ OpenCalc (single entry HAP)
 ├── calculator/
 ├── model/
 ├── plot/
+├── programmer/ProgrammerConverter.ets
 └── preferences/
 ```
 
@@ -33,16 +34,16 @@ OpenCalc (single entry HAP)
 ### 2.2 核心模块职责
 | 模块 | 位置 | 当前职责 | 与本需求关系 |
 |------|------|----------|--------------|
-| `CalculatorPage` | `entry/src/main/ets/pages/CalculatorPage.ets` | 普通/科学计算 UI、历史、设置、绘图覆盖层、主题与横竖屏 | 修改：增加应用模式状态和程序员面板 |
+| `CalculatorPage` | `entry/src/main/ets/pages/CalculatorPage.ets` | 普通/科学计算 UI、历史、设置、绘图，以及已集成的模式切换和程序员面板 | 规划边界：程序员状态继续与普通状态隔离 |
 | `CalcEngine` | `calculator/Calculator.ets` | 基于 `number` 的递归下降表达式求值 | 保持不变；不适合作为 U64 转换核心 |
 | `Expression` | `calculator/Expression.ets` | 普通表达式清理/转换 | 保持不变；本期不支持程序员表达式 |
 | `NumberFormatter` | `calculator/NumberFormatter.ets` | 十进制结果分组/格式化 | 保持不变；它服务浮点/十进制显示，不承担多进制 U64 |
-| `Models` | `model/Models.ets` | 错误、编号体系、科学模式、历史、偏好模型 | 扩展模式/进制/结果/错误类型时须保持既有字段兼容 |
+| `Models` | `model/Models.ets` | 错误、编号体系、科学模式、历史、偏好及程序员模式类型 | 规划边界：既有字段和程序员契约保持兼容 |
 | `PreferencesStore` | `preferences/PreferencesStore.ets` | 主题、振动、历史等 Preferences 读写 | 不修改 schema；模式切换不得触发历史清空 |
 | `FunctionPlotter/PlotAxis` | `plot/` | 函数采样、分段、坐标轴布局 | 不涉及；回归范围 |
 
 ### 2.3 扩展点与推荐落点
-现有目录惯例按领域拆分纯业务代码。推荐新建 `entry/src/main/ets/programmer/ProgrammerConverter.ets`，把校验和转换与页面/浮点引擎隔离；页面只负责状态和呈现。无需新模块或新路由。
+现有目录惯例按领域拆分纯业务代码；当前 HEAD 已将精确校验/转换落在 `entry/src/main/ets/programmer/ProgrammerConverter.ets`，与页面和浮点引擎隔离。该落点符合规划约束，页面只负责状态和呈现，无需新模块或新路由。
 
 ## 3. 接口与契约
 
@@ -82,14 +83,14 @@ OpenCalc (single entry HAP)
 - **OHPM 依赖**：产品依赖为空；本地测试使用 `@ohos/hypium 1.0.15`，根 devDependency 另有 `@ohos/hamock`。
 - **权限**：仅既有 `ohos.permission.VIBRATE`；本需求不新增权限。
 - **规划后验证命令**：构建使用仓库约定 `opencalc/build-test.bat` 或等价 `hvigorw assembleHap`；本地 Hypium 使用 worker 约定 `hvigorw --mode module -p module=entry@default test`，不是旧文档中的 `test@entry`。
-- **测试聚合**：`entry/src/test/List.test.ets` 目前仅注册 `PlotFunction.test`；后续实现需注册新的程序员转换套件。
+- **测试聚合**：`entry/src/test/List.test.ets` 同时注册 `PlotFunction.test` 与 `ProgrammerConverter.test`，沿用单一 Hypium 聚合入口。
 
 ## 5. 影响范围
 | 模块/文件 | 影响内容 | 风险 |
 |-----------|----------|------|
 | `pages/CalculatorPage.ets` | 新增模式、程序员状态、Builders 与动画 | 文件已较大（约 32KB），需限制新增职责，防止状态交叉 |
 | `model/Models.ets` | 新增枚举/接口，不改既有类型字段 | 命名冲突或对现有 import 造成非预期影响 |
-| `programmer/ProgrammerConverter.ets`（新） | U64 业务逻辑 | ArkTS `bigint` 语法/编译约束、边界精度 |
+| `programmer/ProgrammerConverter.ets` | U64 字符串精确算法与状态操作 | 需保持边界精度、错误原子性和纯同步契约 |
 | `entry/src/test` | 新套件与聚合注册 | 测试任务/ArkTS 语法与产品编译差异 |
 | `PreferencesStore.ets` | 原则上不修改 | 若错误复用会导致不必要持久化或历史覆盖 |
 | `calculator/`、`plot/` | 不修改，仅回归 | 模式条件若包裹错误会隐藏或破坏既有入口 |
@@ -127,12 +128,12 @@ Programmer key/radix event
 不建议复用：`CalcEngine`、`Expression` 和 `NumberFormatter` 的 `number` 路径，因为其语义是十进制浮点表达式而非 U64 进制转换。
 
 ## 8. 关键实现现状
-- `CalculatorPage` 的模式概念当前只有 `scientific: boolean`，它控制附加科学按键，不是独立应用模式。
-- 普通输入由 `onDigit/onOp/...` 直接拼接 `expression`；等号后调用 `Expression → CalcEngine → NumberFormatter`，并把结果写入历史。
+- `CalculatorPage` 同时持有 `calculatorMode` 与既有 `scientific`；前者控制普通/程序员分支，后者仍只控制普通计算的附加科学按键，两者职责分离。
+- 普通输入仍由 `onDigit/onOp/...` 直接拼接 `expression`；等号后调用 `Expression → CalcEngine → NumberFormatter` 并写入历史，程序员链路不复用或重置这些字段。
 - 历史保存在 Preferences 的单个 JSON 字符串 `history` 中；损坏时返回空数组。模式切换无需触碰它。
 - 横屏在 `onAreaChange` 中自动开启科学模式；程序员模式设计必须明确与此既有行为隔离。
-- 页面已有函数绘图全屏覆盖层，证明同页分支可保持主计算状态；但程序员模式是核心模式分支，宜由显式 `CalculatorMode` 控制。
-- 当前 SDK 的 API 声明多处使用 `bigint`，表明类型能力存在；具体 ArkTS 源码字面量/构造语法仍必须在 APPLYING 编译验证。
+- 页面已有函数绘图全屏覆盖层；程序员模式使用显式 `CalculatorMode` 和同页分支，避免路由生命周期重建。
+- `ProgrammerConverter` 采用十进制字符串乘加、比较和长除法，不依赖 `bigint` 源语法，也不经浮点 `number` 中转；这是当前仓库已验证且最小风险的精确路径。
 
 ### 边界条件
 - 十六进制大小写：UI 仅大写，防御入口可规范化小写。
@@ -145,7 +146,7 @@ Programmer key/radix event
 | 风险 | 缓解 | 测试策略 |
 |------|------|----------|
 | U64 被 `number` 舍入 | 独立精确算法与代码评审禁则 | MAX、MAX-1、MAX+1，跨进制往返 |
-| ArkTS `bigint` 源语法不兼容 | 编译先行；必要时精确字符串算法 | 最小编译探针 + 全转换套件 |
+| 精确字符串算法被误改为浮点路径 | 保持算法禁则与 U64 契约 | MAX、MAX+1、四进制往返与受控回归测试 |
 | UI 禁用规则与业务规则漂移 | 共用 `isDigitAllowed` | 各 radix 合法/非法字符矩阵 |
 | 多个 `@State` 部分更新 | 操作返回单一状态对象或严格原子赋值顺序 | 失败前后状态深度比较 |
 | 快速动画重入 | 同步幂等 mode 状态，动画不提交业务 | 180ms 内连续切换序列 |
@@ -176,7 +177,7 @@ Programmer key/radix event
 
 ## 11. 2026-10-24 精确 HEAD 复核
 
-本次在 PR #49 的精确 HEAD `8e633ce5a1af269ba986b6ef9e8df4211c9bde8e` 上重新执行 `rq-codebase`。由于该 HEAD 已包含上一轮实现，现状检查仅作为设计一致性证据，不授权或产生产品源码改动：
+本次在 PR #49 的精确 HEAD `17b7145dcbbc418580d2370008dba6c2f5b6d19c` 上重新执行 `rq-codebase`。该 HEAD 已包含上一轮实现，现状检查仅作为设计一致性证据，不授权或产生产品源码改动：
 
 | 规划约束 | 当前代码证据 | 结论 |
 |----------|--------------|------|
