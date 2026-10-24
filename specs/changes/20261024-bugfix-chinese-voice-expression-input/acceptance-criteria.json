@@ -1,0 +1,294 @@
+{
+  "version": "1.0",
+  "source_requirements": [
+    { "id": "IR-001", "text": "普通计算模式提供语音入口，并明确展示监听中、识别中、成功和失败状态。" },
+    { "id": "IR-002", "text": "首次使用按 HarmonyOS 规范申请麦克风权限；拒绝后不录音、不崩溃，并提供说明和重试。" },
+    { "id": "IR-003", "text": "将中文加减乘除和符号 +、-、×、÷ 规范化为现有计算引擎支持的运算符。" },
+    { "id": "IR-004", "text": "支持口述阿拉伯数字、常见中文数字和小数，并安全拒绝歧义表达。" },
+    { "id": "IR-005", "text": "识别成功后保留可见识别文本，自动填入规范化算式并计算结果。" },
+    { "id": "IR-006", "text": "无结果、歧义、除零、服务不可用或录音中断时显示明确错误，且不覆盖语音前的算式。" },
+    { "id": "IR-007", "text": "监听期间可见且支持取消；取消立即停止本轮输入并且不产生计算结果。" },
+    { "id": "IR-008", "text": "语音有效计算复用手动输入计算逻辑，并按现有规则恰好写入一条历史记录。" },
+    { "id": "IR-009", "text": "Tester 可注入或模拟识别结果独立验证解析和 UI，并在具备麦克风的环境补充端到端证据。" }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-001", "title": "语音会话状态完整可见", "source_requirement_ids": ["IR-001"], "category": "normal", "level": "feature",
+      "given": ["用户位于普通计算模式且语音状态为空闲", "麦克风权限已授予且识别服务可用"],
+      "when": ["用户点击麦克风并说出一个可识别算式"],
+      "then": ["界面先显示监听中，再显示识别中", "最终显示成功状态；每个状态对应的操作控件同步更新"],
+      "observable": { "type": "ui_state", "target": "麦克风入口、语音状态文本和取消/重试控件" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "ordered_states", "expected": ["listening", "recognizing", "success"] },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS UI", "microphone", "CoreSpeechKit"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-002", "title": "麦克风权限拒绝和重试", "source_requirement_ids": ["IR-002"], "category": "recovery", "level": "feature",
+      "given": ["应用尚未获得麦克风权限", "当前表达式为 12+3"],
+      "when": ["用户点击麦克风并在系统权限框选择拒绝，随后点击界面重试入口"],
+      "then": ["拒绝后不进入监听且显示权限用途说明和重试入口", "表达式仍为 12+3；重试只重新发起授权流程，不后台持续请求或录音"],
+      "observable": { "type": "ui_state", "target": "权限说明、重试入口、语音状态和表达式" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "state_predicate", "expected": { "state": "permissionDenied", "expression": "12+3", "recording": false, "retryVisible": true } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS permission dialog", "microphone permission"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-003", "title": "八种运算词符号规范化", "source_requirement_ids": ["IR-003"], "category": "normal", "level": "feature",
+      "given": ["可注入识别结果已启用", "每次会话输入两个有效数值"],
+      "when": ["分别注入 加、减、乘、除、+、-、×、÷ 作为二元运算符"],
+      "then": ["界面分别显示使用 +、-、*、/ 的等价规范化表达式", "每个表达式均由既有计算引擎得到对应结果"],
+      "observable": { "type": "ui_text", "target": "规范化表达式和计算结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact_table", "expected": { "1加2": "1+2", "3减2": "3-2", "2乘3": "2*3", "8除4": "8/4", "1+2": "1+2", "3-2": "3-2", "2×3": "2*3", "8÷4": "8/4" } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-004", "title": "阿拉伯与中文整数计算", "source_requirement_ids": ["IR-004"], "category": "normal", "level": "feature",
+      "given": ["语音解析器处于空闲且使用严格二元四则语法"],
+      "when": ["依次注入 123加456、二十乘三、一百零二减两"],
+      "then": ["规范化表达式依次为 123+456、20*3、102-2", "结果依次为 579、60、100"],
+      "observable": { "type": "ui_text", "target": "识别文本、规范化表达式和结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact_table", "expected": { "123加456": ["123+456", "579"], "二十乘三": ["20*3", "60"], "一百零二减两": ["102-2", "100"] } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-005", "title": "中文小数计算", "source_requirement_ids": ["IR-004"], "category": "boundary", "level": "feature",
+      "given": ["可注入识别结果已启用"],
+      "when": ["注入 十点五减二点五"],
+      "then": ["规范化表达式显示 10.5-2.5", "结果显示 8"],
+      "observable": { "type": "ui_text", "target": "规范化小数表达式和结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "expression": "10.5-2.5", "result": "8" } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-006", "title": "歧义或非法语法拒绝", "source_requirement_ids": ["IR-004", "IR-006"], "category": "exception", "level": "feature",
+      "given": ["语音开始前表达式为 7*8", "历史记录数量为 N"],
+      "when": ["分别注入缺操作数、多运算链、未知词或多小数点的文本"],
+      "then": ["每次显示 无法理解该算式 或等价明确错误", "表达式保持 7*8、结果不被新值覆盖且历史仍为 N"],
+      "observable": { "type": "ui_state", "target": "错误文本、表达式、结果和历史列表" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "invariant", "expected": { "expression": "7*8", "historyDelta": 0, "state": "error" } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-007", "title": "有效识别展示并自动计算", "source_requirement_ids": ["IR-005", "IR-008"], "category": "normal", "level": "feature",
+      "given": ["用户位于普通计算模式", "可注入识别结果已启用"],
+      "when": ["注入最终识别文本 123加456"],
+      "then": ["可见识别文本为 123加456", "表达式显示 123+456、结果显示 579，并使用现有数字格式规则"],
+      "observable": { "type": "ui_text", "target": "原始识别文本、表达式和结果" },
+      "verification_layers": ["integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "recognizedText": "123加456", "expression": "123+456", "result": "579" } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result", "HarmonyOS UI"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-008", "title": "无识别结果保留旧输入", "source_requirement_ids": ["IR-006"], "category": "exception", "level": "feature",
+      "given": ["语音前表达式为 42-1", "历史记录数量为 N"],
+      "when": ["识别网关完成但返回空字符串或仅空白"],
+      "then": ["显示 未识别到内容 或等价明确错误", "表达式仍为 42-1且历史仍为 N"],
+      "observable": { "type": "ui_state", "target": "语音错误、表达式和历史" },
+      "verification_layers": ["integration", "ui"],
+      "oracle": { "type": "invariant", "expected": { "expression": "42-1", "historyDelta": 0, "state": "error" } },
+      "environment": { "device_required": false, "capabilities": ["fake recognition gateway"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-009", "title": "语音除零安全失败", "source_requirement_ids": ["IR-006", "IR-008"], "category": "exception", "level": "feature",
+      "given": ["语音前表达式为 9+9，结果为 18", "历史记录数量为 N"],
+      "when": ["注入最终识别文本 十除零"],
+      "then": ["显示 除数不能为零", "表达式仍为 9+9、结果仍为 18且历史仍为 N"],
+      "observable": { "type": "ui_state", "target": "计算错误、原表达式、原结果和历史" },
+      "verification_layers": ["integration", "ui"],
+      "oracle": { "type": "exact_invariant", "expected": { "error": "除数不能为零", "expression": "9+9", "result": "18", "historyDelta": 0 } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-010", "title": "识别服务不可用可恢复", "source_requirement_ids": ["IR-006"], "category": "recovery", "level": "feature",
+      "given": ["语音前表达式为 5+5", "权限已授予"],
+      "when": ["识别引擎创建或启动返回服务不可用或 busy 错误"],
+      "then": ["显示 语音服务不可用 或等价明确错误及重试入口", "录音停止、表达式保持 5+5且手动计算仍可使用"],
+      "observable": { "type": "ui_state", "target": "服务错误、重试入口、录音状态和表达式" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "state_predicate", "expected": { "state": "error", "expression": "5+5", "recording": false, "manualInputEnabled": true } },
+      "environment": { "device_required": false, "capabilities": ["fake service error"], "real_device_optional": true }, "priority": "P0"
+    },
+    {
+      "id": "AC-011", "title": "录音中断清理并保留输入", "source_requirement_ids": ["IR-006"], "category": "recovery", "level": "feature",
+      "given": ["界面处于监听中且原表达式为 6*7"],
+      "when": ["AudioCapturer 或语音网关报告录音中断"],
+      "then": ["显示 录音已中断 或等价明确错误", "本轮资源被停止释放，表达式仍为 6*7且不写历史"],
+      "observable": { "type": "ui_state", "target": "中断错误、会话状态、表达式和历史" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "invariant", "expected": { "state": "error", "expression": "6*7", "recording": false, "historyDelta": 0 } },
+      "environment": { "device_required": false, "capabilities": ["fake recording interruption"], "real_device_optional": true }, "priority": "P0"
+    },
+    {
+      "id": "AC-012", "title": "监听取消立即且无结果", "source_requirement_ids": ["IR-001", "IR-007"], "category": "exception", "level": "feature",
+      "given": ["语音前表达式为 2+2且当前处于监听中", "历史记录数量为 N"],
+      "when": ["用户点击取消，随后测试网关发送该旧 session 的最终结果"],
+      "then": ["界面立即离开监听/识别状态且录音停止", "迟到结果被忽略，表达式仍为 2+2且历史仍为 N"],
+      "observable": { "type": "ui_state", "target": "语音状态、录音状态、表达式、结果和历史" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "state_predicate", "expected": { "state": "idle", "recording": false, "expression": "2+2", "historyDelta": 0, "lateResultIgnored": true } },
+      "environment": { "device_required": false, "capabilities": ["fake delayed callback"], "real_device_optional": true }, "priority": "P0"
+    },
+    {
+      "id": "AC-013", "title": "语音历史恰好写入一次", "source_requirement_ids": ["IR-008"], "category": "boundary", "level": "feature",
+      "given": ["历史记录数量为 N", "网关可发送局部结果和重复最终回调"],
+      "when": ["同一 session 依次发送局部文本、最终文本 123加456、重复最终文本"],
+      "then": ["最终结果为 579", "历史记录数量恰为 N+1，新增条目表达式 123+456、结果 579"],
+      "observable": { "type": "data_state", "target": "页面历史列表与 Preferences 历史" },
+      "verification_layers": ["integration", "ui"],
+      "oracle": { "type": "exact_delta", "expected": { "historyDelta": 1, "expression": "123+456", "result": "579" } },
+      "environment": { "device_required": false, "capabilities": ["fake partial and duplicate callbacks", "Preferences test double"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-014", "title": "解析与 UI 可脱离麦克风验证", "source_requirement_ids": ["IR-009"], "category": "compatibility", "level": "feature",
+      "given": ["测试环境没有麦克风或在线语音服务", "应用装配可控的 fake recognition gateway"],
+      "when": ["Tester 注入成功、空结果、歧义、服务错误、录音中断和迟到回调"],
+      "then": ["所有解析 oracle 和 UI 状态/恢复行为均可自动断言", "测试结果不因真实麦克风缺失而跳过或伪装成功"],
+      "observable": { "type": "system_state", "target": "自动化测试结果与 fake gateway 事件记录" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "test_matrix", "expected": { "deterministicCases": true, "microphoneRequired": false, "coveredOutcomes": ["success", "empty", "ambiguous", "serviceError", "interrupted", "cancelLateCallback"] } },
+      "environment": { "device_required": false, "capabilities": ["dependency injection", "fake recognition gateway"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-015", "title": "真实设备语音链路证据", "source_requirement_ids": ["IR-009"], "category": "normal", "level": "feature",
+      "given": ["具备麦克风、网络、中文 CoreSpeechKit 服务和授权能力的 HarmonyOS 真机或等价模拟环境"],
+      "when": ["Tester 点击麦克风并说 123加456"],
+      "then": ["证据记录权限/监听/识别/成功链路", "界面显示识别文本、123+456 和 579；若环境缺能力则明确记为环境限制而不替代注入测试"],
+      "observable": { "type": "artifact_semantics", "target": "真机 UI 录屏/截图与结构化测试记录" },
+      "verification_layers": ["e2e"],
+      "oracle": { "type": "semantic_evidence", "expected": { "expression": "123+456", "result": "579", "statesObserved": ["listening", "recognizing", "success"] } },
+      "environment": { "device_required": true, "capabilities": ["microphone", "network", "CoreSpeechKit zh-CN"] }, "priority": "P1"
+    },
+    {
+      "id": "AC-016", "title": "授权成功后才开始录音", "source_requirement_ids": ["IR-001", "IR-002"], "category": "normal", "level": "feature",
+      "given": ["麦克风权限处于未决定状态", "语音网关记录资源启动时序"],
+      "when": ["用户点击麦克风并允许权限"],
+      "then": ["授权结果为允许后才创建并启动 AudioCapturer/识别会话", "界面显示监听中且授权前没有音频数据写入"],
+      "observable": { "type": "system_state", "target": "权限结果、网关启动事件和监听 UI" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "event_order", "expected": ["permissionGranted", "capturerStarted", "recognizerStarted", "uiListening"] },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS permission dialog", "microphone"] }, "priority": "P0"
+    },
+    {
+      "id": "AC-017", "title": "重复点击不创建并发会话", "source_requirement_ids": ["IR-001", "IR-007"], "category": "boundary", "level": "feature",
+      "given": ["一个语音 session 已处于监听中"],
+      "when": ["用户快速重复点击麦克风入口"],
+      "then": ["系统最多保留一个活动 session 和一个 AudioCapturer", "界面状态不抖回空闲且不会产生重复计算/历史"],
+      "observable": { "type": "system_state", "target": "活动 session、录音实例、UI 状态和历史" },
+      "verification_layers": ["integration", "ui"],
+      "oracle": { "type": "cardinality", "expected": { "activeSessions": 1, "activeCapturers": 1, "historyDeltaBeforeFinal": 0 } },
+      "environment": { "device_required": false, "capabilities": ["fake recognition gateway", "rapid UI events"] }, "priority": "P1"
+    },
+    {
+      "id": "AC-018", "title": "逐位中文数字和负数边界", "source_requirement_ids": ["IR-004"], "category": "boundary", "level": "feature",
+      "given": ["解析器采用首期明确数字语法"],
+      "when": ["分别注入 二〇二四减二千、负二加五、零点零五加一点九五"],
+      "then": ["分别规范化为 2024-2000、-2+5、0.05+1.95", "结果分别为 24、3、2"],
+      "observable": { "type": "ui_text", "target": "边界数字的规范化表达式和结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact_table", "expected": { "二〇二四减二千": ["2024-2000", "24"], "负二加五": ["-2+5", "3"], "零点零五加一点九五": ["0.05+1.95", "2"] } },
+      "environment": { "device_required": false, "capabilities": ["injected recognition result"] }, "priority": "P1"
+    }
+  ],
+  "coverage_assessment": [
+    { "source_requirement_id": "IR-001", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-001", "AC-016"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-017"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-012"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-001"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-001", "AC-017"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-001", "AC-016"], "reason": "" },
+      "environment": { "status": "covered", "ac_ids": ["AC-001", "AC-016"], "reason": "" }
+    } },
+    { "source_requirement_id": "IR-002", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-016"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-002"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-002"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-002"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-002", "AC-016"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-002", "AC-016"], "reason": "" },
+      "environment": { "status": "covered", "ac_ids": ["AC-002", "AC-016"], "reason": "" }
+    } },
+    { "source_requirement_id": "IR-003", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-003"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-003"], "reason": "八种词/符号变体构成首期边界集合" },
+      "exception": { "status": "not_applicable", "ac_ids": [], "reason": "未知或非法运算词归属于 IR-004/IR-006 的歧义拒绝" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-003"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-003"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-003"], "reason": "" },
+      "environment": { "status": "not_applicable", "ac_ids": [], "reason": "运算符规范化可通过注入文本确定性验证，不依赖真实设备" }
+    } },
+    { "source_requirement_id": "IR-004", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-004"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-005", "AC-018"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-006"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-004", "AC-005", "AC-006"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-004", "AC-006"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-004", "AC-005"], "reason": "" },
+      "environment": { "status": "not_applicable", "ac_ids": [], "reason": "数字解析是纯文本能力，真实识别环境由 IR-009 覆盖" }
+    } },
+    { "source_requirement_id": "IR-005", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-007"], "reason": "" },
+      "boundary": { "status": "not_applicable", "ac_ids": [], "reason": "成功展示本身无额外范围边界；文本与数字边界由 IR-003/IR-004 覆盖" },
+      "exception": { "status": "not_applicable", "ac_ids": [], "reason": "失败展示和恢复由 IR-006 覆盖" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-007"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-007"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-007"], "reason": "" },
+      "environment": { "status": "not_applicable", "ac_ids": [], "reason": "展示闭环可用注入结果验证，真实环境由 IR-009 覆盖" }
+    } },
+    { "source_requirement_id": "IR-006", "dimensions": {
+      "normal": { "status": "not_applicable", "ac_ids": [], "reason": "该 IR 专门规定失败与恢复行为" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-006", "AC-008"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-006", "AC-008", "AC-009", "AC-010", "AC-011"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-006", "AC-008", "AC-009", "AC-010", "AC-011"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-006", "AC-009", "AC-011"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-009", "AC-010", "AC-011"], "reason": "" },
+      "environment": { "status": "covered", "ac_ids": ["AC-010", "AC-011"], "reason": "" }
+    } },
+    { "source_requirement_id": "IR-007", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-012"], "reason": "取消是该 IR 的主路径" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-017"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-012"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-012"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-012", "AC-017"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-012", "AC-017"], "reason": "" },
+      "environment": { "status": "covered", "ac_ids": ["AC-012"], "reason": "fake 验证竞态，真机可补充停止录音证据" }
+    } },
+    { "source_requirement_id": "IR-008", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-007"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-013"], "reason": "" },
+      "exception": { "status": "covered", "ac_ids": ["AC-009"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-007", "AC-013"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-007", "AC-013"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-007", "AC-009", "AC-013"], "reason": "" },
+      "environment": { "status": "not_applicable", "ac_ids": [], "reason": "计算与历史复用可通过注入结果和 Preferences test double 验证" }
+    } },
+    { "source_requirement_id": "IR-009", "dimensions": {
+      "normal": { "status": "covered", "ac_ids": ["AC-014", "AC-015"], "reason": "" },
+      "boundary": { "status": "covered", "ac_ids": ["AC-014"], "reason": "无麦克风环境必须仍可验证业务层" },
+      "exception": { "status": "covered", "ac_ids": ["AC-014"], "reason": "" },
+      "user_visible": { "status": "covered", "ac_ids": ["AC-014", "AC-015"], "reason": "" },
+      "state_sync": { "status": "covered", "ac_ids": ["AC-014", "AC-015"], "reason": "" },
+      "integration": { "status": "covered", "ac_ids": ["AC-014", "AC-015"], "reason": "" },
+      "environment": { "status": "covered", "ac_ids": ["AC-015"], "reason": "" }
+    } }
+  ],
+  "assumptions": [
+    { "id": "ASM-001", "text": "采用 SDK API 12 可用的 @kit.CoreSpeechKit 在线中文识别（language=zh-CN, online=0），以接口隔离服务差异。", "rationale": "Issue 允许设计阶段选择现有 HarmonyOS 能力；不引入凭据或付费第三方。" },
+    { "id": "ASM-002", "text": "首期语法严格限制为一个二元四则表达式，允许操作数一元负号。", "rationale": "与非目标一致，并优先避免误算。" },
+    { "id": "ASM-003", "text": "常见中文数字支持零/〇、一至九、两、十/百/千/万及逐位数字；小数点后逐位解析；亿、分数、单位量词和省略口语拒绝。", "rationale": "提供可确定验收的最小常见集合，后续可向后兼容扩展。" },
+    { "id": "ASM-004", "text": "规范化表达式统一显示 ASCII + - * /。", "rationale": "验收明确要求 123+456，且 CalcEngine 原生使用 ASCII；×/÷ 输入仍被接受。" },
+    { "id": "ASM-005", "text": "原始识别文本仅保存在当前页面状态，音频仅在内存流式处理，不持久化或写日志。", "rationale": "最小化权限和数据处理，不做额外隐私产品决策。" },
+    { "id": "ASM-006", "text": "权限仅在用户点击入口时申请；拒绝后由用户主动重试。", "rationale": "符合按需授权和避免骚扰的惯例。" }
+  ],
+  "out_of_scope": [
+    "连续对话、多轮追问和复杂自然语言题意理解",
+    "后台或持续录音、音频文件保存",
+    "离线识别保证",
+    "第三方付费识别服务或自建服务端",
+    "超过首期严格语法的多运算链、单位换算、分数和科学函数语音输入"
+  ]
+}

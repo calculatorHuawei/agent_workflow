@@ -3,10 +3,8 @@
 import { promptAction } from '@kit.ArkUI'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
-import { Expression } from '../calculator/Expression'
-import { CalcEngine } from '../calculator/Calculator'
-import { NumberFormatter } from '../calculator/NumberFormatter'
-import { NumberingSystem, HistoryItem } from '../model/Models'
+import { abilityAccessCtrl } from '@kit.AbilityKit'
+import { HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
 import { FunctionPlotter, PlotResult, PlotSegment, PLOT_X_MIN, PLOT_X_MAX, PLOT_N } from '../plot/FunctionPlotter'
@@ -14,6 +12,11 @@ import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../plot/PlotAxis'
+import { CalculationCoordinator } from '../voice/CalculationCoordinator'
+import { VoiceInputController } from '../voice/VoiceInputController'
+import { VoiceSnapshot } from '../voice/VoiceModels'
+import { HarmonySpeechRecognitionGateway } from '../voice/HarmonySpeechRecognitionGateway'
+import { CoreSpeechPlatformDriver } from '../voice/CoreSpeechPlatformDriver'
 
 @Entry
 @Component
@@ -28,6 +31,9 @@ export struct CalculatorPage {
   @State showSettings: boolean = false
   @State showAbout: boolean = false
   @State isLandscape: boolean = false
+  @State voiceState: string = 'idle'
+  @State voiceTranscript: string = ''
+  @State voiceError: string = ''
 
   // ==================== 绘图状态（Issue #40） ====================
   @State showPlot: boolean = false
@@ -47,17 +53,19 @@ export struct CalculatorPage {
 
   // ==================== 内部状态 ====================
   private nextId: number = 0
-  private engine: CalcEngine = new CalcEngine()
-  private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
+  private calculator: CalculationCoordinator = new CalculationCoordinator()
+  private voiceController: VoiceInputController | null = null
 
   aboutToAppear(): void {
     const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
     this.prefs = new PreferencesStore(ctx)
     this.prefs.init().then((): void => { this.loadPrefs(); this.loadHistory() })
   }
+
+  aboutToDisappear(): void { if (this.voiceController) this.voiceController.dispose() }
 
   async loadPrefs(): Promise<void> {
     if (!this.prefs) return
@@ -84,35 +92,56 @@ export struct CalculatorPage {
   }
 
   // ==================== 按钮事件 ====================
-  onDigit(d: string): void { this.expression = this.expression + d; this.errorMsg = '' }
-  onOp(op: string): void { this.expression = this.expression + op; this.errorMsg = '' }
-  onFunc(f: string): void { this.expression = this.expression + f + '('; this.errorMsg = '' }
-  onConst(c: string): void { this.expression = this.expression + c; this.errorMsg = '' }
+  onDigit(d: string): void { this.clearVoiceStatus(); this.expression = this.expression + d; this.errorMsg = '' }
+  onOp(op: string): void { this.clearVoiceStatus(); this.expression = this.expression + op; this.errorMsg = '' }
+  onFunc(f: string): void { this.clearVoiceStatus(); this.expression = this.expression + f + '('; this.errorMsg = '' }
+  onConst(c: string): void { this.clearVoiceStatus(); this.expression = this.expression + c; this.errorMsg = '' }
   onBS(): void { if (this.expression.length > 0) this.expression = this.expression.substring(0, this.expression.length - 1) }
   onAC(): void { this.expression = ''; this.result = ''; this.errorMsg = ''; ErrorFlags.reset() }
 
   onEquals(): void {
     if (this.expression.length === 0) return
-    ErrorFlags.reset()
+    const outcome = this.calculator.evaluate(this.expression, this.radianMode)
+    if (!outcome.ok) { this.errorMsg = outcome.error; this.result = ''; return }
+    this.commitCalculation(this.expression, outcome.result)
+  }
+
+  private commitCalculation(expression: string, result: string): void {
+    this.expression = expression; this.result = result; this.errorMsg = ''
+    const item: HistoryItem = { id: this.nextId, expression: expression, result: result, timestamp: Date.now() }
+    this.nextId++
+    const next: HistoryItem[] = [item]
+    for (let i: number = 0; i < this.history.length; i++) next.push(this.history[i])
+    this.history = next
+    if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  async onVoiceStart(): Promise<void> {
+    if (this.voiceState === 'listening' || this.voiceState === 'recognizing' || this.voiceState === 'requestingPermission') return
+    this.voiceState = 'requestingPermission'; this.voiceError = ''; this.voiceTranscript = ''
     try {
-      const clean: string = this.expr.getCleanExpression(this.expression, '.', ',')
-      const raw: number = this.engine.evaluate(clean, !this.radianMode)
-      if (ErrorFlags.division_by_0) { this.errorMsg = '除数不能为零'; this.result = '' }
-      else if (ErrorFlags.domain_error) { this.errorMsg = '定义域错误'; this.result = '' }
-      else if (ErrorFlags.syntax_error) { this.errorMsg = '表达式错误'; this.result = '' }
-      else if (ErrorFlags.is_infinity) { this.errorMsg = '结果无穷大'; this.result = '' }
-      else if (ErrorFlags.require_real_number) { this.errorMsg = '需要实数'; this.result = '' }
-      else {
-        const fmt: string = NumberFormatter.format(raw.toString(), '.', ',', NumberingSystem.INTERNATIONAL)
-        this.result = fmt; this.errorMsg = ''
-        const item: HistoryItem = { id: this.nextId, expression: this.expression, result: fmt, timestamp: Date.now() }
-        this.nextId = this.nextId + 1
-        const nh: HistoryItem[] = [item]
-        for (let i: number = 0; i < this.history.length; i++) nh.push(this.history[i])
-        this.history = nh
-        if (this.prefs) this.prefs.setHistory(this.history)
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
+      const manager = abilityAccessCtrl.createAtManager()
+      const permission = await manager.requestPermissionsFromUser(ctx, ['ohos.permission.MICROPHONE'])
+      if (permission.authResults.length === 0 || permission.authResults[0] !== 0) {
+        this.voiceState = 'error'; this.voiceError = '需要麦克风权限，请授权后重试'; return
       }
-    } catch (_e) { this.errorMsg = '计算错误' }
+      const gateway: HarmonySpeechRecognitionGateway = new HarmonySpeechRecognitionGateway(new CoreSpeechPlatformDriver())
+      this.voiceController = new VoiceInputController(gateway, (snapshot: VoiceSnapshot): void => { this.syncVoiceSnapshot(snapshot) })
+      this.voiceController.start(this.expression, this.result, this.radianMode)
+    } catch (_e) { this.voiceState = 'error'; this.voiceError = '无法申请麦克风权限，请重试' }
+  }
+
+  onVoiceCancel(): void { if (this.voiceController) this.voiceController.cancel() }
+
+  private syncVoiceSnapshot(snapshot: VoiceSnapshot): void {
+    this.voiceState = snapshot.state; this.voiceTranscript = snapshot.transcript; this.voiceError = snapshot.error
+    if (snapshot.state === 'success') this.commitCalculation(snapshot.expression, snapshot.result)
+  }
+
+  private clearVoiceStatus(): void {
+    if (this.voiceController) this.voiceController.cancel()
+    this.voiceState = 'idle'; this.voiceTranscript = ''; this.voiceError = ''
   }
 
   onCopy(): void {
@@ -434,6 +463,7 @@ export struct CalculatorPage {
         Row() {
           Column() {
             this.DisplayPanel()
+            this.VoicePanel()
             this.ButtonGrid()
           }
           .layoutWeight(this.showHistory ? 3 : 1).height('100%')
@@ -445,6 +475,7 @@ export struct CalculatorPage {
         Column() {
           this.DisplayPanel()
           this.ToggleRow()
+          this.VoicePanel()
           this.ButtonGrid()
           if (this.showHistory) this.HistoryPanel()
         }
@@ -462,6 +493,29 @@ export struct CalculatorPage {
       // 横屏时自动开启科学模式（但不强制显示历史）
       if (this.isLandscape) this.scientific = true
     })
+  }
+
+  @Builder VoicePanel() {
+    Column() {
+      Row() {
+        Button(this.voiceState === 'listening' ? '监听中…' : (this.voiceState === 'recognizing' ? '识别中…' : '🎤 语音输入'))
+          .height(44).fontSize(14).backgroundColor(this.getOp()).fontColor(this.getBtnText())
+          .enabled(this.voiceState !== 'requestingPermission')
+          .onClick((): void => { this.onVoiceStart() })
+        if (this.voiceState === 'listening' || this.voiceState === 'recognizing') {
+          Button('取消').height(44).fontSize(14).margin({ left: 8 }).onClick((): void => { this.onVoiceCancel() })
+        }
+        if (this.voiceState === 'error') {
+          Button('重试').height(44).fontSize(14).margin({ left: 8 }).onClick((): void => { this.onVoiceStart() })
+        }
+      }.width('100%').justifyContent(FlexAlign.Center)
+      if (this.voiceTranscript.length > 0) {
+        Text('识别：' + this.voiceTranscript).fontSize(12).fontColor(this.getT2()).maxLines(2).width('100%').textAlign(TextAlign.Center)
+      }
+      if (this.voiceError.length > 0) {
+        Text(this.voiceError).fontSize(12).fontColor(this.getErr()).maxLines(2).width('100%').textAlign(TextAlign.Center)
+      }
+    }.width('100%').padding({ left: 12, right: 12, bottom: 4 })
   }
 
   // ==================== 显示屏 ====================

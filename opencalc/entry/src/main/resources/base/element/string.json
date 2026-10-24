@@ -3,6 +3,7 @@
     { "name": "app_name", "value": "OpenCalc" },
     { "name": "module_desc", "value": "OpenCalc HarmonyOS" },
     { "name": "EntryAbility_desc", "value": "OpenCalc" },
-    { "name": "EntryAbility_label", "value": "OpenCalc" }
+    { "name": "EntryAbility_label", "value": "OpenCalc" },
+    { "name": "microphone_reason", "value": "用于识别您主动说出的计算表达式" }
   ]
 }
