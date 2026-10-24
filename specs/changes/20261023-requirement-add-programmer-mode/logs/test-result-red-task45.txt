@@ -1,0 +1,273 @@
+class=scaffold
+test=scaffold_passes
+result=Success
+class=CalcEngineVarX
+test=varx_sin_at_1
+result=Success
+test=varx_pow_at_2
+result=Success
+test=varx_pow_negative_base
+result=Success
+test=varx_linear_explicit_mult
+result=Success
+test=varx_zero_is_bound
+result=Success
+test=varx_unbound_syntax_error
+result=Success
+test=varx_xp_untouched_by_binding
+result=Success
+test=varx_constant_exprs_unchanged
+result=Success
+class=ExpressionVarX
+test=exprx_2x
+result=Success
+test=exprx_x2
+result=Success
+test=exprx_x_paren
+result=Success
+test=exprx_pi_x
+result=Success
+test=exprx_e_x
+result=Success
+test=exprx_xx
+result=Success
+test=exprx_x_func
+result=Success
+test=exprx_digit_both_sides
+result=Success
+test=exprx_xp_protected
+result=Success
+test=exprx_no_x_baseline_unchanged
+result=Success
+test=exprx_semantic_2x_plus_1
+result=Success
+test=exprx_semantic_x_paren_x_plus_1
+result=Success
+test=exprx_semantic_xp_still_e_pow
+result=Success
+class=FunctionPlotterTest
+test=plot_sin_single_segment
+result=Success
+test=plot_sin_yrange_padding
+result=Success
+test=plot_reciprocal_two_segments
+result=Success
+test=plot_reciprocal_breaks_when_zero_is_between_samples
+result=Success
+test=plot_reciprocal_uses_robust_visible_range
+result=Success
+test=plot_log_keeps_domain_on_positive_side
+result=Success
+test=plot_sqrt_domain_only_nonneg
+result=Success
+test=plot_tan_breaks_at_asymptotes
+result=Success
+test=plot_parabola_symmetry_vertex
+result=Success
+test=plot_constant_yrange_fallback
+result=Success
+test=plot_all_invalid_empty_result
+result=Success
+class=PlotAxisTest
+test=xaxis_default_range_five_pi_ticks
+result=Success
+test=xaxis_generic_range_pi_multiples_ordered
+result=Success
+test=yaxis_sin_range_five_ticks_include_half_steps
+result=Success
+test=yaxis_constant_expr_range_still_five
+result=Success
+test=yaxis_degenerate_range_empty
+result=Success
+test=hlabel_left_edge_clamped
+result=Success
+test=hlabel_right_edge_clamped
+result=Success
+test=hlabel_middle_centered
+result=Success
+test=vlabel_edges_clamped
+result=Success
+test=theme_colors_and_font_contract
+result=Success
+class=AsymptoteSeparationTest
+test=inset_ratio_contract
+result=Success
+test=asym_one_over_x_separated_from_y_axis
+result=Success
+test=asym_one_over_x_no_cross_sign_segment
+result=Success
+test=asym_logx_tail_lifted_from_axis_and_bottom
+result=Success
+test=asym_tanx_segments_within_pi_half_intervals
+result=Success
+test=asym_sinx_zero_regression_full_curve
+result=Success
+test=asym_x2_zero_regression_vertex_kept
+result=Success
+test=asym_sqrtx_vertex_still_drawn_at_domain_edge
+result=Success
+class=ProgrammerConverterTypicalValues
+test=converts_decimal_10_to_all_radices
+Error in converts_decimal_10_to_all_radices, expect a equals A
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:15:36)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=converts_hex_ff_and_normalizes_case
+Error in converts_hex_ff_and_normalizes_case, expect ff equals FF
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:21:30)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=enforces_digit_matrix
+result=Success
+class=ProgrammerConverterU64Boundary
+test=accepts_zero_and_u64_max
+Error in accepts_zero_and_u64_max, expect ffffffffffffffff equals FFFFFFFFFFFFFFFF
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:45:37)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=rejects_u64_overflow_without_partial_result
+result=Success
+test=classifies_empty_and_invalid_input
+result=Success
+test=accepts_maximum_values_in_each_radix
+result=Success
+test=rejects_obviously_overlong_input_before_conversion
+Error in rejects_obviously_overlong_input_before_conversion, expect none equals out_of_range
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:72:70)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+class=ProgrammerStateOperations
+test=rejects_invalid_append_atomically
+Error in rejects_invalid_append_atomically, expect 12 equals 1
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:82:36)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=changes_radix_while_preserving_value
+result=Success
+test=supports_backspace_clear_and_recovery
+Error in supports_backspace_clear_and_recovery, expect invalid_digit equals none
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:107:27)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=creates_default_decimal_empty_state
+result=Success
+class=ProgrammerModeContract
+test=defaults_to_normal_and_switches_bidirectionally
+Error in defaults_to_normal_and_switches_bidirectionally, expect normal equals programmer
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:127:20)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=is_idempotent_and_last_selection_wins
+Error in is_idempotent_and_last_selection_wins, expect normal equals programmer
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:138:20)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+class=ProgrammerPresentationContract
+test=maps_one_conversion_to_four_result_rows
+Error in maps_one_conversion_to_four_result_rows, expect 0 equals 4
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:146:27)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=maps_empty_invalid_and_range_feedback
+result=Success
+class=ProgrammerKeyboardContract
+test=uses_converter_rules_for_keyboard_enablement
+Error in uses_converter_rules_for_keyboard_enablement, expect false, actualValue is true
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:165:52)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=disabled_key_submission_keeps_last_valid_value
+Error in disabled_key_submission_keeps_last_valid_value, expect 10109 equals 1010
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:176:34)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+class=ProgrammerRegressionGate
+test=rejects_unsupported_radix_as_internal_error
+Error in rejects_unsupported_radix_as_internal_error, expect none equals internal
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:185:28)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+test=round_trips_u64_max_across_all_supported_radices
+Error in round_trips_u64_max_across_all_supported_radices, expect ffffffffffffffff equals FFFFFFFFFFFFFFFF
+    at AssertException (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:22:9)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:880:45)
+    at anonymous (entry/src/test/ProgrammerConverter.test.ets:196:27)
+    at anonymous (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:37:19)
+    at getFuncWithArgsZero (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:29:12)
+    at processedFunc (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:108:24)
+    at asyncRun (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:736:24)
+    at asyncRunSpecs (oh_modules/.ohpm/@ohos+hypium@1.0.15/oh_modules/@ohos/hypium/src/main/service.js:494:32)
+result=Failure
+Tests run: 71, Failure: 13, Error: 0, Pass: 58, Ignore: 0

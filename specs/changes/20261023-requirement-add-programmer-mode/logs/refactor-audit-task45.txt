@@ -1,0 +1,11 @@
+Task 45 APPLYING REFACTOR audit — 2026-10-24
+
+- Task 1.1: conversion remains a pure, UI-independent string algorithm; canonical HEX output is uppercase.
+- Task 1.2: U64 limits remain centralized in maximumInputLength/U64_MAX_DEC; no floating-point value path was introduced.
+- Task 2.1: append/backspace/clear/changeRadix return complete new state objects; rejected input preserves the last valid input/result.
+- Task 3.1: selectCalculatorMode remains synchronous and target-driven; normal calculator state is not cleared.
+- Task 3.2: programmerResultRows consumes one ConversionResult and suppresses partial rows for error states.
+- Task 3.3: programmerKeyEnabled delegates to the converter's legality rule. CalculatorPage retains duration 180 and translate y=4 presentation contracts.
+- Task 4.1: isSupportedRadix rejects unsupported values and List.test.ets retains PlotFunction plus ProgrammerConverter registration.
+
+No permanent product-source refactor was needed. The controlled RED mutations were exactly restored before GREEN verification.

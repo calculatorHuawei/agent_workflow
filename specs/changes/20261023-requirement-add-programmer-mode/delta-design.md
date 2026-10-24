@@ -533,3 +533,15 @@ end note
 | AC-010 | §3.3/§12：Hypium 聚合、行为组与完整回归门禁 |
 
 **设计结论**：批准。当前设计是局部、可逆、最小权限且向后兼容的常规方案，无需扩大实现范围；Task 42 到 PLANNING 为止。
+
+## 16. Task 45 mod-design 自验证
+
+以 Task 45 复核后的 `proposal.md`、`delta-spec.md`、`acceptance-criteria.json`、`info.md` 和 `new-arch.md` 为输入重新执行增量设计自验证：
+
+1. **功能一致性**：D2/D3 继续覆盖 IR-45-R1~R5 与 AC-001~010，模式、输入、转换、错误、兼容和测试门禁无缺口。
+2. **页面一致性**：D6~D8 保持单页面模式栏、四行结果、受限键盘、内联反馈、180ms opacity + 4vp translation，不新增路由或双层点击面。
+3. **数据一致性**：D5 只使用页面内 `ProgrammerState`，普通状态、历史与 Preferences schema 不变，无迁移和跨重启草稿承诺。
+4. **权限与平台一致性**：D9 保持 API 12、单 entry HAP、既有 Kit/VIBRATE 权限和无第三方运行时依赖；不引入网络、后台、外部服务或新权限。
+5. **代码约定一致性**：HEAD `aeb8f4e8a60bda04651c9c69af034cac28606d17` 的精确字符串算法、`state + error` 契约、共享键规则和 ArkUI V1 整体状态赋值均符合 D1~D10。
+
+**Task 45 设计结论**：批准。设计保持局部、可逆、最小权限和向后兼容；仅完成 PLANNING，不生成 `tasks.md` 或进入实现。

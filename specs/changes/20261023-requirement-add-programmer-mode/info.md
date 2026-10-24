@@ -206,3 +206,12 @@ Programmer key/radix event
 - **交互约定**：键盘启停委托 `ProgrammerConverter.isDigitAllowed`；模式切换为同步单值状态，UI 使用 180ms `EaseInOut`、opacity 和 y=4vp transition；不新增路由或持久化。
 - **构建与权限**：API 12、phone/tablet、auto rotation、既有 VIBRATE 权限和既有 Hypium devDependency 均不变。本仓库含既有本机签名配置路径，但本需求不读取、修改或扩展签名凭据；签名可用性不影响本地规划。
 - **风险与验证责任**：精度、边界、状态原子性可由本地单元/集成层覆盖；设备动画流畅度、触控目标和横竖屏由后续 Tester 负责。Task 42 不运行产品测试或构建。
+
+## 14. Task 45 rq-codebase 只读复核
+
+- **基线与范围**：分支 `agent/pull_request-49-task-45`，精确 HEAD `aeb8f4e8a60bda04651c9c69af034cac28606d17`；本次仅阅读需求相关 ArkTS、模块配置和测试聚合，不改产品或测试源码。
+- **模块架构**：仍为单 `entry` HAP、单 `CalculatorPage`。页面使用 ArkUI V1 `@State` 分别保存普通计算字段与 `ProgrammerState`；`ProgrammerConverter` 是不依赖 ArkUI、Preferences、网络或外部服务的纯本地业务边界。
+- **接口与状态契约**：`ProgrammerOperationResult` 保持 `state + error` 单一结果契约；非法追加保留最后有效 input/result；键盘启停委托与业务校验共享的 `isDigitAllowed`，避免双重规则漂移。
+- **精度与交互约定**：U64 转换继续采用十进制字符串乘加、比较和长除，不经浮点 `number`；模式切换使用同步单值状态、180ms `EaseInOut`、opacity 与 y=4vp transition，条件渲染只保留一个可交互面板。
+- **构建与集成**：API 12、phone/tablet、auto rotation、既有 VIBRATE 权限、Hypium devDependency 与 `List.test.ets` 聚合约定不变；本需求无需新增权限、Kit、依赖、路由、Preferences key、HAR/HSP 或部署单元。
+- **设计输入结论**：现有代码与 proposal/spec/design 的最小架构一致；实现存在不改变本次正向 Planning 的产品边界。设备动画流畅度、触控目标和横竖屏仍保留为后续 Tester 验证责任。

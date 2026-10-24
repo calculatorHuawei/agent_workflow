@@ -842,3 +842,11 @@ Reviewer 反馈针对旧 Developer 会话证据不可审计，不涉及产品结
 - **机器门禁**：执行 `python <migbot-increment-planning>/scripts/validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`，退出码 `0`，结果为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`。
 - **语义门禁**：DEC 10、HEX FF、四进制键矩阵、U64 边界、EMPTY→VALID 恢复、模式往返快照、180ms/4vp 过渡及测试注册均有 feature-level、可观察且确定的 oracle；UI 要求包含 `integration`/`ui` 层级。
 - **结论**：规格基线无需扩张或改写。继续排除位运算、负数/补码、浮点、多字长、持久化、网络、权限、后台与第三方依赖；无 Planning blocker。
+
+## 17. Task 45 PLANNING 规格与 AC 独立门禁
+
+- **Issue 原文复核**：再次直接对照 Issue #45，确认模式入口、BIN/OCT/DEC/HEX、当前进制合法字符、输入变化同步转换、轻量动画、状态稳定、非法/空/越界反馈、兼容和测试承诺均保留在 IR-45-R1~R5 中。
+- **场景与追溯**：SC-001~003、6 个 UC、SR-01~05、CM-01~05 与 AC-001~010 闭合；每条 IR 都有 feature-level AC，七个覆盖维度均为 covered 或有具体 `not_applicable` 理由。
+- **机器门禁**：执行 `python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`，退出码 `0`，输出 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`。
+- **语义门禁**：DEC 10、HEX FF、四进制键矩阵、换进制状态同步、EMPTY→VALID 恢复、U64 边界、普通状态往返、180ms/4vp 过渡与测试聚合均具有可观察结果、适当验证层级和确定 oracle。
+- **假设结论**：AS-001~005 均安全、可逆、最小权限且不扩大 Issue；继续排除位运算、负数/补码、浮点、多字长、持久化、网络、后台、第三方服务与新增权限。无 PLANNING blocker。

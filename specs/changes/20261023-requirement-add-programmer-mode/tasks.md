@@ -10,7 +10,7 @@
 - 开发阶段：T0 精确转换 → T1 不可变状态操作 → T2 页面集成 → T3 回归与交接
 - 预计任务数：7
 - 任务颗粒度：每项预计 1–2 小时，均在 APPLYING 阶段按 RED → GREEN → REFACTOR 执行
-- 本次分解基线：Task 42 PLANNING checkpoint（HEAD `49054a10f21f83f1f46a538df6d097dd32f87681`，设计审视已批准；本次重新执行 AC validator，结果为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`）
+- 本次分解基线：Task 45 PLANNING checkpoint（HEAD `aeb8f4e8a60bda04651c9c69af034cac28606d17`，设计审视已批准；本次重新执行 AC validator，结果为 `VALID: 5 source requirement(s), 10 acceptance criterion/criteria`）
 
 ## Planning 制品核验
 
@@ -22,7 +22,7 @@
 - [x] `delta-design.md`：接口、状态、错误、UI、动画、响应式、T0~T3 顺序及精确算法回退策略明确。
 - [x] `20261023-programmer-mode-fmea分析表.md`：CM-01~06 已映射到 SR 与测试门禁。
 - [x] `design-review.md`：审视结论为“通过”，无 Planning blocker；`bigint` 语法和设备动画属于后续验证项。
-- [x] `todo.md`：2026-10-24 Task 42 PLANNING 复核已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
+- [x] `todo.md`：2026-10-24 Task 45 PLANNING 独立执行已完成；本次 IMPLEMENTING 可进入，且本次不执行 APPLYING/ARCHIVING。
 
 ## 任务列表
 
@@ -233,4 +233,17 @@ Task 1.1 → Task 1.2 → Task 2.1 → Task 3.1 → Task 3.2 → Task 3.3 → Ta
 
 ## 阶段边界
 
-Task 42 的 IMPLEMENTING 阶段已完成任务分解；后续独立 APPLYING 阶段已对全部七项任务完成受控 RED-GREEN-REFACTOR，并保留本节 IR/AC 追溯及 Developer/Tester 责任。未执行审批或归档。
+Task 45 的 IMPLEMENTING 阶段已完成任务分解；本次仅验证 Planning 制品并刷新七项有序、可测试任务及 IR/AC 追溯。任务中的 TDD 勾选是精确 HEAD 上既有 APPLYING 历史状态，不代表本次执行了 APPLYING；本次未修改产品/测试源码，未运行测试、构建或 lint，未提交、推送、审批或归档。
+
+## Task 45 APPLYING 执行确认
+
+- [x] Task 1.1 RED / GREEN / REFACTOR：大写规范输出受控失败后恢复。
+- [x] Task 1.2 RED / GREEN / REFACTOR：64 位 BIN 早停门禁受控失败后恢复。
+- [x] Task 2.1 RED / GREEN / REFACTOR：非法追加原子性受控失败后恢复。
+- [x] Task 3.1 RED / GREEN / REFACTOR：双向模式选择受控失败后恢复。
+- [x] Task 3.2 RED / GREEN / REFACTOR：四行展示映射受控失败后恢复。
+- [x] Task 3.3 RED / GREEN / REFACTOR：键盘共源启停受控失败后恢复。
+- [x] Task 4.1 RED / GREEN / REFACTOR：不支持进制门禁受控失败后恢复。
+- 权威 RED：71 run / 58 pass / 13 expected failures / 0 errors。
+- 权威 GREEN 与最终 REFACTOR：71/71；HAP `BUILD SUCCESSFUL`；CodeLinter 0 error / 127 warning / 0 suggestion。
+- 产品/测试源码已精确恢复；Task 45 仅保留制品和命令日志变更，未归档、审批或合并。

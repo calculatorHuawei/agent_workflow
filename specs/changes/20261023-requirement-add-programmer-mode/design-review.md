@@ -218,3 +218,47 @@ U64 非负范围、页面内状态、数值保持换进制、大写无前缀、1
 U64 非负范围、页面内状态、数值保持换进制、大写无前缀、180ms/4vp 动画、单 entry HAP 和无新增权限/依赖均为安全、可逆、局部且向后兼容的默认值，理由已在 `acceptance-criteria.json.assumptions` 记录。设备动画流畅度、触控目标与横竖屏仍是后续 Tester 验证项，不构成设计 blocker。
 
 **Task 42 最终判定：批准。PLANNING completed；制品可供后续独立 IMPLEMENTING phase 消费。本次在此停止。**
+
+## 13. Task 45 独立 PLANNING 设计审视
+
+### 13.1 初始化、意图与阶段边界
+
+| 检查项 | 结果 | 依据 |
+| ------ | ---- | ---- |
+| 初始化 | 通过 | `specs/initialized.flag` 有效；`opencalc`、`specs/changes`、`opencalc/entry/src/test` 与全局 spec/arch/design 均存在 |
+| Git 分支 | 通过 | 独立非主分支 `agent/pull_request-49-task-45`，基线 HEAD `aeb8f4e8a60bda04651c9c69af034cac28606d17` |
+| 产品意图 | 通过 | Issue #45 是新增功能；payload `bugfix` 仅描述 Reviewer 阶段证据补正 |
+| 阶段范围 | 通过 | 仅 PLANNING；不修改产品/测试源码、构建配置或 `tasks.md`，不进入后续 phase |
+
+### 13.2 完整性与一致性
+
+- [x] `proposal.md`：非空，包含 rq-parse、授权式 rq-clarify、假设、边界和 rationale。
+- [x] `delta-spec.md`：非空，包含 3 个场景、6 个 UC、5 个 SR、DFX/FMEA 与验收矩阵。
+- [x] `acceptance-criteria.json`：非空，包含 5 条 IR、10 条 feature-level AC、逐 IR 七维覆盖、5 条假设和范围外清单。
+- [x] `info.md`：非空，基于精确 HEAD 的实际代码、接口、状态、构建和测试约定。
+- [x] `new-arch.md`：非空，内部架构增量、兼容性与无迁移结论完整。
+- [x] `delta-design.md`：非空，D1~D10、AR↔SR↔UC 与验收门禁完整。
+- [x] `design-review.md`、`todo.md`：Task 45 PLANNING 记录齐全。
+- [x] `tasks.md`：仅作为既有历史存在，本阶段未创建或修改。
+
+| 一致性检查 | 结果 | 说明 |
+| ---------- | ---- | ---- |
+| Issue → IR → AC | 通过 | 所有原始承诺均有 feature-level、用户可观察且具确定 oracle 的 AC |
+| 七维覆盖 | 通过 | normal/boundary/exception/user_visible/state_sync/integration/environment 均闭合 |
+| proposal → spec | 通过 | F1~F5、R1~R5、IR-45-R1~R5、AS-001~005 和范围外清单一致 |
+| spec → arch/design | 通过 | SR-01~05、CM-01~05 与 AR-01~05/D1~D10 闭合 |
+| codebase → design | 通过 | 单 HAP、V1 `@State`、精确字符串算法、`state + error`、共享键规则与动画契约一致 |
+| 权限与兼容 | 通过 | 无新增权限、网络、后台、依赖、路由、持久化或部署模块；普通计算链路保持兼容 |
+
+### 13.3 AC 独立质量门禁
+
+- **命令**：`python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs/changes/20261023-requirement-add-programmer-mode/acceptance-criteria.json`
+- **退出码**：`0`
+- **结果**：`VALID: 5 source requirement(s), 10 acceptance criterion/criteria`
+- **语义复审**：通过。DEC 10、HEX FF、键矩阵、状态同步、U64、错误恢复、模式往返、动画最终态和测试注册均以产品行为而非内部函数作为验收对象。
+
+### 13.4 假设、风险与判定
+
+AS-001~005 均为安全、可逆、局部、常规且向后兼容的选择，不需要凭据、付费服务、隐私/合规决策、破坏性动作或 Issue 外扩。设备动画流畅度、触控目标和 phone/tablet 横竖屏属于后续 Tester 风险，不阻塞设计。
+
+**Task 45 最终判定：批准。PLANNING completed；本阶段未创建或修改 `tasks.md`，未修改产品源码，未实施、提交、推送、审批或归档。**
