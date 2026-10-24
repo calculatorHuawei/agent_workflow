@@ -1,0 +1,19 @@
+{
+  "files": [
+    "entry/src/main/ets/calculator/MatrixEngine.ets",
+    "entry/src/main/ets/pages/CalculatorPage.ets",
+    "entry/src/test/MatrixEngine.test.ets",
+    "entry/src/test/List.test.ets"
+  ],
+  "ignore": [
+    "**/oh_modules/**",
+    "**/build/**",
+    "**/.preview/**",
+    "**/node_modules/**"
+  ],
+  "ruleSet": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@security/recommended"
+  ],
+  "rules": {}
+}

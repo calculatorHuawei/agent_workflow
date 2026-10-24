@@ -1,0 +1,180 @@
+{
+  "version": "1.0",
+  "source_requirements": [
+    {"id":"IR-001","text":"新增矩阵模式，并支持在 2×2 与 3×3 之间切换。"},
+    {"id":"IR-002","text":"提供矩阵 A、矩阵 B 的同维方阵单元格输入。"},
+    {"id":"IR-003","text":"支持 A+B、A-B、A×B 和 det(A)；行列式为标量，其余结果保持当前矩阵维度。"},
+    {"id":"IR-004","text":"输入支持整数、负数和小数。"},
+    {"id":"IR-005","text":"结果按现有数值精度策略展示，避免浮点噪声，整数结果不附加无意义小数位。"},
+    {"id":"IR-006","text":"维度切换行为明确稳定，且不残留错误维度的结果。"},
+    {"id":"IR-007","text":"清空操作同时清除输入、结果和错误状态。"},
+    {"id":"IR-008","text":"任一必填单元格为空或含非法字符时不执行计算，并准确标出或说明问题。"},
+    {"id":"IR-009","text":"矩阵模式不得破坏普通、科学、绘图、分数和程序员模式的既有行为。"},
+    {"id":"IR-010","text":"Tester 独立生成并执行矩阵算法单元测试、边界测试和关键 UI 测试，保存可追溯证据。"},
+    {"id":"IR-011","text":"本期不支持逆、转置、特征值、3×3 以上矩阵，仅处理同维度方阵。"}
+  ],
+  "acceptance_criteria": [
+    {
+      "id":"AC-001","title":"进入矩阵模式并切换维度","source_requirement_ids":["IR-001","IR-002"],"category":"normal","level":"feature",
+      "given":["OpenCalc 主页面可见且没有其他覆盖面板"],
+      "when":["用户点击矩阵入口，并依次选择 2×2 与 3×3"],
+      "then":["矩阵模式有明确激活状态","2×2 时 A、B 各显示 4 个独立可编辑单元格","3×3 时 A、B 各显示 9 个独立可编辑单元格","每次切换的选中维度与网格同步"],
+      "observable":{"type":"ui_state","target":"矩阵入口、维度选择器以及 A/B 输入网格"},
+      "verification_layers":["integration","ui"],
+      "oracle":{"type":"exact_ui_shape","expected":{"2x2":{"A":4,"B":4},"3x3":{"A":9,"B":9},"single_active_dimension":true}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-002","title":"2×2 矩阵加减法精确结果","source_requirement_ids":["IR-003"],"category":"normal","level":"feature",
+      "given":["维度为 2×2","A=[[1,2],[3,4]]","B=[[5,6],[7,8]]"],
+      "when":["用户分别执行 A+B 和 A-B"],
+      "then":["A+B 显示 [[6,8],[10,12]]","A-B 显示 [[-4,-4],[-4,-4]]","每个结果均保持 2×2 形状"],
+      "observable":{"type":"ui_state","target":"矩阵结果网格"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact","expected":{"add":[[6,8],[10,12]],"subtract":[[-4,-4],[-4,-4]]}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-003","title":"2×2 矩阵乘法精确结果","source_requirement_ids":["IR-003"],"category":"normal","level":"feature",
+      "given":["维度为 2×2","A=[[1,2],[3,4]]","B=[[5,6],[7,8]]"],
+      "when":["用户执行 A×B"],
+      "then":["结果显示 [[19,22],[43,50]]","结果为 2×2 且行列次序不变"],
+      "observable":{"type":"ui_state","target":"矩阵乘法结果网格"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact","expected":[[19,22],[43,50]]},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-004","title":"2×2 行列式显示标量","source_requirement_ids":["IR-003"],"category":"normal","level":"feature",
+      "given":["维度为 2×2","A=[[1,2],[3,4]]"],
+      "when":["用户执行 det(A)"],
+      "then":["结果显示标量 -2","结果不渲染为矩阵"],
+      "observable":{"type":"ui_text","target":"det(A) 标量结果区域"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact","expected":"-2"},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-005","title":"3×3 单位矩阵性质","source_requirement_ids":["IR-003"],"category":"boundary","level":"feature",
+      "given":["维度为 3×3","A 为 3×3 单位矩阵","B=[[-2,0.5,3],[4,-5,6.25],[7,8,-9]]"],
+      "when":["用户执行 A×B，随后执行 det(A)"],
+      "then":["乘法结果逐单元等于 B","det(A) 显示 1"],
+      "observable":{"type":"ui_state","target":"3×3 结果网格和标量结果"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact","expected":{"multiply":[[-2,0.5,3],[4,-5,6.25],[7,8,-9]],"determinant":"1"}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-006","title":"负数小数计算与浮点消噪","source_requirement_ids":["IR-004","IR-005"],"category":"boundary","level":"feature",
+      "given":["维度为 2×2","A=[[-0.1,0.2],[1.5,-2]]","B=[[0.2,0.1],[-1.5,2]]","展示精度为现有默认 12 位有效数字"],
+      "when":["用户执行 A+B"],
+      "then":["结果显示 [[0.1,0.3],[0,0]]","不得显示 0.30000000000000004 或 -0","所有整数单元格不带 .0"],
+      "observable":{"type":"ui_text","target":"矩阵结果的每个格式化单元格"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact_text_matrix","expected":[["0.1","0.3"],["0","0"]]},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-007","title":"合法十进制输入语法","source_requirement_ids":["IR-002","IR-004"],"category":"boundary","level":"feature",
+      "given":["维度为 2×2"],
+      "when":["用户分别以 2、-2、+2、.5、-.5、1.、前后空白包围的 1.5 填充必填单元格并执行运算"],
+      "then":["这些输入均解析为对应有限数值并可计算","单元格保留用户编辑文本直到计算结果展示"],
+      "observable":{"type":"ui_state","target":"单元格校验状态和运算结果"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"predicate","expected":"trim 后匹配约定十进制语法且 Number.isFinite；数值分别为 2,-2,2,0.5,-0.5,1,1.5"},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI","文本输入"]},"priority":"P1"
+    },
+    {
+      "id":"AC-008","title":"空值与非法字符阻断并定位","source_requirement_ids":["IR-002","IR-004","IR-008"],"category":"exception","level":"feature",
+      "given":["维度为 2×2","A[0,1] 为空，B[1,0] 为 1x，其余必填单元格合法","结果区先前存在一次成功结果"],
+      "when":["用户执行 A+B"],
+      "then":["不调用矩阵运算且结果区清空","A[0,1] 与 B[1,0] 均呈现错误状态","摘要准确指出存在空单元格和非法数字","修正任一单元格时其错误状态随输入更新或在下次校验消失，不影响另一错误定位"],
+      "observable":{"type":"ui_state","target":"错误单元格、错误摘要和结果区域"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact_error_set","expected":{"cells":["A[0,1]","B[1,0]"],"result_empty":true,"operation_invoked":false}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI","文本输入"]},"priority":"P0"
+    },
+    {
+      "id":"AC-009","title":"det(A) 仅要求 A 有效","source_requirement_ids":["IR-003","IR-008"],"category":"boundary","level":"feature",
+      "given":["维度为 2×2","A=[[1,2],[3,4]]","B 的全部单元格为空"],
+      "when":["用户执行 det(A)"],
+      "then":["不校验或标错 B","结果显示 -2"],
+      "observable":{"type":"ui_state","target":"B 网格校验状态和 det(A) 结果"},
+      "verification_layers":["unit","integration","ui"],
+      "oracle":{"type":"exact","expected":{"B_error_cells":[],"determinant":"-2"}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-010","title":"维度切换使派生状态失效","source_requirement_ids":["IR-006"],"category":"recovery","level":"feature",
+      "given":["2×2 A/B 已有输入、错误标记和 2×2 结果"],
+      "when":["用户切换到 3×3"],
+      "then":["结果和全部错误状态立即清空","A/B 左上 2×2 输入保持原值","新增的第 3 行和第 3 列单元格为空","界面仅显示 3×3 网格且没有 2×2 结果残留"],
+      "observable":{"type":"ui_state","target":"维度、A/B 网格、错误映射和结果状态"},
+      "verification_layers":["integration","ui"],
+      "oracle":{"type":"state_transition","expected":{"dimension":3,"preserved_region":"top-left 2x2","new_cells":"empty","result":"empty","errors":[]}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-011","title":"清空重置矩阵会话状态","source_requirement_ids":["IR-007"],"category":"recovery","level":"feature",
+      "given":["当前维度已有 A/B 输入、结果及至少一个错误状态"],
+      "when":["用户点击矩阵面板清空"],
+      "then":["当前维度 A/B 的所有输入均为空","结果为空","错误摘要和所有单元格错误状态为空","当前维度保持不变并可立即重新输入"],
+      "observable":{"type":"ui_state","target":"矩阵会话全部可见状态"},
+      "verification_layers":["integration","ui"],
+      "oracle":{"type":"state_transition","expected":{"inputs":"all empty","result":"empty","errors":[],"dimension":"unchanged"}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P0"
+    },
+    {
+      "id":"AC-012","title":"矩阵模式与既有模式隔离","source_requirement_ids":["IR-009"],"category":"compatibility","level":"feature",
+      "given":["普通模式已有表达式和结果，科学模式与绘图入口可用"],
+      "when":["用户进入矩阵模式、完成一次计算、返回，并依次执行基线普通计算 1+2、科学计算 sin(30) 和绘图 sin(x)"],
+      "then":["返回后原普通表达式/结果未被矩阵输入覆盖","1+2 显示 3","sin(30) 显示 0.5（遵循现有角度模式）","绘图仍产生有效曲线且可返回","矩阵功能未改变 Preferences schema、权限或标量引擎契约"],
+      "observable":{"type":"ui_state","target":"主显示区、科学结果、绘图面板和返回路径"},
+      "verification_layers":["integration","ui","e2e"],
+      "oracle":{"type":"regression_vector","expected":{"basic":"3","scientific":"0.5","plot":"sin(x) has valid rendered segments","matrix_state_isolated":true}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI","Canvas"]},"priority":"P0"
+    },
+    {
+      "id":"AC-013","title":"范围外能力不可达","source_requirement_ids":["IR-011"],"category":"compatibility","level":"feature",
+      "given":["矩阵模式已打开"],
+      "when":["用户检查维度和运算入口"],
+      "then":["只提供 2×2 和 3×3","只提供 A+B、A-B、A×B、det(A)","不存在逆、转置、特征值、4×4+ 或混合维度入口"],
+      "observable":{"type":"ui_state","target":"矩阵模式维度与运算控制集合"},
+      "verification_layers":["integration","ui"],
+      "oracle":{"type":"exact_control_set","expected":{"dimensions":["2×2","3×3"],"operations":["A+B","A-B","A×B","det(A)"]}},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS ArkUI"]},"priority":"P1"
+    },
+    {
+      "id":"AC-014","title":"Tester 独立验证证据可追溯","source_requirement_ids":["IR-010"],"category":"normal","level":"feature",
+      "given":["Developer 已提供 IR/AC 契约且 Tester 未复用 Developer 的结论作为通过依据"],
+      "when":["Tester 独立生成并执行矩阵算法单元测试、合法/非法/精度/状态边界测试、关键 UI 测试和兼容性回归"],
+      "then":["每个 P0 AC 至少关联一条执行证据","证据记录测试环境、命令或步骤、预期、实际、时间和结果","失败证据保留并可回溯到 AC ID"],
+      "observable":{"type":"artifact_semantics","target":"Tester 测试报告、日志和截图索引"},
+      "verification_layers":["integration","e2e"],
+      "oracle":{"type":"traceability","expected":"P0 AC evidence coverage=100%，且算法/边界/UI 三类证据均非空"},
+      "environment":{"device_required":true,"capabilities":["HarmonyOS 模拟器或真机","Hypium/本地测试能力"]},"priority":"P0"
+    }
+  ],
+  "coverage_assessment": [
+    {"source_requirement_id":"IR-001","dimensions":{"normal":{"status":"covered","ac_ids":["AC-001"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-001"],"reason":""},"exception":{"status":"not_applicable","ac_ids":[],"reason":"入口和固定维度选择不依赖可能失败的外部操作"},"user_visible":{"status":"covered","ac_ids":["AC-001"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-001"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-001"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"不依赖权限、网络或外部设备，仅需常规 ArkUI"}}},
+    {"source_requirement_id":"IR-002","dimensions":{"normal":{"status":"covered","ac_ids":["AC-001","AC-007"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-007"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-008"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-001","AC-007"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-001","AC-007"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-001","AC-007"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"仅依赖本地文本输入和 ArkUI"}}},
+    {"source_requirement_id":"IR-003","dimensions":{"normal":{"status":"covered","ac_ids":["AC-002","AC-003","AC-004"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-005","AC-009"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-009"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-002","AC-003","AC-004","AC-005"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-002","AC-003","AC-004"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-002","AC-003","AC-004","AC-005"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"运算完全本地且无设备能力依赖"}}},
+    {"source_requirement_id":"IR-004","dimensions":{"normal":{"status":"covered","ac_ids":["AC-007"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-006","AC-007"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-008"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-006","AC-007"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-007"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-006","AC-007"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"数字解析不依赖区域外部服务或设备能力"}}},
+    {"source_requirement_id":"IR-005","dimensions":{"normal":{"status":"covered","ac_ids":["AC-006"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-006"],"reason":""},"exception":{"status":"not_applicable","ac_ids":[],"reason":"非有限结果由输入/运算校验转为错误；本条关注合法结果展示"},"user_visible":{"status":"covered","ac_ids":["AC-006"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-006"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-006"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"格式化为确定性本地逻辑"}}},
+    {"source_requirement_id":"IR-006","dimensions":{"normal":{"status":"covered","ac_ids":["AC-010"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-010"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-010"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-010"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-010"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-010"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"纯本地状态转换"}}},
+    {"source_requirement_id":"IR-007","dimensions":{"normal":{"status":"covered","ac_ids":["AC-011"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-011"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-011"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-011"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-011"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-011"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"纯本地状态重置"}}},
+    {"source_requirement_id":"IR-008","dimensions":{"normal":{"status":"covered","ac_ids":["AC-009"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-008","AC-009"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-008"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-008","AC-009"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-008"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-008","AC-009"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"校验不依赖外部环境"}}},
+    {"source_requirement_id":"IR-009","dimensions":{"normal":{"status":"covered","ac_ids":["AC-012"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-012"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-012"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-012"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-012"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-012"],"reason":""},"environment":{"status":"covered","ac_ids":["AC-012"],"reason":""}}},
+    {"source_requirement_id":"IR-010","dimensions":{"normal":{"status":"covered","ac_ids":["AC-014"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-014"],"reason":""},"exception":{"status":"covered","ac_ids":["AC-014"],"reason":""},"user_visible":{"status":"covered","ac_ids":["AC-014"],"reason":""},"state_sync":{"status":"covered","ac_ids":["AC-014"],"reason":""},"integration":{"status":"covered","ac_ids":["AC-014"],"reason":""},"environment":{"status":"covered","ac_ids":["AC-014"],"reason":""}}},
+    {"source_requirement_id":"IR-011","dimensions":{"normal":{"status":"covered","ac_ids":["AC-013"],"reason":""},"boundary":{"status":"covered","ac_ids":["AC-013"],"reason":""},"exception":{"status":"not_applicable","ac_ids":[],"reason":"范围外能力无入口，因此不存在执行失败分支"},"user_visible":{"status":"covered","ac_ids":["AC-013"],"reason":""},"state_sync":{"status":"not_applicable","ac_ids":[],"reason":"非目标不产生状态"},"integration":{"status":"covered","ac_ids":["AC-013"],"reason":""},"environment":{"status":"not_applicable","ac_ids":[],"reason":"范围边界与环境无关"}}}
+  ],
+  "assumptions": [
+    {"id":"A-001","decision":"切换维度保留左上重叠输入，清结果和错误，新增单元格为空。","rationale":"避免不可逆数据丢失，同时消除错误维度派生状态。"},
+    {"id":"A-002","decision":"数字语法仅接受可选符号的普通十进制，不接受指数、NaN、Infinity。","rationale":"严格匹配 Issue 明示的整数、负数和小数范围。"},
+    {"id":"A-003","decision":"合法结果按 12 位有效数字消噪并将 -0 归一为 0。","rationale":"复用现有 DEFAULT_PREFERENCES.numberPrecision=12 的精度基线。"},
+    {"id":"A-004","decision":"det(A) 只校验 A；B 可为空。","rationale":"B 不参与该运算，不应制造无关阻断。"},
+    {"id":"A-005","decision":"矩阵状态仅会话内存在，不写历史或 Preferences。","rationale":"Issue 未要求持久化，最小化兼容性和数据影响。"},
+    {"id":"A-006","decision":"矩阵使用与 PlotPanel 一致的全屏覆盖面板。","rationale":"遵循现有单页约定并隔离标量 UI 状态。"}
+  ],
+  "out_of_scope": ["矩阵求逆","矩阵转置","特征值","非方阵","混合维度运算","4×4 及以上矩阵","矩阵持久化或历史","导入导出","复杂数矩阵"]
+}

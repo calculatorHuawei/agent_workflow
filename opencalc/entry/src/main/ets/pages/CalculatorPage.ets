@@ -6,6 +6,7 @@ import { common } from '@kit.AbilityKit'
 import { Expression } from '../calculator/Expression'
 import { CalcEngine } from '../calculator/Calculator'
 import { NumberFormatter } from '../calculator/NumberFormatter'
+import { emptyMatrixText, MatrixOperation, MatrixSession } from '../calculator/MatrixEngine'
 import { NumberingSystem, HistoryItem } from '../model/Models'
 import { ErrorFlags } from '../model/ErrorFlags'
 import { PreferencesStore } from '../preferences/PreferencesStore'
@@ -39,6 +40,17 @@ export struct CalculatorPage {
   @State canvasW: number = 0
   @State canvasH: number = 0
 
+  // ==================== 矩阵状态（Issue #51） ====================
+  @State showMatrix: boolean = false
+  @State matrixSize: number = 2
+  @State matrixAText: string[][] = emptyMatrixText()
+  @State matrixBText: string[][] = emptyMatrixText()
+  @State matrixErrorKeys: string[] = []
+  @State matrixErrorSummary: string = ''
+  @State matrixResultKind: string = 'none'
+  @State matrixResultText: string[][] = []
+  @State matrixScalarText: string = ''
+
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
   @State preventSleep: boolean = false
@@ -51,6 +63,7 @@ export struct CalculatorPage {
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
+  private matrixSession: MatrixSession = new MatrixSession()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
 
   aboutToAppear(): void {
@@ -127,6 +140,68 @@ export struct CalculatorPage {
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
     this.history = keep
     if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  onOpenMatrix(): void {
+    this.showPlot = false
+    this.showSettings = false
+    this.showAbout = false
+    this.showMatrix = true
+  }
+
+  onCloseMatrix(): void { this.showMatrix = false }
+
+  private loadMatrixSession(): void {
+    this.matrixSession.size = this.matrixSize
+    this.matrixSession.aText = this.matrixAText
+    this.matrixSession.bText = this.matrixBText
+    this.matrixSession.errorKeys = this.matrixErrorKeys
+    this.matrixSession.errorSummary = this.matrixErrorSummary
+    this.matrixSession.resultKind = this.matrixResultKind
+    this.matrixSession.resultMatrix = this.matrixResultText
+    this.matrixSession.resultScalar = this.matrixScalarText
+  }
+
+  private storeMatrixSession(): void {
+    this.matrixSize = this.matrixSession.size
+    this.matrixAText = this.matrixSession.aText
+    this.matrixBText = this.matrixSession.bText
+    this.matrixErrorKeys = this.matrixSession.errorKeys
+    this.matrixErrorSummary = this.matrixSession.errorSummary
+    this.matrixResultKind = this.matrixSession.resultKind
+    this.matrixResultText = this.matrixSession.resultMatrix
+    this.matrixScalarText = this.matrixSession.resultScalar
+  }
+
+  onMatrixSize(size: number): void {
+    this.loadMatrixSession()
+    this.matrixSession.setSize(size)
+    this.storeMatrixSession()
+  }
+
+  onMatrixCell(matrix: string, row: number, column: number, value: string): void {
+    this.loadMatrixSession()
+    this.matrixSession.setCell(matrix, row, column, value)
+    this.storeMatrixSession()
+  }
+
+  onMatrixCalculate(operation: MatrixOperation): void {
+    this.loadMatrixSession()
+    this.matrixSession.calculate(operation)
+    this.storeMatrixSession()
+  }
+
+  onMatrixClear(): void {
+    this.loadMatrixSession()
+    this.matrixSession.clear()
+    this.storeMatrixSession()
+  }
+
+  private matrixIndices(): number[] { return this.matrixSize === 2 ? [0, 1] : [0, 1, 2] }
+
+  private hasMatrixError(matrix: string, row: number, column: number): boolean {
+    const key: string = matrix + '-' + row.toString() + '-' + column.toString()
+    return this.matrixErrorKeys.indexOf(key) >= 0
   }
 
   // ==================== 绘图（Issue #40 SR-02） ====================
@@ -453,6 +528,7 @@ export struct CalculatorPage {
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
       if (this.showPlot) this.PlotPanel()
+      if (this.showMatrix) this.MatrixPanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -505,6 +581,8 @@ export struct CalculatorPage {
       Blank()
       Text('绘图').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.onOpenPlot() })
+      Text('矩阵').fontSize(12).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onOpenMatrix() })
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.showHistory = !this.showHistory })
       Text('⚙').fontSize(16).fontColor(this.getT2()).padding(8)
@@ -697,5 +775,92 @@ export struct CalculatorPage {
         })
     }
     .width('100%').height('100%').padding(16).backgroundColor(this.getPanelBg())
+  }
+
+  @Builder MatrixPanel() {
+    Column() {
+      Row() {
+        Text('矩阵运算').fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        Blank()
+        Text('✕ 返回').fontSize(16).fontColor(this.getT2()).padding(8)
+          .onClick((): void => { this.onCloseMatrix() })
+      }.width('100%')
+
+      Row() {
+        Button('2×2').fontSize(14).height(40).layoutWeight(1).margin({ right: 6 })
+          .backgroundColor(this.matrixSize === 2 ? this.getOp() : this.getBtnBg()).fontColor(this.getBtnText())
+          .onClick((): void => { this.onMatrixSize(2) })
+        Button('3×3').fontSize(14).height(40).layoutWeight(1)
+          .backgroundColor(this.matrixSize === 3 ? this.getOp() : this.getBtnBg()).fontColor(this.getBtnText())
+          .onClick((): void => { this.onMatrixSize(3) })
+      }.width('100%').margin({ top: 8 })
+
+      Scroll() {
+        Column() {
+          this.MatrixGrid('A', this.matrixAText)
+          this.MatrixGrid('B', this.matrixBText)
+        }.width('100%')
+      }.width('100%').layoutWeight(1).margin({ top: 12 })
+
+      Row() {
+        Button('A+B').layoutWeight(1).margin({ right: 4 })
+          .onClick((): void => { this.onMatrixCalculate(MatrixOperation.ADD) })
+        Button('A-B').layoutWeight(1).margin({ right: 4 })
+          .onClick((): void => { this.onMatrixCalculate(MatrixOperation.SUBTRACT) })
+        Button('A×B').layoutWeight(1).margin({ right: 4 })
+          .onClick((): void => { this.onMatrixCalculate(MatrixOperation.MULTIPLY) })
+        Button('det(A)').layoutWeight(1)
+          .onClick((): void => { this.onMatrixCalculate(MatrixOperation.DETERMINANT) })
+      }.width('100%').margin({ top: 12 })
+
+      Button('清空输入、结果和错误').fontSize(14).height(40).width('100%').margin({ top: 8 })
+        .backgroundColor(this.getClr()).fontColor(this.getBtnText())
+        .onClick((): void => { this.onMatrixClear() })
+
+      if (this.matrixErrorSummary.length > 0) {
+        Text(this.matrixErrorSummary).fontSize(13).fontColor(this.getErr()).width('100%').padding({ top: 8 })
+      }
+      if (this.matrixResultKind === 'matrix') {
+        this.MatrixResultGrid(this.matrixResultText)
+      } else if (this.matrixResultKind === 'scalar') {
+        Text('结果：' + this.matrixScalarText).fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor(this.getT1()).width('100%').padding({ top: 12 })
+      }
+    }
+    .width('100%').height('100%').padding(16).backgroundColor(this.getPanelBg())
+  }
+
+  @Builder MatrixGrid(name: string, values: string[][]) {
+    Column() {
+      Text('矩阵 ' + name).fontSize(14).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        .width('100%').padding({ top: 8, bottom: 4 })
+      ForEach(this.matrixIndices(), (row: number) => {
+        Row() {
+          ForEach(this.matrixIndices(), (column: number) => {
+            TextInput({ text: values[row][column], placeholder: '0' })
+              .fontSize(14).height(40).layoutWeight(1).margin(2).textAlign(TextAlign.Center)
+              .border({ width: this.hasMatrixError(name, row, column) ? 2 : 1,
+                color: this.hasMatrixError(name, row, column) ? this.getErr() : this.getT2(), radius: 6 })
+              .onChange((value: string): void => { this.onMatrixCell(name, row, column, value) })
+          })
+        }.width('100%')
+      })
+    }.width('100%')
+  }
+
+  @Builder MatrixResultGrid(values: string[][]) {
+    Column() {
+      Text('结果').fontSize(14).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        .width('100%').padding({ top: 10, bottom: 4 })
+      ForEach(this.matrixIndices(), (row: number) => {
+        Row() {
+          ForEach(this.matrixIndices(), (column: number) => {
+            Text(values[row][column]).fontSize(14).fontColor(this.getT1()).height(36)
+              .layoutWeight(1).textAlign(TextAlign.Center).margin(2)
+              .border({ width: 1, color: this.getT2(), radius: 6 })
+          })
+        }.width('100%')
+      })
+    }.width('100%')
   }
 }
