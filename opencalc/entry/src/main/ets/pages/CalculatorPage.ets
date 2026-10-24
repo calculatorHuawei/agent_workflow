@@ -14,6 +14,7 @@ import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../plot/PlotAxis'
+import { TipSession } from '../tip/TipSession'
 
 @Entry
 @Component
@@ -39,6 +40,20 @@ export struct CalculatorPage {
   @State canvasW: number = 0
   @State canvasH: number = 0
 
+  // ==================== 小费计算状态（Issue #50） ====================
+  @State showTip: boolean = false
+  @State tipBillText: string = ''
+  @State tipPeopleText: string = '1'
+  @State tipPresetBasisPoints: number = 1500
+  @State tipUsingCustom: boolean = false
+  @State tipCustomText: string = ''
+  @State tipBillError: string = ''
+  @State tipPercentError: string = ''
+  @State tipPeopleError: string = ''
+  @State tipAmountText: string = '--'
+  @State tipTotalText: string = '--'
+  @State tipPerPersonText: string = '--'
+
   // ==================== 偏好设置状态 ====================
   @State vibrateOn: boolean = true
   @State preventSleep: boolean = false
@@ -51,6 +66,7 @@ export struct CalculatorPage {
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
+  private tipSession: TipSession = new TipSession()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
 
   aboutToAppear(): void {
@@ -127,6 +143,55 @@ export struct CalculatorPage {
     for (let i: number = 0; i < this.history.length; i++) { if (this.history[i].id !== item.id) keep.push(this.history[i]) }
     this.history = keep
     if (this.prefs) this.prefs.setHistory(this.history)
+  }
+
+  // ==================== 小费计算（Issue #50） ====================
+
+  onOpenTip(): void { this.showTip = true }
+
+  onTipBillChange(value: string): void {
+    try { this.tipSession.changeBill(value); this.syncTipState() }
+    catch (_e) { this.showTipFailure() }
+  }
+
+  onTipPeopleChange(value: string): void {
+    try { this.tipSession.changePeople(value); this.syncTipState() }
+    catch (_e) { this.showTipFailure() }
+  }
+
+  onTipPreset(basisPoints: number): void {
+    try { this.tipSession.selectPreset(basisPoints); this.syncTipState() }
+    catch (_e) { this.showTipFailure() }
+  }
+
+  onTipCustomChange(value: string): void {
+    try { this.tipSession.changeCustomPercent(value); this.syncTipState() }
+    catch (_e) { this.showTipFailure() }
+  }
+
+  private syncTipState(): void {
+    try {
+      this.tipBillText = this.tipSession.billText
+      this.tipPeopleText = this.tipSession.peopleText
+      this.tipPresetBasisPoints = this.tipSession.presetBasisPoints
+      this.tipUsingCustom = this.tipSession.usingCustom
+      this.tipCustomText = this.tipSession.customPercentText
+      this.tipBillError = this.tipSession.billError
+      this.tipPercentError = this.tipSession.percentError
+      this.tipPeopleError = this.tipSession.peopleError
+      this.tipAmountText = this.tipSession.tip
+      this.tipTotalText = this.tipSession.total
+      this.tipPerPersonText = this.tipSession.perPerson
+    } catch (_e) { this.showTipFailure() }
+  }
+
+  private showTipFailure(): void {
+    this.tipBillError = '无法计算，请检查输入'
+    this.tipPercentError = ''
+    this.tipPeopleError = ''
+    this.tipAmountText = '--'
+    this.tipTotalText = '--'
+    this.tipPerPersonText = '--'
   }
 
   // ==================== 绘图（Issue #40 SR-02） ====================
@@ -453,6 +518,7 @@ export struct CalculatorPage {
       if (this.showSettings) this.SettingsPanel()
       if (this.showAbout) this.AboutPanel()
       if (this.showPlot) this.PlotPanel()
+      if (this.showTip) this.TipPanel()
     }
     .width('100%').height('100%')
     .onAreaChange((_old: Area, newVal: Area): void => {
@@ -472,6 +538,9 @@ export struct CalculatorPage {
       Row() {
         Text(this.expression.length > 0 ? this.expression : ' ')
           .fontSize(14).fontColor(this.getT2()).textAlign(TextAlign.End).maxLines(3).layoutWeight(1)
+        Text('小费').id('tip-entry-landscape')
+          .fontSize(12).fontColor(this.getT2()).padding({ left: 8, right: 8, top: 6, bottom: 6 })
+          .onClick((): void => { this.onOpenTip() })
         Text(this.showHistory ? '◀' : '▶')
           .fontSize(14).fontColor(this.getOp()).padding({ left: 8 })
           .onClick((): void => { this.showHistory = !this.showHistory })
@@ -503,6 +572,8 @@ export struct CalculatorPage {
         .border({ width: 1, color: this.getOp(), radius: 8 })
         .onClick((): void => { this.scientific = !this.scientific })
       Blank()
+      Text('小费').id('tip-entry-portrait').fontSize(12).fontColor(this.getT2()).padding(8)
+        .onClick((): void => { this.onOpenTip() })
       Text('绘图').fontSize(12).fontColor(this.getT2()).padding(8)
         .onClick((): void => { this.onOpenPlot() })
       Text(this.showHistory ? '▲ 历史' : '▼ 历史').fontSize(12).fontColor(this.getT2()).padding(8)
@@ -651,6 +722,79 @@ export struct CalculatorPage {
       Button('关闭').margin({ top: 16 }).onClick((): void => { this.showAbout = false })
     }
     .width('80%').padding(24).backgroundColor(this.getPanelBg()).borderRadius(16)
+  }
+
+  // ==================== 小费面板（Issue #50，全屏覆盖层） ====================
+  @Builder TipPanel() {
+    Column() {
+      Row() {
+        Text('小费计算器').fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+        Blank()
+        Text('✕ 返回').id('tip-back').fontSize(16).fontColor(this.getT2()).padding(10)
+          .onClick((): void => { this.showTip = false })
+      }
+      .width('100%').padding({ left: 16, right: 8, top: 12, bottom: 8 })
+
+      Scroll() {
+        Column() {
+          Text('账单金额').fontSize(14).fontColor(this.getT1()).width('100%')
+          TextInput({ text: this.tipBillText, placeholder: '请输入非负金额' })
+            .id('tip-bill-input').width('100%').height(44).fontSize(16)
+            .onChange((value: string): void => { this.onTipBillChange(value) })
+          if (this.tipBillError.length > 0) {
+            Text(this.tipBillError).id('tip-bill-error').fontSize(12).fontColor(this.getErr()).width('100%')
+          }
+
+          Text('小费比例').fontSize(14).fontColor(this.getT1()).width('100%').margin({ top: 14 })
+          Row() {
+            this.TipPresetButton('0%', 0, 'tip-percent-0')
+            this.TipPresetButton('10%', 1000, 'tip-percent-10')
+            this.TipPresetButton('15%', 1500, 'tip-percent-15')
+            this.TipPresetButton('20%', 2000, 'tip-percent-20')
+          }.width('100%')
+          TextInput({ text: this.tipCustomText, placeholder: '自定义 0–100' })
+            .id('tip-custom-percent-input').width('100%').height(44).fontSize(16).margin({ top: 6 })
+            .border({ width: this.tipUsingCustom ? 2 : 1, color: this.tipUsingCustom ? this.getOp() : this.getT2(), radius: 8 })
+            .onChange((value: string): void => { this.onTipCustomChange(value) })
+          if (this.tipPercentError.length > 0) {
+            Text(this.tipPercentError).id('tip-percent-error').fontSize(12).fontColor(this.getErr()).width('100%')
+          }
+
+          Text('人数').fontSize(14).fontColor(this.getT1()).width('100%').margin({ top: 14 })
+          TextInput({ text: this.tipPeopleText, placeholder: '请输入不小于 1 的整数' })
+            .id('tip-people-input').width('100%').height(44).fontSize(16)
+            .onChange((value: string): void => { this.onTipPeopleChange(value) })
+          if (this.tipPeopleError.length > 0) {
+            Text(this.tipPeopleError).id('tip-people-error').fontSize(12).fontColor(this.getErr()).width('100%')
+          }
+
+          Column() {
+            this.TipResultRow('小费', this.tipAmountText, 'tip-amount-result')
+            this.TipResultRow('总额', this.tipTotalText, 'tip-total-result')
+            this.TipResultRow('每人应付', this.tipPerPersonText, 'tip-per-person-result')
+          }
+          .width('100%').padding(16).margin({ top: 18, bottom: 16 })
+          .backgroundColor(this.getBtnBg()).borderRadius(12)
+        }
+        .width('100%').padding({ left: 16, right: 16 })
+      }
+      .layoutWeight(1).width('100%')
+    }
+    .width('100%').height('100%').backgroundColor(this.getPanelBg())
+  }
+
+  @Builder TipPresetButton(label: string, basisPoints: number, controlId: string) {
+    Button(label).id(controlId).fontSize(14).height(44).layoutWeight(1).margin({ right: 4 })
+      .backgroundColor(!this.tipUsingCustom && this.tipPresetBasisPoints === basisPoints ?
+        this.getOp() : this.getBtnBg())
+      .fontColor(this.getT1()).onClick((): void => { this.onTipPreset(basisPoints) })
+  }
+
+  @Builder TipResultRow(label: string, value: string, controlId: string) {
+    Row() {
+      Text(label).fontSize(15).fontColor(this.getT2()).layoutWeight(1)
+      Text(value).id(controlId).fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.getT1())
+    }.width('100%').padding({ top: 6, bottom: 6 })
   }
 
   // ==================== 绘图面板（Issue #40，全屏覆盖层，非新路由页） ====================

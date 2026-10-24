@@ -1,0 +1,283 @@
+{
+  "version": "1.0",
+  "source_requirements": [
+    { "id": "IR-001", "text": "新增小费计算器入口，且不影响普通、科学、绘图和程序员模式。" },
+    { "id": "IR-002", "text": "输入账单金额和人数，支持选择 0%/10%/15%/20% 以及 0%–100% 的自定义小费比例。" },
+    { "id": "IR-003", "text": "输入变化后无需额外点击，自动同步计算小费金额、含小费总额和每人应付金额。" },
+    { "id": "IR-004", "text": "金额统一显示两位小数，每人金额按货币精度四舍五入。" },
+    { "id": "IR-005", "text": "空值、非数字、负金额、人数小于 1 或非整数、比例越界时给出明确提示，不崩溃且不显示误导结果。" },
+    { "id": "IR-006", "text": "进入和离开小费计算器后，现有计算器功能和历史记录不受影响。" },
+    { "id": "IR-007", "text": "Tester 独立生成并执行核心计算、边界输入和关键 UI 交互测试，保存可追溯证据。" }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "title": "横竖屏入口与可逆退出",
+      "source_requirement_ids": ["IR-001", "IR-006"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["OpenCalc 主计算器已显示", "设备分别处于竖屏和横屏"],
+      "when": ["用户点击可见的“小费”入口，再点击“返回”"],
+      "then": ["小费计算面板在两种方向均可到达", "返回后重新显示原主计算器且没有新增路由页面"],
+      "observable": { "type": "ui_state", "target": "小费入口、TipPanel 标题和返回后的 CalculatorPage" },
+      "verification_layers": ["ui", "e2e"],
+      "oracle": { "type": "state_transition", "expected": { "portraitReachable": true, "landscapeReachable": true, "panelTitle": "小费计算器", "returnedToCalculator": true } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI", "orientation change"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-002",
+      "title": "100 元按 15% 两人分摊",
+      "source_requirement_ids": ["IR-002", "IR-003", "IR-004"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["用户已进入小费计算器", "输入状态有效"],
+      "when": ["用户输入账单金额 100，选择 15%，输入人数 2"],
+      "then": ["小费显示 15.00", "总额显示 115.00", "每人应付显示 57.50"],
+      "observable": { "type": "ui_text", "target": "小费、总额和每人应付结果区域" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "tip": "15.00", "total": "115.00", "perPerson": "57.50" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-003",
+      "title": "88.80 元按 10% 三人分摊",
+      "source_requirement_ids": ["IR-002", "IR-003", "IR-004"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["用户已进入小费计算器"],
+      "when": ["用户输入账单金额 88.80，选择 10%，输入人数 3"],
+      "then": ["小费显示 8.88", "总额显示 97.68", "每人应付显示 32.56"],
+      "observable": { "type": "ui_text", "target": "三项结果文本" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "tip": "8.88", "total": "97.68", "perPerson": "32.56" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-004",
+      "title": "零小费按原账单分摊",
+      "source_requirement_ids": ["IR-002", "IR-003", "IR-004"],
+      "category": "boundary",
+      "level": "feature",
+      "given": ["用户已进入小费计算器"],
+      "when": ["用户输入账单 100，选择 0%，输入人数 3"],
+      "then": ["小费显示 0.00", "总额显示 100.00", "每人应付显示 33.33"],
+      "observable": { "type": "ui_text", "target": "0% 选中态和三项结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "selectedPercent": "0%", "tip": "0.00", "total": "100.00", "perPerson": "33.33" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-005",
+      "title": "三个输入维度即时同步",
+      "source_requirement_ids": ["IR-002", "IR-003", "IR-004"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["当前账单为 100、比例 10%、人数 2，结果为 10.00/110.00/55.00"],
+      "when": ["用户依次把金额改为 200、比例改为 20%、人数改为 4，不点击额外计算按钮"],
+      "then": ["修改金额后结果立即为 20.00/220.00/110.00", "修改比例后立即为 40.00/240.00/120.00", "修改人数后立即为 40.00/240.00/60.00", "最后选择自定义并输入 12.5 时自定义选中且结果为 25.00/225.00/56.25"],
+      "observable": { "type": "ui_state", "target": "输入框、比例选中态及三项派生结果" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "ordered_exact_states", "expected": ["20.00|220.00|110.00", "40.00|240.00|120.00", "40.00|240.00|60.00", "custom:12.5|25.00|225.00|56.25"] },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI reactive state"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-006",
+      "title": "货币精度和四舍五入",
+      "source_requirement_ids": ["IR-004"],
+      "category": "boundary",
+      "level": "feature",
+      "given": ["用户已进入小费计算器"],
+      "when": ["用户输入账单 10、比例 10%、人数 3"],
+      "then": ["小费显示 1.00", "总额显示 11.00", "每人应付按货币精度显示 3.67", "每项始终包含两位小数"],
+      "observable": { "type": "ui_text", "target": "三项金额格式及循环小数分摊结果" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "exact", "expected": { "tip": "1.00", "total": "11.00", "perPerson": "3.67", "fractionDigits": 2 } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-007",
+      "title": "非法账单金额被拒绝且可恢复",
+      "source_requirement_ids": ["IR-005"],
+      "category": "exception",
+      "level": "feature",
+      "given": ["用户已获得一组有效结果"],
+      "when": ["用户依次将账单金额改为空值、abc、-1 和超过安全计算范围的数，再改回 100"],
+      "then": ["每个非法值均显示可理解的金额错误", "非法期间三项结果均显示 -- 而不是旧值", "改回 100 后错误消失并自动恢复正确结果"],
+      "observable": { "type": "ui_state", "target": "金额错误文本与结果区域的清空/恢复" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "predicate", "expected": { "invalidStates": "amountErrorVisible && allResults==='--'", "recovered": "amountErrorHidden && resultsRecomputed" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-008",
+      "title": "非法人数不执行除法且可恢复",
+      "source_requirement_ids": ["IR-005"],
+      "category": "exception",
+      "level": "feature",
+      "given": ["账单和比例有效"],
+      "when": ["用户依次输入人数空值、0、-1、1.5 和 abc，再输入 2"],
+      "then": ["每个非法人数均显示“人数必须为不小于 1 的整数”或等义提示", "非法期间不执行除法且三项结果显示 --", "输入 2 后提示消失并自动恢复结果"],
+      "observable": { "type": "ui_state", "target": "人数错误文本与结果区域" },
+      "verification_layers": ["unit", "integration", "ui"],
+      "oracle": { "type": "predicate", "expected": { "rejected": ["", "0", "-1", "1.5", "abc"], "divisionWhileInvalid": false, "validRecovery": "2" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-009",
+      "title": "自定义比例边界、互斥选中与恢复",
+      "source_requirement_ids": ["IR-002", "IR-005"],
+      "category": "boundary",
+      "level": "feature",
+      "given": ["账单为 100、人数为 2"],
+      "when": ["用户选择自定义并依次输入 0、100、-0.01、100.01、abc、空值，然后点击预设 15%"],
+      "then": ["0 和 100 被接受并分别得到 0.00/100.00/50.00 与 100.00/200.00/100.00", "其余自定义值显示 0%–100% 的明确提示且结果为 --", "点击 15% 后仅 15% 为选中态、错误清除且结果自动恢复为 15.00/115.00/57.50"],
+      "observable": { "type": "ui_state", "target": "自定义输入、比例按钮选中态、错误文本和结果" },
+      "verification_layers": ["unit", "integration", "ui", "e2e"],
+      "oracle": { "type": "state_table", "expected": { "0": "0.00|100.00|50.00", "100": "100.00|200.00|100.00", "invalid": ["-0.01", "100.01", "abc", ""], "presetRecovery": "15%|15.00|115.00|57.50" } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI reactive state"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-010",
+      "title": "主计算器状态、模式和历史零污染",
+      "source_requirement_ids": ["IR-001", "IR-006"],
+      "category": "compatibility",
+      "level": "feature",
+      "given": ["主计算器已有表达式 2+3、结果 5 和至少一条历史记录", "科学模式状态和绘图入口可用"],
+      "when": ["用户进入小费面板完成一次分摊并返回，再打开历史、切换普通/科学并进入绘图"],
+      "then": ["表达式和结果与进入前一致", "历史条目数量和内容完全一致且没有小费记录", "现有普通/科学/绘图交互仍可用", "若交付基线含程序员模式，其入口和状态同样不得改变"],
+      "observable": { "type": "ui_state", "target": "主显示屏、历史列表、模式切换和绘图面板" },
+      "verification_layers": ["integration", "ui", "e2e"],
+      "oracle": { "type": "before_after_equality", "expected": { "expression": "2+3", "result": "5", "historyDelta": 0, "tipHistoryItems": 0, "existingModesUsable": true } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS ArkUI", "Preferences history"] },
+      "priority": "P0"
+    },
+    {
+      "id": "AC-011",
+      "title": "Tester 独立测试与证据追溯",
+      "source_requirement_ids": ["IR-007"],
+      "category": "normal",
+      "level": "feature",
+      "given": ["实现进入独立 Tester 阶段", "Tester 可访问 AC 契约和可运行产物"],
+      "when": ["Tester 独立生成并执行核心计算、边界输入、即时更新、横竖屏入口和回归用例"],
+      "then": ["测试报告逐条引用 AC-002 至 AC-010", "每条用例保存命令/环境、实际值、期望值、通过状态及 UI 截图或状态树证据", "失败用例保留原始证据而不是仅给结论"],
+      "observable": { "type": "data_state", "target": "Tester 测试报告、执行日志和 UI 证据索引" },
+      "verification_layers": ["integration", "e2e"],
+      "oracle": { "type": "traceability", "expected": { "coveredAcIds": ["AC-002", "AC-003", "AC-004", "AC-005", "AC-006", "AC-007", "AC-008", "AC-009", "AC-010"], "requiredEvidenceFields": ["environment", "actual", "expected", "status", "artifact"] } },
+      "environment": { "device_required": true, "capabilities": ["HarmonyOS emulator or device", "UI evidence capture"] },
+      "priority": "P0"
+    }
+  ],
+  "coverage_assessment": [
+    {
+      "source_requirement_id": "IR-001",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-001"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-001"], "reason": "" },
+        "exception": { "status": "not_applicable", "ac_ids": [], "reason": "入口是本地条件渲染，不依赖可失败的外部操作；返回路径由正常/兼容性 AC 覆盖。" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-001", "AC-010"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-001", "AC-010"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-001", "AC-010"], "reason": "" },
+        "environment": { "status": "covered", "ac_ids": ["AC-001"], "reason": "" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-002",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-002", "AC-003", "AC-005"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-004", "AC-009"], "reason": "" },
+        "exception": { "status": "covered", "ac_ids": ["AC-009"], "reason": "" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-002", "AC-005", "AC-009"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-005", "AC-009"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-002", "AC-005", "AC-009"], "reason": "" },
+        "environment": { "status": "not_applicable", "ac_ids": [], "reason": "输入和比例选择仅依赖本地 ArkUI，不依赖权限、网络或设备专属能力。" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-003",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-002", "AC-003", "AC-005"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-004"], "reason": "" },
+        "exception": { "status": "covered", "ac_ids": ["AC-005"], "reason": "有效状态序列验证无额外按钮；非法转移由 IR-005 的 AC 覆盖。" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-002", "AC-003", "AC-005"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-005"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-005"], "reason": "" },
+        "environment": { "status": "not_applicable", "ac_ids": [], "reason": "自动计算为本地同步逻辑，无外部环境依赖。" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-004",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-002", "AC-003"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-004", "AC-006"], "reason": "" },
+        "exception": { "status": "not_applicable", "ac_ids": [], "reason": "格式化仅在已验证且安全范围内的输入上执行；越界失败归 IR-005。" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-006"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-005", "AC-006"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-002", "AC-003", "AC-006"], "reason": "" },
+        "environment": { "status": "not_applicable", "ac_ids": [], "reason": "货币舍入和格式化不依赖 locale、网络、权限或外部设备。" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-005",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "每个 AC 都包含修正后恢复正常计算。" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "" },
+        "exception": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-007", "AC-008", "AC-009"], "reason": "" },
+        "environment": { "status": "not_applicable", "ac_ids": [], "reason": "校验为本地确定性逻辑，不依赖外部能力。" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-006",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-001", "AC-010"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-010"], "reason": "进出面板并完成计算后比较状态和历史。" },
+        "exception": { "status": "not_applicable", "ac_ids": [], "reason": "面板切换无外部失败源；状态污染作为兼容性差异由 AC-010 判定。" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-010"], "reason": "" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-010"], "reason": "" },
+        "integration": { "status": "covered", "ac_ids": ["AC-010"], "reason": "" },
+        "environment": { "status": "covered", "ac_ids": ["AC-010"], "reason": "" }
+      }
+    },
+    {
+      "source_requirement_id": "IR-007",
+      "dimensions": {
+        "normal": { "status": "covered", "ac_ids": ["AC-011"], "reason": "" },
+        "boundary": { "status": "covered", "ac_ids": ["AC-011"], "reason": "要求证据覆盖边界 AC。" },
+        "exception": { "status": "covered", "ac_ids": ["AC-011"], "reason": "要求失败用例保留证据。" },
+        "user_visible": { "status": "covered", "ac_ids": ["AC-011"], "reason": "报告和证据索引可读取。" },
+        "state_sync": { "status": "covered", "ac_ids": ["AC-011"], "reason": "要求覆盖即时更新 AC。" },
+        "integration": { "status": "covered", "ac_ids": ["AC-011"], "reason": "" },
+        "environment": { "status": "covered", "ac_ids": ["AC-011"], "reason": "" }
+      }
+    }
+  ],
+  "assumptions": [
+    { "id": "A-001", "decision": "Issue 产品意图按新增功能解释，但目录沿用编排器 change_type=bugfix。", "rationale": "保留任务路由元数据，同时不扭曲产品需求语义。" },
+    { "id": "A-002", "decision": "采用既有 CalculatorPage Stack 覆盖面板，不新增路由页。", "rationale": "仓内 PlotPanel/SettingsPanel 已采用此惯例，变更可逆且状态隔离风险最低。" },
+    { "id": "A-003", "decision": "初始比例为 15%、人数为 1、账单为空；首次进入不显示错误，字段被清空后显示错误。", "rationale": "常见默认值并避免初始页面噪声，同时满足空值校验。" },
+    { "id": "A-004", "decision": "金额与自定义比例使用点号十进制且最多两位小数；金额允许 0。", "rationale": "保证货币计算可确定且不引入 locale/币种范围。" },
+    { "id": "A-005", "decision": "小费先四舍五入到分，总额等于账单分值加小费分值，每人金额再四舍五入到分。", "rationale": "保证显示的小费与总额可加和，并给出唯一 oracle。" },
+    { "id": "A-006", "decision": "任一字段无效时所有结果显示 --，修正后即时恢复。", "rationale": "避免混合新旧值造成误导。" },
+    { "id": "A-007", "decision": "小费表单仅在当前页面生命周期内保留，不写 Preferences 或历史。", "rationale": "最小数据范围并保护现有历史语义。" },
+    { "id": "A-008", "decision": "结果不显示货币符号。", "rationale": "Issue 未指定币种，擅加币种会造成错误语义。" }
+  ],
+  "out_of_scope": [
+    "支付、收款、扫码或账单识别",
+    "按个人消费项目进行不等额分摊",
+    "税费、币种换算和多币种格式",
+    "小费表单跨启动持久化或写入普通计算历史",
+    "补建当前代码仓不存在的程序员模式",
+    "新增网络、权限、付费服务或第三方依赖"
+  ]
+}
