@@ -1,0 +1,30 @@
+{
+  "module": {
+    "name": "entry_voice_test",
+    "type": "feature",
+    "mainElement": "VoiceTestAbility",
+    "deviceTypes": ["phone", "tablet"],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:test_pages",
+    "abilities": [
+      {
+        "name": "VoiceTestAbility",
+        "srcEntry": "./ets/testability/VoiceTestAbility.ets",
+        "description": "$string:voice_test_description",
+        "icon": "$media:app_icon",
+        "label": "$string:voice_test_label",
+        "startWindowIcon": "$media:app_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.MICROPHONE",
+        "reason": "$string:microphone_reason",
+        "usedScene": { "abilities": ["VoiceTestAbility"], "when": "inuse" }
+      }
+    ]
+  }
+}

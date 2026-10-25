@@ -6,7 +6,7 @@
 
 | 设计资产 | 描述 |
 |----------|------|
-| IR标识 | IR-001～IR-009 |
+| IR标识 | IR-001～IR-010 |
 | 名称 | 中文语音输入算式并自动计算 |
 | 描述 | 普通计算模式新增前台单轮中文语音输入，严格规范化后复用既有计算/历史链；失败可见且不破坏旧输入 |
 | Who | 不方便触屏输入的计算器用户；执行自动化和真机验证的 Tester |
@@ -30,6 +30,7 @@
 | 单轮会话 | 用户点击开始至成功、失败或取消之间的一次语音输入 |
 | Final result | `SpeechRecognitionResult.isFinal/isLast` 表示的可提交最终结果 |
 | Gateway | 隔离权限、录音和语音服务的可替换端口 |
+| 设备测试装配 | 与源码 SHA 可追溯、可安装到设备、仅测试 profile/Ability 可启用 scripted gateway 的 HAP/测试包 |
 | AC | Acceptance Criterion，权威 ID 定义于 `acceptance-criteria.json` |
 
 ## 3. 系统上下文
@@ -49,7 +50,7 @@
 | ES-02 | HarmonyOS 权限管理 | 系统 | AbilityKit | MIC 授权/拒绝 |
 | ES-03 | 设备麦克风/AudioKit | 设备/Kit | PCM 音频流 | 前台采集 16 kHz mono PCM |
 | ES-04 | CoreSpeechKit | Kit/服务 | SDK | 中文音频转最终文本 |
-| ES-05 | Tester fake gateway | 测试系统 | 注入接口 | 无设备时注入文本、错误和竞态 |
+| ES-05 | Tester scripted gateway | 测试系统 | 测试源码集/Ability 注入接口 | 无真实服务时在安装设备上注入 allowlisted 文本、错误和竞态 |
 
 ## 4. 需求描述
 
@@ -60,6 +61,7 @@
 | R-VOICE-03 | 文本规范化 | 运算词/符号、中文/阿拉伯数与小数严格解析 | MigBot Developer |
 | R-VOICE-04 | 计算提交 | 成功后显示原文、规范式、结果并历史一次 | MigBot Developer |
 | R-VOICE-05 | 安全失败与测试 | 失败保持旧输入；业务与真实设备测试分层 | MigBot Developer |
+| R-VOICE-06 | 设备 UI 测试装配 | release 固定真实网关；测试构建可在设备 UI 确定性执行成功、失败和竞态矩阵 | MigBot Developer |
 
 ## 5. 假设和约束
 
@@ -72,6 +74,8 @@
 | 5 | 数字 | 支持零/〇、一至九、两、十百千万、逐位数和逐位小数；不含亿、分数、量词、省略读法 | 表驱动测试锁定边界 |
 | 6 | 隐私最小化 | 不持久化音频；原文仅当前页面展示；日志不记录音频/原文 | 不新增音频或原文存储验收 |
 | 7 | 兼容 | 不改 HistoryItem/Preferences Schema、绘图/科学函数/手动输入结果 | 回归手动计算和历史格式 |
+| 8 | 测试隔离 | scripted gateway 仅存在于测试源码集/测试 Ability/编译期测试 profile；release 不接受 Want、深链或隐藏点击激活 fake | 设备 UI 自动化可执行且不形成生产后门 |
+| 9 | 环境证据 | 普通模拟器可能在 `createEngine` 失败；fake 证据不得替代真实服务 E2E | AC-015 只在 MIC、网络、zh-CN CoreSpeechKit 预检通过后执行 |
 
 ## 6. 分级规格
 
@@ -108,6 +112,7 @@
 | ADD | SC-002 | 文本规范化边界 | parser/计算/UI | 高 |
 | ADD | SC-003 | 失败、取消与恢复 | 权限/服务/录音/session/状态原子性 | 高 |
 | ADD | SC-004 | 分层自动化与真机证据 | fake gateway/测试框架/设备 | 高 |
+| ADD | SC-005 | 真实语音环境证据 | MIC/网络/CoreSpeechKit/设备证据 | 中 |
 
 ### ADD 场景 SC-001：有效语音计算闭环
 
@@ -234,33 +239,74 @@
 | IR-002/IR-006 | SR-02 | 平台识别网关 | 权限、音频、识别、错误映射与清理 | F2 |
 | IR-001/IR-006/IR-007 | SR-01/SR-05 | 会话与恢复 | session 隔离、取消、快照 | F1/F4 |
 
-### ADD 场景 SC-004：分层测试证据
+### ADD 场景 SC-004：确定性测试与设备 UI 证据
 
 #### 场景要素分析
 
 | 场景要素 | 取值 |
 |----------|------|
 | T | 开发/测试验收 |
-| G | 环境限制不掩盖业务缺陷 |
-| E | 无麦克风 CI 与有能力真机 |
-| A | Tester、fake gateway、真实平台 |
-| S | 可切换依赖装配 |
+| G | 环境限制不掩盖业务缺陷，且安装设备的页面行为可自动验证 |
+| E | 无麦克风 CI、无 CoreSpeechKit 的模拟器、设备测试构建 |
+| A | Tester、local fake、scripted gateway、测试 Ability/profile |
+| S | release 装配封闭；测试装配可选择 allowlisted 场景 |
 
 #### 用例 SC004-UC001：无设备确定性自动化
 
 - **验证达成标准**：AC-014。
-- **Oracle**：成功和全部错误/竞态 outcome 可注入，测试不要求麦克风。
+- **Actor**：Tester（主）、Local Test runner（次）。
+- **前置条件**：没有麦克风或在线服务；parser/controller 通过端口接收 fake。
+- **最小保证**：环境缺失不跳过业务断言，不把未执行写成通过。
+- **成功保证**：成功、空结果、歧义、服务错误、中断和迟到回调均取得确定 oracle。
+- **触发事件/主路径**：运行 Local Test→逐项注入事件→比较 parser、snapshot、commitCount。
+- **Given/When/Then**：Given 无 MIC/服务，When 注入完整矩阵，Then 所有本地 oracle 确定通过且不需要设备。
+- **Oracle/层级**：test matrix；unit/integration。
 
-#### 用例 SC004-UC002：真实设备补充证据
+#### 用例 SC004-UC002：设备可见 scripted gateway 矩阵
 
-- **验证达成标准**：AC-015。
-- **Oracle**：说 `123加456` 后证据包含状态链、`123+456`、`579`；缺能力必须明确标注环境限制。
+- **Actor**：Tester（主）、测试 Ability/profile 与 HarmonyOS UI（次）。
+- **前置条件**：安装与目标源码 SHA 一致的测试构建；release 包不可激活 scripted gateway。
+- **最小保证**：失败/取消场景保持语音前 expression/result/history；测试退出后无活动 session/capturer。
+- **成功保证**：成功、失败、取消、重复点击与重复 final 均可从 UI 树/截图/历史差异观察。
+- **触发事件/主路径**：选择 allowlisted scenario→打开同一 CalculatorPage→点击语音入口/取消/重试→scripted gateway 发送事件→采集 UI 与 Preferences delta。
+- **Given/When/Then**：Given 设备测试构建且无真实服务，When 执行 11 类 scripted 场景，Then UI oracle 与 JSON 合同一致，成功历史 +1，其他场景 +0。
+- **验证达成标准**：AC-019，并承载 AC-001、003～014、016～018 的设备 UI 层证据。
+- **Oracle/层级**：device UI matrix + releaseInjectionReachable=false；integration/ui/e2e。
 
 #### 需求分解列表（IR → SR）
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-009 | SR-06 | 测试注入与证据 | fake seam、自动化矩阵、真机补证 | F5 |
+| IR-009 | SR-06 | 测试注入与设备 UI 证据 | local fake、test-only scripted gateway、设备矩阵 | F5/F6 |
+
+### ADD 场景 SC-005：真实语音环境证据
+
+#### 场景要素分析
+
+| 场景要素 | 取值 |
+|----------|------|
+| T | 验收阶段 |
+| G | 证明真实权限、麦克风与 zh-CN 识别服务端到端可用 |
+| E | 能力预检通过的 HarmonyOS 真机或等价环境 |
+| A | Tester、权限系统、麦克风、CoreSpeechKit |
+| S | release 默认真实 gateway，网络可用 |
+
+#### 用例 SC005-UC001：真实中文语音 `123加456`
+
+- **Actor**：Tester（主）、HarmonyOS/CoreSpeechKit（次）。
+- **前置条件**：MIC、网络、zh-CN CoreSpeechKit `createEngine` 预检通过并授权。
+- **最小保证**：预检失败时记录环境限制并执行 AC-010；不得用 fake 标记 AC-015 通过。
+- **成功保证**：真实音频形成 listening→recognizing→success，并显示原文、`123+456`、`579`。
+- **触发事件/主路径**：安装 release 候选→授权→点击麦克风→说“123加456”→采集 UI/日志/录屏。
+- **Given/When/Then**：Given 真实能力可用，When 说“123加456”，Then 状态链和最终语义结果精确匹配。
+- **验证达成标准**：AC-015。
+- **Oracle/层级**：semantic evidence；e2e。
+
+#### 需求分解列表（IR → SR）
+
+| IR | SR | SR 名称 | 描述 | 关联功能 |
+|----|----|---------|------|----------|
+| IR-010 | SR-06 | 真实环境证据 | 能力预检、真实链路、环境限制显式记录 | F5 |
 
 ## 8. SR 功能模块点
 
@@ -328,13 +374,13 @@
 
 | 字段 | 内容 |
 |------|------|
-| 需求场景 | SC-004 |
+| 需求场景 | SC-004、SC-005 |
 | 需求价值 | CI 不依赖真实语音，同时不省略平台 E2E |
-| 需求描述 | gateway/interface 注入、纯 parser、fake 时序与真实设备证据 |
-| 关联用例 | SC004-UC001/002 |
-| 功能点 | fake outcomes、解析表测、UI 状态自动化、真机证据模板 |
-| 验收场景与标准 | AC-014、AC-015 |
-| DFX/性能/功耗 | 测试装配不进入生产默认路径；环境限制显式报告 |
+| 需求描述 | local fake、release-sealed gateway factory、test-only scripted gateway、真实设备证据 |
+| 关联用例 | SC004-UC001/002、SC005-UC001 |
+| 功能点 | fake outcomes、设备 UI scenario registry、release 不可达校验、能力预检、真机证据模板 |
+| 验收场景与标准 | AC-014、AC-015、AC-019 |
+| DFX/性能/功耗 | 测试装配不进入 release 默认路径；环境限制显式报告；fake 不替代真实 E2E |
 
 ## 9. 需求 DFX 分析
 
@@ -357,6 +403,7 @@
 | CM-03 | 解析猜测歧义 | 宽松自然语言规则 | 错误计算 | 完整消费、未知词 fail-closed | SR-03 |
 | CM-04 | 服务/录音异常遗留资源 | cleanup 非幂等 | 麦克风占用/耗电 | finally/统一 cleanup；状态终态断言 | SR-02/SR-05 |
 | CM-05 | 计算错误覆盖旧输入 | 先赋 expression 后求值 | 数据丢失 | 候选事务计算成功后一次提交 | SR-04/SR-05 |
+| CM-06 | 设备测试 fake 误入生产 | 运行时隐藏开关或任意 Want 注入 | 绕过真实能力、生产攻击面 | 测试源码集/Ability/profile 隔离；release 包不可达与内容审计 | SR-06 |
 
 ### 9.3 DFX 质量属性遵从性分析
 
@@ -377,7 +424,7 @@
 | SR-03 | IR-003,004 | 中文表达式解析 | 规范化或明确拒绝 | SC002-UC001/002/003 | AC-003～006,018 | 高 |
 | SR-04 | IR-005,008 | 统一计算与历史提交 | 显示原文/规范式/结果，历史一次 | SC001-UC002 | AC-007,009,013 | 高 |
 | SR-05 | IR-006,007 | 安全失败与恢复 | 旧状态不变、资源清理、可重试 | SC002-UC003,SC003-* | AC-002,006,008～012 | 高 |
-| SR-06 | IR-009 | 可测试性与证据 | 无设备自动化+真机补证 | SC004-* | AC-014,015 | 高 |
+| SR-06 | IR-009,010 | 可测试性与证据 | local 自动化+设备 UI scripted matrix+真机补证 | SC004-*,SC005-* | AC-014,015,019 | 高 |
 
 ## 11. 验收总表（IR × UC × SR × AC × Evidence 追溯）
 
@@ -394,8 +441,9 @@
 | IR-006 | SR-02/05 | SC003-UC002 | AC-010,011 | recovery | 服务/录音错误、资源停、旧输入 | integration/ui/e2e | fake+真机 |
 | IR-001,007 | SR-01/T1 | SC003-UC003 | AC-012,017 | exception/boundary | 取消忽略迟到；单 session | integration/ui/e2e | fake+真机 |
 | IR-008 | SR-04/T1 | SC001-UC002 | AC-013 | boundary | partial/重复 final 后 historyDelta=1 | integration/ui | fake |
-| IR-009 | SR-06/T0 | SC004-UC001 | AC-014 | compatibility | 无 MIC 确定性矩阵通过 | unit/integration/ui | CI/fake |
-| IR-009 | SR-06/T0 | SC004-UC002 | AC-015 | normal | 真机 123+456=579 与状态证据 | e2e | 真机 |
+| IR-009 | SR-06/T0 | SC004-UC001 | AC-014 | compatibility | 无 MIC 的 parser/controller 确定性矩阵 | unit/integration | CI/fake |
+| IR-009 | SR-06/T0 | SC004-UC002 | AC-019 | normal | 设备 UI 11 类场景可执行；release fake 不可达 | integration/ui/e2e | 设备测试构建 |
+| IR-010 | SR-06/T0 | SC005-UC001 | AC-015 | normal | 真实语音 123+456=579 与状态证据 | e2e | 能力预检通过的真机/等价环境 |
 | IR-001,002 | SR-01/02 | SC001-UC001 | AC-016 | normal | grant→capturer→recognizer→UI | integration/ui/e2e | 权限+MIC |
 
 ## 12. 关键路径与依赖
@@ -407,16 +455,16 @@
 | 失败关键路径 | error/cancel→invalidate session→cleanup→visible error/idle→old state |
 | 平台依赖 | AbilityKit、AudioKit、CoreSpeechKit `SystemCapability.AI.SpeechRecognizer`、INTERNET |
 | 内部依赖 | Expression、CalcEngine、NumberFormatter、ErrorFlags、PreferencesStore |
-| 测试依赖 | Hypium 本地测试、可注入 fake；设备 E2E 由 Tester 补证 |
+| 测试依赖 | Hypium local fake；test-only device scripted gateway；真实 E2E 由能力预检通过的环境补证 |
 
 ## 13. 待确认规格清单
 
 | 序号 | 待确认项 | 建议默认值 | 备注 |
 |------|----------|------------|------|
-| 1 | 不同目标设备 CoreSpeechKit 服务可用性 | 运行时探测并显示 unavailable | 非 blocker，网关已隔离 |
+| 1 | 不同目标设备 CoreSpeechKit 服务可用性 | 运行时探测并显示 unavailable；真实 E2E 前先做环境预检 | 当前模拟器 CreateEngineError 已验证安全降级；不构成 Planning blocker |
 | 2 | 真机 AudioCapturer 最佳 bufferSize | 使用 SDK 推荐值并切分为 640/1280 字节写入块 | 实现/设备验证项，不改变产品语义 |
 | 3 | 成功状态视觉持续时间 | 保持至下一次语音或手动编辑 | 可逆 UI 默认值 |
 
 ---
 
-> JSON AC 合同：`acceptance-criteria.json`（9 个 IR、18 个 feature-level AC）。
+> JSON AC 合同：`acceptance-criteria.json`（10 个原子 IR、19 个 feature-level AC）。

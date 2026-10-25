@@ -28,7 +28,7 @@
 
 #### 问题背景
 
-当前 `CalculatorPage` 只支持触屏按钮输入；没有麦克风权限声明、录音/识别服务、语音状态或中文算式解析。
+原始基线只支持触屏按钮输入。PR #55 已加入语音实现，但 Tester 在 SHA `4af7209` 上发现新的验收缺口：授权后目标模拟器的 CoreSpeechKit `createEngine` 失败，应用只能进入服务不可用恢复分支；同时 fake gateway 只存在于 Local Test，安装到设备的页面没有可由 UI 自动化驱动的确定性注入装配，导致成功、取消、重复点击、历史与失败矩阵无法取得设备 UI 证据。本轮 PLANNING 只修订需求与设计，不修改产品源码。
 
 #### 需求价值
 
@@ -90,7 +90,8 @@
 | IR-006 | 多类失败安全结束且不覆盖旧输入 | 发生无结果/歧义/除零/服务故障/中断 | 明确错误；旧表达式保持 | 安全失败 |
 | IR-007 | 监听可取消 | 点击取消 | 本轮立即结束且不产生结果 | 不提交迟到回调 |
 | IR-008 | 与手动输入共用逻辑、历史一次 | 有效语音完成 | 结果按现有规则展示；新增一条历史 | 恰好一次 |
-| IR-009 | 可注入测试并补充真机证据 | Tester 注入文本/在设备说话 | 自动测试可独立运行，真机证据覆盖平台链路 | 分层验证 |
+| IR-009 | 可注入/模拟识别结果独立验证解析与 UI | Tester 在无真实语音服务环境运行本地测试或设备测试构建 | 本地 parser/controller 与设备 UI 成功/失败/竞态矩阵均可确定执行 | release 不得暴露 fake 激活入口 |
+| IR-010 | 在有能力环境补充真实语音证据 | Tester 在预检通过的真机或等价环境说话 | 真实权限、麦克风、识别、解析、计算链取得端到端证据 | fake 不得替代真实链路 |
 
 ### 3.6 可观察行为与验收风险
 
@@ -104,7 +105,8 @@
 | IR-006 | 原表达式存在 | 发生异常 | 回滚到快照 | 错误+旧表达式 | 可再次发起 | exception,recovery |
 | IR-007 | 正在监听/识别 | 点击取消 | active→idle/cancelled | 状态停止 | 忽略迟到回调 | exception,state_sync,environment |
 | IR-008 | 历史 N 条 | 有效语音完成 | 调用统一计算提交一次 | 历史 N+1 | 错误不写历史 | integration,state_sync |
-| IR-009 | 无真实服务或有真机 | 注入/真实说话 | fake/real gateway 输出一致契约 | 自动化与证据 | 环境不可用不掩盖解析失败 | environment,integration |
+| IR-009 | 无真实麦克风/服务 | 运行本地 fake 或设备测试装配 | 受控脚本事件驱动同一页面状态 | UI 树/截图/历史差异可断言 | release 构建不可激活 fake | environment,integration,user_visible,state_sync |
+| IR-010 | 能力预检通过的真机/等价环境 | 真实说“123加456” | 平台→解析→计算真实流转 | 状态链、原文、`123+456`、`579` | 能力不足只记录环境限制，不伪造通过 | environment,integration |
 
 ### 3.7 模糊点与严重程度
 
@@ -114,6 +116,8 @@
 | 2 | “常见中文数字表达”边界 | important | 首期支持零/〇、一至九、十百千万、两及逐位数字，小数点后逐位；不支持亿、分数和口语省略 |
 | 3 | 歧义的判定 | important | 必须完整消费单个二元四则表达式；多运算链、未知词、缺操作数、多小数点一律拒绝 |
 | 4 | 成功提示保留时长 | nice-to-have | 原始识别文本持续显示至下次语音或手动编辑；状态成功可被下一次操作替换 |
+| 5 | Tester 如何在设备 UI 注入识别事件而不暴露生产后门 | important | 增加 release-sealed gateway factory；fake/scenario registry 只由测试构建或测试 Ability 装配，且必须与源码 SHA 可追溯 |
+| 6 | 普通模拟器缺失 CoreSpeechKit 服务时是否以 fake 替代真实 E2E | important | 不替代；先做能力预检，AC-015 只在真实服务可用环境执行，能力不足继续按 AC-010 验证安全降级 |
 
 ### 3.8 复杂度评估
 
@@ -155,6 +159,7 @@
 - **F3：中文表达式规范化**：运算符、阿拉伯/中文整数与小数、严格语法和歧义拒绝。
 - **F4：统一计算提交与恢复**：复用现有计算/格式化/历史逻辑；成功一次提交；失败保留快照。
 - **F5：可测试性**：接口注入、纯解析器单测、UI fake、真机/模拟环境端到端证据。
+- **F6：设备测试装配隔离**：同一页面可由设备测试构建装配 allowlisted scripted gateway；release 固定真实 gateway，不能从 Want、深链或隐藏 UI 开启 fake。
 
 ## 6. 系统架构概述
 
@@ -167,7 +172,7 @@ VoiceInputController ──▶ SpeechRecognitionGateway (interface)
         │                         │   ├─ abilityAccessCtrl
         │                         │   ├─ AudioCapturer
         │                         │   └─ CoreSpeechKit
-        │                         └─ FakeSpeechRecognitionGateway (tests)
+        │                         └─ ScriptedSpeechRecognitionGateway (test build/Ability only)
         ▼
 VoiceExpressionParser (pure)
         ▼
@@ -183,6 +188,7 @@ Expression → CalcEngine → NumberFormatter → History/Preferences
 | Voice UI | 入口、状态、原始文本、错误、取消/重试 | 修改 CalculatorPage |
 | VoiceInputController | 单会话状态机、快照、迟到回调隔离 | 新增，UI 无关 |
 | SpeechRecognitionGateway | 权限后启动/取消/释放识别 | 新增接口与平台实现 |
+| VoiceGatewayFactory | release 装配真实 gateway；设备测试装配 scripted gateway | 新增装配边界，生产路径封闭 |
 | VoiceExpressionParser | 确定性规范化与错误分类 | 新增纯 ArkTS 模块 |
 | Calculation submit path | 计算、格式化、历史恰好一次 | 从现有 onEquals 抽取复用 |
 
@@ -197,7 +203,8 @@ Expression → CalcEngine → NumberFormatter → History/Preferences
 - **R3/P0**：严格转换首期数字、运算词/符号和小数；关联 F3。
 - **R4/P0**：最终识别结果经统一计算链提交，显示原文/规范式/结果，历史一次；关联 F4。
 - **R5/P0**：所有明确失败均保留旧输入且不写历史；关联 F1/F2/F3/F4。
-- **R6/P1**：解析与 UI 可用 fake 独立测试，平台链由真机补证；关联 F5。
+- **R6/P0**：解析与控制器可用 local fake 独立测试，设备 UI 可由隔离的测试装配执行完整矩阵；关联 F5/F6。
+- **R7/P1**：真实语音平台链只能由能力预检通过的真机或等价环境补证，不能用 fake 代替；关联 F5。
 
 ## 8. 影响范围分析
 
@@ -209,6 +216,7 @@ Expression → CalcEngine → NumberFormatter → History/Preferences
 | `voice/SpeechRecognitionGateway.ets` | 不存在 | 新增接口、平台实现及 fake seam |
 | `module.json5` + string resources | VIBRATE 权限 | 新增 MIC/INTERNET 与用途文案 |
 | `entry/src/test` / UI 测试 | 绘图单测 | 后续阶段新增解析/控制器/UI 测试 |
+| gateway 装配/设备测试 harness | 页面直接 `new CoreSpeechPlatformDriver()`；fake 仅 `entry/src/test` | 增加 release-sealed factory 与 test-only scenario 装配，供安装包 UI 自动化 |
 
 ## 9. 复杂度评估
 
@@ -229,8 +237,8 @@ Expression → CalcEngine → NumberFormatter → History/Preferences
 
 ### 10.1 已定决策
 
-所有 Issue 内的普通歧义均已按 §4 的保守默认值解决并同步到 AC 契约。
+所有 Issue 内的普通歧义及 Tester 反馈均已按 §4 的保守默认值解决并同步到 AC 契约。设备测试装配是对 IR-009 的验收可达性修正，不新增用户功能。
 
 ### 10.2 待解决问题
 
-无 PLANNING blocker。实现阶段需在目标 SDK/设备验证 CoreSpeechKit 在线服务可用性与 AudioCapturer 参数，但该环境差异已通过网关降级和分层测试设计隔离。
+无 PLANNING blocker。后续阶段需实现并验证测试装配隔离；AC-015 仍需由具备麦克风、网络与 zh-CN CoreSpeechKit 的环境提供真实证据。当前 Tester 模拟器的 `CreateEngineError` 是已记录的环境能力限制，不授权引入付费服务、凭据或放宽真实 E2E oracle。

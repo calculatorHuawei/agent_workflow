@@ -4,7 +4,7 @@
 
 ### 1.1 应用定位
 
-在 OpenCalc 单 `entry` HAP 内增加前台、单轮、中文四则语音输入。设计重点不是扩展计算能力，而是把不稳定的平台语音结果安全地转换成既有计算链可消费的候选表达式，并确保失败不产生副作用。（IR-001～IR-009）
+在 OpenCalc 单 `entry` HAP 内增加前台、单轮、中文四则语音输入。设计重点不是扩展计算能力，而是把不稳定的平台语音结果安全地转换成既有计算链可消费的候选表达式，并确保失败不产生副作用；Tester 反馈后的增量设计进一步让同一页面在设备测试构建中可确定性装配 scripted gateway，同时封死 release fake 激活路径。（IR-001～IR-010）
 
 ### 1.2 核心交互
 
@@ -21,6 +21,7 @@
 | 持久化 | 仅复用 Preferences 历史；无新 Schema；不保存音频/原文 |
 | Native | 无 C++/Rust |
 | Hvigor | 复用现有 entry HAP 配置，无新增模块/插件 |
+| 测试装配 | Local fake 留在 test；设备 UI scripted gateway 仅测试源码集/Ability/profile；release factory 固定真实 gateway |
 
 ## 2. 功能清单
 
@@ -31,6 +32,7 @@
 | 中文算式解析 | 首期数字/小数/四则严格规范化 | VoiceExpressionParser | P0 / SR-03 |
 | 原子计算提交 | 复用计算/格式化/历史，成功恰好一次 | CalculationCoordinator | P0 / SR-04/05 |
 | 可测试注入 | fake 文本/错误/竞态与真机补证 | controller/gateway seam | P0/P1 / SR-06 |
+| 设备 UI 测试装配 | allowlisted scripted scenarios 驱动同一页面，release 不可达 | test Ability/profile → gateway factory | P0 / SR-06 |
 
 ## 3. 实现模型
 
@@ -44,11 +46,16 @@ component "VoiceInputController" as VC
 component "VoiceExpressionParser" as Parser
 component "CalculationCoordinator" as Calc
 component "HarmonySpeechRecognitionGateway" as GW
+component "VoiceGatewayFactory" as Factory
+component "Test-only Scripted Gateway" as Scripted
 cloud "HarmonyOS Permission / Audio / CoreSpeechKit" as Platform
 database "Preferences History" as History
 User --> UI
 UI --> VC
+UI --> Factory
 VC --> GW
+Factory --> GW : release
+Factory --> Scripted : test assembly only
 GW --> Platform
 VC --> Parser
 VC --> Calc
@@ -73,6 +80,7 @@ package Domain {
 }
 package Platform {
   interface SpeechRecognitionGateway
+  [VoiceGatewayFactory]
   [HarmonySpeechRecognitionGateway]
   [PermissionAdapter]
   [AudioCapturer]
@@ -81,6 +89,7 @@ package Platform {
 [CalculatorPage Voice UI] --> [VoiceInputController]
 [VoiceInputController] --> SpeechRecognitionGateway
 SpeechRecognitionGateway <|.. [HarmonySpeechRecognitionGateway]
+[VoiceGatewayFactory] --> [HarmonySpeechRecognitionGateway] : release
 [HarmonySpeechRecognitionGateway] --> [PermissionAdapter]
 [HarmonySpeechRecognitionGateway] --> [AudioCapturer]
 [HarmonySpeechRecognitionGateway] --> [CoreSpeechKit]
@@ -89,11 +98,11 @@ SpeechRecognitionGateway <|.. [HarmonySpeechRecognitionGateway]
 @enduml
 ```
 
-依赖方向保持 UI → 应用 → 领域端口；具体平台实现反向实现端口。测试以 fake 实现替换平台适配器。
+依赖方向保持 UI → 应用 → 领域端口；具体平台实现反向实现端口。Local Test 直接注入 fake；设备测试由测试 Ability/profile 在页面创建前向 factory 提供 allowlisted scripted gateway。release factory 不解析测试 Want、深链或环境变量。
 
 ### 3.3 HAP/HAR/HSP 模块划分
 
-仍为现有 `entry` HAP；不新增 HAR/HSP/feature HAP。新增文件均在 `entry/src/main/ets/voice/`，测试在现有 `entry/src/test/`（后续 APPLYING 阶段）。
+仍为现有 `entry` HAP；不新增 HAR/HSP/feature HAP。生产端口/factory 在 `entry/src/main/ets/voice/`，Local Test fake 在 `entry/src/test/`；设备 scripted gateway 与 scenario registry 放在测试源码集/测试 Ability/profile，随设备测试包交付但不得进入 release HAP。
 
 ### 3.4 设计系统规格
 
@@ -275,7 +284,7 @@ Controller -> Gateway : dispose session
 
 #### 3.7.1 模块介绍
 
-唯一直接依赖平台语音类型的适配器。生产默认装配它，测试装配 fake。（SR-02/06）
+唯一直接依赖平台语音类型的适配器。release factory 默认装配它；测试构建可在不修改页面业务代码的条件下装配 scripted gateway。（SR-02/06）
 
 #### 3.7.2 接口设计
 
@@ -308,13 +317,39 @@ export interface SpeechRecognitionGateway {
 | final 空白 | NO_RESULT | 未识别到内容，请重试 |
 | 未知 BusinessError | INTERNAL | 语音输入失败，请重试 |
 
-### 3.8 CalculationCoordinator 模块实现设计
+### 3.8 VoiceGatewayFactory 与设备测试 harness 设计
 
-#### 3.8.1 设计目标
+#### 3.8.1 装配契约
+
+```typescript
+export interface VoiceGatewayFactory {
+  create(): SpeechRecognitionGateway
+}
+```
+
+- `ReleaseVoiceGatewayFactory.create()` 只返回 `HarmonySpeechRecognitionGateway(CoreSpeechPlatformDriver)`。
+- `ScriptedVoiceGatewayFactory` 只编译到设备测试源码集/Ability/profile，并仅接受枚举 `VoiceTestScenarioId`，不接受 release Want 中的任意 transcript。
+- 测试 Ability 在加载同一 `CalculatorPage` 前完成 factory 绑定；页面只依赖 factory，不感知 scenario。
+- 每个 scenario 输出结构化事件：`sessionStarted/state/event/cleanup/historyBefore/historyAfter`，同时由 UI 自动化采集树和截图。
+
+#### 3.8.2 场景注册表
+
+allowlist 至少包含：operatorTable、integerTable、decimal、ambiguous、empty、divideByZero、serviceUnavailable、recordingInterrupted、cancelLateCallback、duplicateStart、duplicateFinal。每个场景的 transcript/event 序列与 `acceptance-criteria.json` oracle 同源，禁止测试实现自行放宽期望。
+
+#### 3.8.3 release 封闭性
+
+- release `module.json5` 不注册测试 Ability/action/URI。
+- release factory 没有 scenario setter；EntryAbility 不读取 `voiceTest*` Want 参数。
+- 构建/包审计确认 release HAP 不包含 scripted registry，自动化断言 `releaseInjectionReachable=false`。
+- fake 只用于 AC-019；AC-015 必须由真实 factory 和能力预检通过的环境执行。
+
+### 3.9 CalculationCoordinator 模块实现设计
+
+#### 3.9.1 设计目标
 
 把 `CalculatorPage.onEquals()` 的清洗、求值、错误判定、格式化抽为无 UI 副作用的候选求值。手动和语音均调用同一实现。（SR-04/05）
 
-#### 3.8.2 接口
+#### 3.9.2 接口
 
 ```typescript
 export interface CalculationSuccess { ok: true; expression: string; result: string }
@@ -339,6 +374,8 @@ evaluateCandidate(expression: string, radianMode: boolean): CalculationOutcome
 | `SpeechRecognitionGateway.start/cancel/dispose` | Platform port | async | SR-02/SR-06 |
 | `evaluateCandidate` | Application | sync | SR-04/SR-05 |
 | `VoiceStateListener` | UI port | callback | SR-01 |
+| `VoiceGatewayFactory.create` | Composition | sync | SR-06 / IR-009 |
+| `VoiceTestScenarioRegistry.resolve` | Test-only composition | sync | SR-06 / AC-019 |
 
 ### 4.3 后台任务与 ExtensionAbility 接口
 
@@ -346,7 +383,7 @@ evaluateCandidate(expression: string, radianMode: boolean): CalculationOutcome
 
 ### 4.4 Want / Action 协议
 
-无相关实现。
+release 无相关 Want/Action。设备测试包可注册独立测试 Ability action，但该 action 不能出现在 release `module.json5`；测试参数只允许枚举 scenarioId，不接受任意 transcript。
 
 ### 4.5 URI / Deep Link / AppLinking 协议
 
@@ -452,7 +489,7 @@ MIC 首次请求使用系统权限框；应用内不自制替代授权弹窗。�
 
 ### 9.1 构建配置与依赖
 
-不新增 OHPM 依赖。API 12 SDK 已含 CoreSpeechKit/AudioKit/AbilityKit 类型；实现前编译验证 kit import 和 syscap。
+不新增 OHPM 依赖。API 12 SDK 已含 CoreSpeechKit/AudioKit/AbilityKit 类型。构建产物分为 release 候选与设备测试装配；二者记录相同源码 SHA，测试包可附加测试 Ability/profile，release 包必须通过 fake 不可达审计。
 
 ### 9.2 权限与运行时请求
 
@@ -470,6 +507,8 @@ MIC 首次请求使用系统权限框；应用内不自制替代授权弹窗。�
 | AbilityKit | abilityAccessCtrl requestPermissionsFromUser | MIC 授权 | API 9 promise 形式（权限本身 API 8） |
 | AudioKit | AudioCapturer create/start/read/stop/release | PCM 采集 | 目标 API 12 可用定义 |
 | CoreSpeechKit | createEngine/setListener/startListening/writeAudio/finish/cancel/shutdown | zh-CN 在线识别 | API 11 |
+
+Tester run 107 已确认目标模拟器在 `createEngine({language:'zh-CN', online:0})` 失败；该环境用于 AC-010 和 AC-019，不用于宣称 AC-015。真实 E2E 前必须预检 MIC、网络和 zh-CN engine 可创建。
 
 ### 9.4 后台与 Extension
 
@@ -495,17 +534,20 @@ MIC 首次请求使用系统权限框；应用内不自制替代授权弹窗。�
 | AR-VOICE-02 | HarmonySpeechRecognitionGateway | SR-02 | SC003-UC001/002 / AC-002,010,011,016 |
 | AR-VOICE-03 | VoiceExpressionParser | SR-03 | SC002-* / AC-003～006,018 |
 | AR-VOICE-04 | CalculationCoordinator + commit | SR-04/SR-05 | SC001-UC002 / AC-007,009,013 |
-| AR-VOICE-05 | Fake gateway/test assembly | SR-06 | SC004-* / AC-014,015 |
+| AR-VOICE-05 | Local fake | SR-06 | SC004-UC001 / AC-014 |
+| AR-VOICE-06 | release-sealed factory + test-only scripted gateway | SR-06 | SC004-UC002 / AC-019 |
+| AR-VOICE-07 | 真实平台能力预检与证据 | SR-06 | SC005-UC001 / AC-015 |
 
 ## 12. 自验证与设计决策
 
-- proposal F1～F5 均映射至 SR-01～SR-06 和 AR-VOICE-01～05。
+- proposal F1～F6 均映射至 SR-01～SR-06 和 AR-VOICE-01～07。
 - 页面仅 CalculatorPage；无导航/数据 Schema 遗漏。
 - 权限与 Kit 在 §9 明确，拒绝/不可用/中断/取消均有 AC。
 - 成功和失败都通过候选原子提交保护原输入，满足 backward compatibility。
 - `[推断]` 的具体音频参数与语言值是基于本地 SDK 契约的保守默认；实现阶段可在不改变端口/AC 的前提下适配设备差异。
+- AC-014 证明本地 parser/controller；AC-019 证明设备 UI；AC-015 独立证明真实语音，三类证据不可互相替代。
 
 ---
 > 本文档由 mod-design skill 生成。
 > 标记 [推断] 的内容为基于设计推断，非确定性事实。
-> 生成时间: 2026-10-24
+> 生成时间: 2026-10-25（Tester 反馈后修订）

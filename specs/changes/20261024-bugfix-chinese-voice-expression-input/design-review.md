@@ -1,68 +1,67 @@
-# 设计审视报告
+# 设计审视报告（Tester 反馈迭代 1）
 
 ## 1. 审视范围与结论
 
-- **关联 Issue**：#52 `feat: 支持中文语音输入算式并自动计算`
-- **工作流意图分类**：`bugfix`（来自 `_orchestrator.change_type`）；产品语义“新增功能”已在所有核心制品中显式说明。
-- **审视结论**：通过，可结束 PLANNING。
-- **需求覆盖度**：100%（9/9 IR 均映射到 feature-level AC、SR/UC 与设计分配）。
-- **阻塞项**：无。
+- **关联**：Issue #52、PR #55、目标 SHA `4af7209810beb3c5378d4e8a89f0137a58c91802`、Tester run 107。
+- **初始化**：复用 `specs/initialized.flag`；`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 均存在；当前分支 `agent/pull_request-55-task-59`，检查前工作树干净。
+- **意图分类**：编排类型 `bugfix`；产品原意仍是新增中文语音能力；本轮是对 Tester 失败暴露的验收可达性缺口进行增量规划。
+- **审视结论**：通过，可结束本轮 PLANNING。
+- **需求覆盖度**：100%（10/10 原子 IR 均有 feature-level AC、SR/UC 与设计分配）。
+- **阻塞项**：无。当前模拟器缺 CoreSpeechKit engine 是明确环境限制，不需要凭据、付费服务、隐私决策或范围扩张即可继续规划。
 
-## 2. 完整性评估（Step 9.1）
+## 2. Tester 反馈闭环
+
+| 反馈事实 | 代码仓证据 | 规划决策 | 追溯 |
+|----------|------------|----------|------|
+| MIC 授权后 CoreSpeechKit `CreateEngineError` | `CoreSpeechPlatformDriver.begin()` 首先调用 `createEngine`; run 107 hilog 记录失败 | 维持 AC-010 安全降级；AC-015 只在能力预检通过环境执行，fake 不替代 | IR-006/010；AC-010/015 |
+| 安装应用没有设备可见 fake 注入 | `CalculatorPage.onVoiceStart()` 直接 new 真实 driver；fake 仅 `entry/src/test` | 增加 release-sealed factory 与 test-only scripted gateway/Ability/profile | IR-009；AC-019 |
+| Local Test 64/64 但 UI 成功/失败矩阵未执行 | controller/parser fake 只验证本地对象状态 | AC-014 负责 local；AC-019 单独要求设备 UI 树、截图、页面/Preferences delta | SR-06；SC004 |
+| 取消、重复点击、历史无法在设备验证 | 无活动真实 session 且无设备 harness | scripted scenarios 覆盖 cancel-late、duplicate-start、duplicate-final | AC-012/013/017/019 |
+
+## 3. 完整性评估（Step 9.1）
 
 | 制品 | 状态 | 说明 |
 |------|------|------|
-| `proposal.md` | 通过 | 含 rq-parse、rq-clarify 自治决策、IR、边界、复杂度 |
-| `delta-spec.md` | 通过 | 保留 1～13 章节；含四场景、用例、SR、DFX 与追溯总表 |
-| `acceptance-criteria.json` | 通过 | 9 IR、18 个 feature-level AC、七维覆盖与假设 |
-| `info.md` | 通过 | 基于实际源码和本地 API 12 SDK 的按需代码仓理解 |
-| `new-arch.md` | 通过 | 复杂跨层新增；架构前置、组件边界、兼容与回滚明确 |
-| `delta-design.md` | 通过 | mod-design D1～D10，并补充 AR/SR/UC 追溯 |
-| `todo.md` | 通过 | PLANNING 子步骤完成，后续阶段未启动 |
-| `tasks.md` | 符合边界 | 不存在；本次明确禁止 IMPLEMENTING |
+| `proposal.md` | 通过 | rq-parse/rq-clarify 决策、10 个原子 IR、假设、边界、复杂度 |
+| `delta-spec.md` | 通过 | 1～13 章节、SC001～SC005、SR、DFX、追溯总表 |
+| `acceptance-criteria.json` | 通过 | 10 IR、19 feature AC、七维覆盖、假设与非目标 |
+| `info.md` | 通过 | 当前源码、Tester 证据、装配缺口与环境事实 |
+| `new-arch.md` | 通过 | factory、release/test 装配边界、兼容与回滚 |
+| `delta-design.md` | 通过 | mod-design D1～D10；AR-VOICE-01～07 |
+| `todo.md` | 通过 | 复盘 PLANNING 子步骤均完成；历史阶段保留 |
+| `tasks.md` | 未触碰 | 文件来自前序 handoff；本轮没有创建或修改 |
 
-## 3. 一致性评估（Step 9.2）
+## 4. 一致性评估（Step 9.2）
 
-### 3.1 Issue → proposal → delta-spec
+### 4.1 Issue/Tester → IR → AC
 
-| Issue 承诺 | IR | SR/UC | AC | 结果 |
-|------------|----|-------|----|------|
-| 入口与监听/识别/成功/失败状态 | IR-001 | SR-01 / SC001,SC003 | AC-001,012,016,017 | 通过 |
-| MIC 权限拒绝说明与重试 | IR-002 | SR-02/05 / SC003 | AC-002,016 | 通过 |
-| 四种中文运算词和四种符号映射 | IR-003 | SR-03 / SC002 | AC-003 | 通过 |
-| 阿拉伯/中文数字和小数 | IR-004 | SR-03 / SC002 | AC-004,005,006,018 | 通过 |
-| 原文可见、填入并计算 | IR-005 | SR-04 / SC001 | AC-007 | 通过 |
-| 五类失败保持旧输入 | IR-006 | SR-02/03/05 / SC002,SC003 | AC-006,008～011 | 通过 |
-| 监听可取消且不产结果 | IR-007 | SR-01/05 / SC003 | AC-012,017 | 通过 |
-| 共用计算链、历史一次 | IR-008 | SR-04/05 / SC001,SC003 | AC-007,009,013 | 通过 |
-| 注入测试与真机证据 | IR-009 | SR-06 / SC004 | AC-014,015 | 通过 |
+| 承诺 | IR | AC | 结论 |
+|------|----|----|------|
+| 入口与四态 | IR-001 | AC-001/012/016/017 | 通过 |
+| 权限拒绝、说明、重试 | IR-002 | AC-002/016 | 通过 |
+| 八种运算词/符号 | IR-003 | AC-003 | 通过 |
+| 阿拉伯/中文数字、小数、歧义 | IR-004 | AC-004/005/006/018 | 通过 |
+| 原文、填入、自动计算 | IR-005 | AC-007 | 通过 |
+| 无结果/歧义/除零/服务/中断安全失败 | IR-006 | AC-006/008～011 | 通过 |
+| 可见监听与取消 | IR-007 | AC-012/017 | 通过 |
+| 共用计算链、历史一次 | IR-008 | AC-007/009/013 | 通过 |
+| 可注入解析与设备 UI 自动化 | IR-009 | AC-014/019 | 通过；local 与 device UI 分证 |
+| 真实麦克风端到端证据 | IR-010 | AC-015 | 通过；能力预检，fake 不替代 |
 
-未发现 Issue 原始能力被静默删除或降级。非目标保持不变，新增假设均为安全、可逆且未扩大范围的默认值。
+### 4.2 Spec → Design
 
-### 3.2 delta-spec → delta-design
+| 规格 | 设计分配 | 结论 |
+|------|----------|------|
+| SR-01 会话状态 | VoiceInputController/session token | 通过 |
+| SR-02 平台识别 | Harmony gateway/CoreSpeech driver | 通过 |
+| SR-03 规范化 | ChineseNumberParser/VoiceExpressionParser | 通过 |
+| SR-04 原子计算历史 | CalculationCoordinator/单一 commit | 通过 |
+| SR-05 安全恢复 | snapshot、幂等 cleanup、错误映射 | 通过 |
+| SR-06 测试与证据 | local fake + release-sealed factory + test-only scripted gateway + real E2E | 通过 |
 
-| 规格模块 | 设计分配 | 结果 |
-|----------|----------|------|
-| SR-01 会话状态 | AR-VOICE-01 / VoiceInputController | 通过 |
-| SR-02 平台识别 | AR-VOICE-02 / HarmonySpeechRecognitionGateway | 通过 |
-| SR-03 中文解析 | AR-VOICE-03 / VoiceExpressionParser | 通过 |
-| SR-04 统一计算 | AR-VOICE-04 / CalculationCoordinator | 通过 |
-| SR-05 安全恢复 | AR-VOICE-01/04 + 原子提交/幂等 cleanup | 通过 |
-| SR-06 测试注入 | AR-VOICE-05 / gateway interface + fake | 通过 |
+## 5. AC 独立质量门禁（Step 9.2.1）
 
-### 3.3 兼容性与最小权限
-
-- 手动等号与语音使用同一候选计算函数，保留 `Expression/CalcEngine/NumberFormatter/ErrorFlags` 语义。
-- `HistoryItem` 与 Preferences Schema 不变；语音成功只产生普通历史条目。
-- 不改绘图、科学函数、导航或部署模型。
-- 只新增 `MICROPHONE` 和在线识别必要的 `INTERNET`；不申请后台麦克风，不持久化音频。
-- 平台服务不可用时保留手动功能，不引入第三方凭据或付费服务。
-
-## 4. AC 独立质量门禁（Step 9.2.1）
-
-### 4.1 机器校验
-
-执行命令：
+执行：
 
 ```text
 python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs\changes\20261024-bugfix-chinese-voice-expression-input\acceptance-criteria.json
@@ -71,67 +70,43 @@ python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skil
 结果：
 
 ```text
-VALID: 9 source requirement(s), 18 acceptance criterion/criteria
+VALID: 10 source requirement(s), 19 acceptance criterion/criteria
 exit_code=0
 ```
 
-### 4.2 七维与语义复核
+语义审查：
 
-| 检查项 | 结果 | 证据 |
-|--------|------|------|
-| 每个 IR 至少一个 feature AC | 通过 | 9/9 已映射 |
-| normal/boundary/exception | 通过 | 中文数字边界、重复回调、权限/服务/录音/取消均覆盖 |
-| user_visible | 通过 | 原文、规范式、结果、状态、错误与重试均有 UI oracle |
-| state_sync | 通过 | V1 `@State` 投影、状态控件同步、历史 delta 明确 |
-| integration | 通过 | 权限→录音→识别→解析→计算→历史链均有 integration/e2e |
-| environment | 通过 | grant/deny/unavailable/interrupted/真实 MIC 与 fake 分层 |
-| 客观 oracle | 通过 | exact table、event order、state invariant、history delta、semantic evidence |
-
-### 4.3 HarmonyOS/ArkUI 风险触发器
-
-- **响应式状态**：AC-001/002/007/012/017 验证状态与控件同步。
-- **条件渲染**：取消/重试/权限说明/成功/失败各分支均可由用户或 fake 触发。
-- **重复点击区域**：AC-017 要求最多一个 session/capturer。
-- **权限与设备能力**：AC-002/010/011/015/016 覆盖授权、拒绝、服务不可用、录音中断和真机。
-- **父子传值/ForEach**：语音 UI 设计不新增列表/父子复杂传播；历史现有 ForEach 通过 AC-013 验证可见增量和恰好一次。
-- **语义产物**：识别结果不是以“控件存在”验收，而是比较原文、规范式和数值结果。
-
-## 5. 规范性评估（Step 9.3）
-
-| 检查 | 结果 |
+| 维度 | 结论 |
 |------|------|
-| 文件命名与 change_dir | 通过 |
-| proposal 模板主章节 | 通过 |
-| delta-spec 1～13 章节 | 通过 |
-| 场景 STAGE、Actor、前置/保证/触发/路径/AC | 通过（相同结构按场景合并表达，未遗漏语义） |
-| mod-design D1～D10 | 通过 |
-| 架构前置和组件职责 | 通过 |
-| 假设/推断标记 | 通过 |
-| 语言与可定位路径 | 通过 |
+| normal | 状态成功、数字/运算解析、自动计算、真实语音与设备 UI matrix 均有精确 oracle |
+| boundary | 小数、逐位数、负数、重复点击、partial/duplicate final 均覆盖 |
+| exception | 权限拒绝、空结果、歧义、除零、服务不可用、录音中断、取消迟到回调均覆盖 |
+| user_visible | UI 文本/状态/控件/表达式/结果/历史，不以“组件存在”代替语义结果 |
+| state_sync | `@State` 状态、取消/重试条件渲染、历史列表与 Preferences delta 均覆盖 |
+| integration | 权限→driver→controller→parser→calculator→history 以及 device harness→同一页面覆盖 |
+| environment | local fake、无服务模拟器、设备测试构建、真实有能力设备四层分离 |
 
-## 6. 设计质量与风险审视
+HarmonyOS/ArkUI 专项：AC-001/002/007/012/017/019 验证响应式状态与条件渲染；AC-013/019 验证历史 `ForEach`/Preferences 同步；AC-002/010/015/016 验证权限与设备能力；release fake 不可达是 AC-019 的强制安全 oracle。
 
-| 风险 | 设计是否充分 | 结论 |
-|------|--------------|------|
-| 平台 API/设备差异 | gateway 隔离 + runtime unavailable + fake/真机分层 | 通过 |
-| 录音隐私/资源占用 | 主动前台、无后台权限、无持久化、幂等 cleanup | 通过 |
-| 中文语义歧义 | 严格白名单、完整消费、首期边界显式 | 通过 |
-| 异步竞态 | session token、consumed 标记、迟到回调丢弃 | 通过 |
-| 旧输入/结果被覆盖 | candidate evaluation 成功后原子提交 | 通过 |
-| 重复历史 | 只消费一次 final；AC-013 historyDelta=1 | 通过 |
-| 页面文件继续膨胀 | controller/parser/gateway/coordination 分离 | 通过 |
+## 6. 规范性与复杂度（Step 6、Step 9.3）
 
-## 7. 遗留问题
+- **复杂度**：复杂。影响页面、应用状态机、平台端口、解析、计算历史、composition root、测试装配与真机环境。
+- **架构变化**：有，但部署仍为单 entry HAP；设备测试可附加测试 Ability/profile。
+- **数据模型**：无持久化 Schema 变化。
+- **向后兼容**：手动输入、科学模式、绘图、HistoryItem/Preferences 均保持；release 默认仍是真实 gateway。
+- **最小权限**：不新增后台录音，不持久化音频/原文，不引入第三方凭据、付费服务或远端服务端。
+- **文档规范**：proposal、spec 1～13、new-arch、design D1～D10、todo 与本报告完整。
 
-无 PLANNING blocker。以下均是后续实现/验证事项，不需要扩大产品范围：
+## 7. 假设与风险
 
-1. 在目标 SDK 编译期确认 `AudioCapturer` 的具体 builder 参数与读循环接口，并确保输出切片为 CoreSpeechKit 要求的 640/1280 字节。
-2. 在具备服务的真机确认 `zh-CN` 支持列表和在线服务行为；不可用设备必须按 AC-010 降级。
-3. Tester 在无设备环境执行完整 fake 矩阵，并在可用设备补 AC-015 证据。
+1. 设备测试装配只允许枚举 scenarioId，并与源码 SHA 绑定；不接受 release Want 中的任意 transcript。
+2. release `module.json5` 不注册测试 Ability/action/URI，release factory 没有 scripted setter；需以包审计/装配测试证明 `releaseInjectionReachable=false`。
+3. 当前模拟器可继续验证 AC-002、AC-010 与 AC-019；不能用于宣称 AC-015。
+4. AC-015 仍需具备 MIC、网络、zh-CN CoreSpeechKit 的真机或等价环境。缺环境是后续验收限制，不是本轮 Planning blocker。
 
 ## 8. Phase Gate
 
 - PLANNING：通过。
-- IMPLEMENTING/APPLYING/ARCHIVING：未开始。
-- 产品源码：未修改。
-- Git 提交/推送：未执行。
+- IMPLEMENTING/APPLYING/ARCHIVING：本轮未执行。
+- 产品源码、测试源码、构建配置、`tasks.md`：未修改。
+- commit/push/PR/归档：未执行。

@@ -4,7 +4,7 @@
 
 | 任务名称 | 类型 | 状态 | 开始日期 |
 |----------|------|------|----------|
-| 中文语音输入算式并自动计算 | bugfix（编排分类；产品语义为新增功能） | APPLYING 已完成 | 2026-10-24 |
+| 中文语音输入算式并自动计算 | bugfix（编排分类；产品语义为新增功能） | APPLYING 迭代 1 已完成 | 2026-10-24 |
 
 ## 变更信息
 
@@ -13,8 +13,41 @@
 - 关联 Issue：#52
 - PROJECT_ROOT：`opencalc`
 - CHANGES_ROOT：`specs/changes`
-- git_branch_adopted：true（当前独立分支 `agent/issue-52-task-51`）
-- 当前阶段：APPLYING（完成）
+- git_branch_adopted：true（当前独立 PR 修复分支 `agent/pull_request-55-task-59`）
+- 当前阶段：APPLYING（Tester 反馈迭代 1，完成）
+
+## PLANNING 复盘进度（Tester 反馈迭代 1）
+
+| 步骤 | 状态 | 完成时间 | 结果 |
+|------|------|----------|------|
+| Phase PLANNING Step 1: 用户意图理解 | ✅ 完成 | 2026-10-25 | 确认编排 bugfix；产品目标不变；本轮仅修订规划以闭合 Tester 失败 |
+| Phase PLANNING Step 1.1: Git 分支检查 | ✅ 完成 | 2026-10-25 | 已在独立 PR 工作树分支；复用已初始化目录，不创建分支 |
+| Phase PLANNING Step 2: 需求理解 (rq-parse) | ✅ 完成 | 2026-10-25 | 重新原子化 IR-009/010；定位设备 UI 注入与真实 E2E 为独立承诺 |
+| Phase PLANNING Step 3: 需求澄清 (rq-clarify) | ✅ 完成 | 2026-10-25 | 自治采用 release-sealed factory + test-only device harness；fake 不替代真实 E2E |
+| Phase PLANNING Step 4: 需求spec设计 | ✅ 完成 | 2026-10-25 | 更新 delta-spec 与 10 IR/19 AC；首次 AC validator exit 0 |
+| Phase PLANNING Step 5: 代码仓理解 (rq-codebase) | ✅ 完成 | 2026-10-25 | 复核 SHA 4af7209：页面直建 CoreSpeech；fake 仅 Local Test；CreateEngineError 实证 |
+| Phase PLANNING Step 6: 需求复杂度评估 | ✅ 完成 | 2026-10-25 | 仍为复杂：新增 composition/test assembly 边界，生产功能范围不扩张 |
+| Phase PLANNING Step 7: 架构设计 | ✅ 完成 | 2026-10-25 | 更新 new-arch：release 默认真实 gateway，测试包 scripted gateway，release fake 不可达 |
+| Phase PLANNING Step 8: 组件设计 (mod-design) | ✅ 完成 | 2026-10-25 | 更新 delta-design D1～D10 与 AR-VOICE-06/07 |
+| Phase PLANNING Step 9.1: 完整性检查 | ✅ 完成 | 2026-10-25 | 规划必需制品齐全；既有 tasks.md 未修改 |
+| Phase PLANNING Step 9.2: 一致性检查 | ✅ 完成 | 2026-10-25 | Tester 反馈→IR→AC→SR/UC→设计完整追溯 |
+| Phase PLANNING Step 9.2.1: AC 独立质量门禁 | ✅ 完成 | 2026-10-25 | validator exit 0；10 IR/19 AC；设备 UI 与真实 E2E 分证 |
+| Phase PLANNING Step 9.3: 规范性检查 | ✅ 完成 | 2026-10-25 | 模板、命名、假设、隔离与兼容性通过 |
+| Phase PLANNING Step 9.4: 产出审视报告 | ✅ 完成 | 2026-10-25 | design-review.md 已更新 |
+
+## IMPLEMENTING 复盘进度（Tester 反馈迭代 1）
+
+| 步骤 | 状态 | 完成时间 | 结果 |
+|------|------|----------|------|
+| Phase IMPLEMENTING Step 1: 任务分解 | ✅ 完成 | 2026-10-25 | 将批准的增量设计拆分为 7 个 1～2 小时级、可测试任务 |
+| Phase IMPLEMENTING Step 1.1: 阅读设计文档 | ✅ 完成 | 2026-10-25 | 复核 proposal/spec/AC/info/new-arch/design/review/todo；AC validator 为 10 IR/19 AC |
+| Phase IMPLEMENTING Step 1.2: 识别代码组件 | ✅ 完成 | 2026-10-25 | 识别 release factory、页面 composition、scripted gateway、test Ability/profile、evidence recorder 与 UI matrix |
+| Phase IMPLEMENTING Step 1.3: 拆分最小可开发任务 | ✅ 完成 | 2026-10-25 | 每项包含文件、依赖、验收、IR/AC 追溯及 Developer/Tester 责任 |
+| Phase IMPLEMENTING Step 2: 任务排序 | ✅ 完成 | 2026-10-25 | 按生产装配边界→test-only scripted 装配→设备 UI 矩阵→release 审计排序 |
+| Phase IMPLEMENTING Step 2.1: 确定任务依赖关系 | ✅ 完成 | 2026-10-25 | 标注 Task 1.2/2.1 并行点与 Task 2.2、2.3、3.1、3.2 关键路径 |
+| Phase IMPLEMENTING Step 2.2: 制定开发顺序 | ✅ 完成 | 2026-10-25 | 建议序列为 1.1→(1.2∥2.1)→2.2→2.3→3.1→3.2 |
+| Phase IMPLEMENTING Step 3: 产出 tasks.md | ✅ 完成 | 2026-10-25 | 用 Tester 反馈迭代任务替换旧的前序 12 项实现清单；所有 TDD 状态保持未开始 |
+| Phase IMPLEMENTING Step 3.1: AC 覆盖自检 | ✅ 完成 | 2026-10-25 | 19/19 AC 关联任务和双侧验证责任；AC-014/019/015 分层且互不替代 |
 
 ## PLANNING 进度
 
@@ -70,11 +103,32 @@
 | Phase APPLYING Step 3: 更新任务状态 | ✅ 完成 | 2026-10-24 | tasks.md 12 项 TDD 状态已更新 |
 | Phase APPLYING Step 4: 产出应用报告 | ✅ 完成 | 2026-10-24 | apply-report.md 已生成 |
 
+## APPLYING 进度（Tester 反馈迭代 1）
+
+| 步骤 | 状态 | 完成时间 | 结果 |
+|------|------|----------|------|
+| Phase APPLYING Step 0: 环境检查 | ✅ 完成 | 2026-10-25 | Hvigor 6.24.2/JBR 21；OHPM 依赖恢复；release 基线构建与 64-test 基线通过 |
+| Phase APPLYING Step 0.1: 检测项目类型 | ✅ 完成 | 2026-10-25 | HarmonyOS Stage 工程；release 与 ohosTest target |
+| Phase APPLYING Step 0.2: 检查编译环境 | ✅ 完成 | 2026-10-25 | DevEco SDK、Hvigor、JBR、OHPM、HDC 可用 |
+| Phase APPLYING Step 0.3: 尝试编译项目 | ✅ 完成 | 2026-10-25 | release HAP BUILD SUCCESSFUL |
+| Phase APPLYING Step 0.4: 检查测试环境 | ✅ 完成 | 2026-10-25 | Local Test 与 emulator 127.0.0.1:5555 可用 |
+| Phase APPLYING Step 0.5: 环境问题处理 | ✅ 完成 | 2026-10-25 | 执行 ohpm install 修复 fresh worktree 的 @ohos/hypium 缺失 |
+| Phase APPLYING Step 1: 确认应用条件 | ✅ 完成 | 2026-10-25 | Planning/Implementing 制品完整；10 IR/19 AC/7 tasks 可追溯 |
+| Phase APPLYING Step 1.1: 确认编码准备就绪 | ✅ 完成 | 2026-10-25 | tasks/design/checkpoints 已核验 |
+| Phase APPLYING Step 1.2: 检查代码质量 | ✅ 完成 | 2026-10-25 | 基线构建/测试通过；CodeLinter 无 error |
+| Phase APPLYING Step 2: 代码应用 (TDD) | ✅ 完成 | 2026-10-25 | 7 个任务逐项完成 RED→GREEN→REFACTOR |
+| Phase APPLYING Step 2.1: 按 tasks.md 执行代码生成/修改 (TDD) | ✅ 完成 | 2026-10-25 | release factory、test-only Ability/gateway/registry/recorder/matrix/release seal 完成 |
+| Phase APPLYING Step 2.2: 运行全量测试 | ✅ 完成 | 2026-10-25 | Local Test 73/73；release HAP 与 ohosTest HAP 均 BUILD SUCCESSFUL |
+| Phase APPLYING Step 2.3: 执行 lint 检查 | ✅ 完成 | 2026-10-25 | hvigor lint 不存在；DevEco CodeLinter exit 0、0 error、271 baseline/style warnings |
+| Phase APPLYING Step 2.4: 执行集成测试 | ✅ 完成 | 2026-10-25 | 两个 HAP 安装成功；VoiceTestAbility 同页设备 UI 显示 listening→recognizing→success 与 123+456=579 |
+| Phase APPLYING Step 3: 更新任务状态 | ✅ 完成 | 2026-10-25 | tasks.md 7 项 TDD 状态已更新 |
+| Phase APPLYING Step 4: 产出应用报告 | ✅ 完成 | 2026-10-25 | apply-report.md 更新为 Tester 反馈迭代 1 结果 |
+
 ## 阶段边界
 
-- 已完成产品源码、测试、权限配置、真实平台适配与页面集成。
-- 已执行构建、Local Test 和 CodeLinter；未执行归档或审批。
+- 本轮仅执行 APPLYING：未归档、未批准。
+- scripted device harness 仅关闭 AC-019 的可测试性缺口，不替代 AC-015 真实语音 E2E。
 
 ## 下一步
 
-APPLYING 已完成；交由 Tester 独立验证，尤其是真机麦克风/CoreSpeechKit E2E。
+APPLYING 已完成；交由 Tester 在 exact PR HEAD 独立复核 scripted device UI 矩阵与 release 封闭性，并在能力预检通过环境单独补 AC-015。

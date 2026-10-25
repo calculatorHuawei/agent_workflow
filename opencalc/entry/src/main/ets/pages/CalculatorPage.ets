@@ -15,8 +15,8 @@ import {
 import { CalculationCoordinator } from '../voice/CalculationCoordinator'
 import { VoiceInputController } from '../voice/VoiceInputController'
 import { VoiceSnapshot } from '../voice/VoiceModels'
-import { HarmonySpeechRecognitionGateway } from '../voice/HarmonySpeechRecognitionGateway'
-import { CoreSpeechPlatformDriver } from '../voice/CoreSpeechPlatformDriver'
+import { SpeechRecognitionGateway } from '../voice/SpeechRecognitionGateway'
+import { VoiceGatewayProvider } from '../voice/VoiceGatewayFactory'
 
 @Entry
 @Component
@@ -126,7 +126,7 @@ export struct CalculatorPage {
       if (permission.authResults.length === 0 || permission.authResults[0] !== 0) {
         this.voiceState = 'error'; this.voiceError = '需要麦克风权限，请授权后重试'; return
       }
-      const gateway: HarmonySpeechRecognitionGateway = new HarmonySpeechRecognitionGateway(new CoreSpeechPlatformDriver())
+      const gateway: SpeechRecognitionGateway = VoiceGatewayProvider.create()
       this.voiceController = new VoiceInputController(gateway, (snapshot: VoiceSnapshot): void => { this.syncVoiceSnapshot(snapshot) })
       this.voiceController.start(this.expression, this.result, this.radianMode)
     } catch (_e) { this.voiceState = 'error'; this.voiceError = '无法申请麦克风权限，请重试' }

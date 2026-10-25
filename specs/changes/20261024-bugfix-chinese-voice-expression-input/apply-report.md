@@ -1,98 +1,92 @@
-# 应用报告
+# 应用报告（Tester 反馈迭代 1）
 
 ## 应用信息
 
 - 变更类型：bugfix（编排分类；产品语义为新增功能）
 - 变更名称：中文语音输入算式并自动计算
-- 关联 Issue：#52
-- 关联全局文件：`specs/spec.md` / `specs/arch.md` / `specs/design.md`
-- 应用日期：2026-10-24
-- 分支：`agent/issue-52-task-51`
+- 关联 Issue / PR：#52 / #55
+- 目标基线：`4af7209810beb3c5378d4e8a89f0137a58c91802`
+- 分支：`agent/pull_request-55-task-59`
+- 应用日期：2026-10-25
+- 阶段边界：仅 APPLYING；未归档、未批准
 
 ## 代码完成情况
 
 | 任务 | 状态 | 完成时间 |
 |------|------|----------|
-| Task 1.1 语音领域模型、端口与 fake | ✅ 完成 | 2026-10-24 |
-| Task 1.2 中文数字与小数解析 | ✅ 完成 | 2026-10-24 |
-| Task 1.3 严格二元表达式规范化 | ✅ 完成 | 2026-10-24 |
-| Task 2.1 无副作用候选计算协调器 | ✅ 完成 | 2026-10-24 |
-| Task 2.2 会话状态机与成功/失败编排 | ✅ 完成 | 2026-10-24 |
-| Task 2.3 取消、迟到、重复 final 与并发保护 | ✅ 完成 | 2026-10-24 |
-| Task 3.1 麦克风/网络权限与权限适配 | ✅ 完成 | 2026-10-24 |
-| Task 3.2 AudioCapturer 与 CoreSpeechKit 网关 | ✅ 完成 | 2026-10-24 |
-| Task 4.1 手动/语音统一计算与历史提交 | ✅ 完成 | 2026-10-24 |
-| Task 4.2 入口、状态、取消/重试与生命周期 | ✅ 完成 | 2026-10-24 |
-| Task 5.1 无设备自动化验收矩阵 | ✅ 完成 | 2026-10-24 |
-| Task 5.2 构建回归与 E2E 交接 | ✅ 完成（真机证据待 Tester） | 2026-10-24 |
-
-## 测试结果
-
-- 单元/集成测试：通过，64/64，0 failure，0 error
-- 构建：通过，`BUILD SUCCESSFUL`
-- Lint：通过（DevEco CodeLinter 退出码 0，0 error；275 个存量/风格 warning）
-- Hvigor lint：项目未注册 `lint` task，真实命令已执行并记录该工具限制
-- 真机 E2E：未在 Developer 环境执行；按 AC-015 交由具备麦克风/CoreSpeechKit 的 Tester 环境补证
+| Task 1.1 release-sealed VoiceGatewayFactory | ✅ 完成 | 2026-10-25 |
+| Task 1.2 CalculatorPage 工厂装配 | ✅ 完成 | 2026-10-25 |
+| Task 2.1 allowlisted scenario registry / scripted gateway | ✅ 完成 | 2026-10-25 |
+| Task 2.2 test-only Ability/profile / 同页装配 | ✅ 完成 | 2026-10-25 |
+| Task 2.3 结构化 test evidence recorder | ✅ 完成 | 2026-10-25 |
+| Task 3.1 11 类 scripted UI 场景矩阵 | ✅ 完成 | 2026-10-25 |
+| Task 3.2 release 封闭性与真实 E2E 交接 | ✅ 完成；AC-015 仍待能力环境 | 2026-10-25 |
 
 ## TDD 执行记录
 
 | 任务 | RED | GREEN | REFACTOR |
 |------|-----|-------|----------|
-| Task 1.1～2.3 | ✅ 新语音模块缺失导致测试失败，确认能力尚不存在 | ✅ parser/coordinator/controller/fake 最小实现后 62/62 | ✅ 页面共用计算协调器后 64/64 |
-| Task 3.1～3.2 | ✅ 权限/平台 seam 模块缺失导致测试失败 | ✅ permission/gateway seam 测试通过 | ✅ 真实 CoreSpeechKit/AudioCapturer driver 编译并保持 64/64 |
-| Task 4.1～4.2 | ✅ 成功提交、错误保留、取消/迟到与状态行为测试先行 | ✅ 页面原子提交、状态 UI、取消/重试、dispose 编译通过 | ✅ 移除重复页面计算链，统一到 CalculationCoordinator；64/64 |
-| Task 5.1～5.2 | ✅ 初始测试/依赖环境暴露缺失模块与 hypium 缺失 | ✅ 安装声明的 devDependencies，全矩阵通过 | ✅ 最终 build/test/CodeLinter 回归通过 |
+| 1.1 | 缺少 `VoiceGatewayFactory`，Local Test 编译失败 | fresh real gateway contract 通过 | 工厂只构造 Harmony gateway/CoreSpeech driver；73/73 |
+| 1.2 | 缺少 composition provider，Local Test 编译失败 | test binding / release reset contract 通过 | 页面仅依赖端口；EntryAbility 显式 bindRelease；73/73 |
+| 2.1 | 缺少 registry/scripted gateway，Local Test 编译失败 | 11 类 allowlist、未知 ID fail-closed、事件顺序通过 | session/cleanup 与 late/duplicate 行为集中；73/73 |
+| 2.2 | 缺少 scripted factory，Local Test 编译失败 | enum-only factory contract 通过 | ohosTest Ability 在同一 CalculatorPage 创建前绑定；test HAP 编译通过 |
+| 2.3 | 缺少 event recorder，Local Test 编译失败 | SHA/scenario/event/cleanup/historyDelta contract 通过 | 不记录 PCM、真实用户原文或新增 Preferences key；73/73 |
+| 3.1 | 缺少 UI matrix，Local Test 编译失败 | 11/11 场景执行、success/failure oracle 通过 | test-only 自动事件调度供设备采证；两个 HAP 安装与同页 UI 链路通过 |
+| 3.2 | 缺少 release seal contract，Local Test 编译失败 | `releaseInjectionReachable=false` / real gateway contract 通过 | release HAP/source 零 test symbol；最终 build/test/lint 全绿 |
 
-## 测试详情
+## 最终验证
 
-### RED 证据
+- Local Test：`73/73` 通过，0 failure，0 error，0 ignore。
+- Release HAP：`opencalc/run-build-wt.bat` → `BUILD SUCCESSFUL`。
+- Test HAP：`hvigorw assembleHap -p module=entry@ohosTest --no-daemon` → `BUILD SUCCESSFUL`。
+- Device install：release/test HAP 均在 `127.0.0.1:5555` 安装成功。
+- Device scripted UI：`VoiceTestAbility` 加载生产 `CalculatorPage`；设备树分别记录 `监听中…`、`识别中…`、`识别：123加456`、`123+456`、`579`。
+- Lint：项目没有 Hvigor `lint` task；真实命令已执行并记录 task-not-found。DevEco CodeLinter exit 0，0 error，271 warning。
+- Diff：`git diff --check` 通过。
 
-1. `hvigorw test -p module=entry -p coverage=false --no-daemon` 首次退出码 1：VoiceModels/parser/coordinator/controller/fake 尚不存在。
-2. 平台 seam RED 再次退出码 1：VoicePermissionAdapter 与 HarmonySpeechRecognitionGateway 尚不存在。
-3. Local Test 首轮环境同时发现 `@ohos/hypium` 未安装；执行项目已声明依赖的 `ohpm install` 后恢复可执行测试环境。
+## 验证命令
 
-### GREEN / REFACTOR 证据
+```text
+D:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat --version
+D:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat install
+opencalc\run-build-wt.bat
+hvigorw assembleHap -p module=entry@ohosTest --no-daemon
+hvigorw test -p module=entry -p coverage=false --no-daemon
+hvigorw lint --no-daemon
+node DevEco-CodeLinter -c opencalc/codelinter.json5 -f json -e error opencalc
+hdc install -r entry-default-unsigned.hap
+hdc install -r entry-ohosTest-unsigned.hap
+hdc shell aa start -a VoiceTestAbility -b com.darkempire78.opencalculator -m entry_voice_test --ps scenarioId integerTable
+hdc shell uitest dumpLayout ...
+git diff --check
+```
 
-- 结果文件：`opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`
-- 汇总：`Tests run: 64, Failure: 0, Error: 0, Pass: 64, Ignore: 0`
-- 新增覆盖：中文单位/逐位/负数/小数、八种运算词/符号、非法输入 fail-closed、除零、成功状态、错误快照不变、重复 final、取消迟到回调、权限拒绝、平台启动/清理时序。
-- 既有 PlotFunction/PlotAxis/渐近线回归全部继续通过。
+## 证据路径
 
-### 构建
+- `opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`
+- `specs/changes/20261024-bugfix-chinese-voice-expression-input/logs/codelinter-task-59.json`
+- `specs/changes/20261024-bugfix-chinese-voice-expression-input/logs/device-permission-dialog.json`
+- `specs/changes/20261024-bugfix-chinese-voice-expression-input/logs/device-listening.json`
+- `specs/changes/20261024-bugfix-chinese-voice-expression-input/logs/device-recognizing.json`
+- `specs/changes/20261024-bugfix-chinese-voice-expression-input/logs/device-success.json`
 
-- 命令：`opencalc/run-build-wt.bat`
-- 环境：Hvigor 6.24.2，JBR 21.0.8
-- 结果：`BUILD SUCCESSFUL`
-- 产物：`opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap`（未配置签名，符合项目基线）
+## Release 封闭性审计
 
-### Lint
+- `entry/src/main` 与 release `module.json5` 对 `Scripted*`、`VoiceTestScenario*`、`VoiceTestAbility`、`scenarioId` 零命中。
+- release HAP 文件表对 `VoiceTest`、`Scripted`、`ohosTest`、`entry_voice_test` 零命中。
+- 普通 `EntryAbility.onCreate` 无条件 `bindRelease()`；不读取 Want、URI、环境变量或 transcript。
+- test Ability/profile、registry、scripted gateway、evidence recorder 均位于 `entry/src/ohosTest`，只由 `ohosTest` target 打包。
 
-- Hvigor 命令：`hvigorw lint --no-daemon`；项目 task graph 无 `lint`，命令按预期报告 task not found。
-- 替代命令：DevEco Studio CodeLinter，`@typescript-eslint`、`@hw-stylistic`、`@correctness`、`@compatibility` recommended。
-- 结果：退出码 0，0 error，275 warning；无 error 级问题。
-- 报告：`logs/codelinter.json`
+## AC 状态
 
-## 代码变更摘要
+- AC-001～014、016～019：Developer 层验证通过；AC-019 的 device-visible injection 缺口已闭合，Tester 仍需在 exact PR HEAD 独立复核完整矩阵。
+- AC-015：未关闭。当前 emulator 的真实 CoreSpeechKit 曾返回 CreateEngineError；scripted 证据不替代真实中文语音 E2E。Tester 必须在 MIC、网络和 zh-CN CoreSpeechKit 预检通过环境说“123加456”并采集 real evidence。
 
-- 新增严格、确定性的中文数字与二元四则表达式解析，只输出 ASCII 运算符并对歧义输入 fail-closed。
-- 新增候选计算协调器，语音与手动输入复用现有 Expression/CalcEngine/NumberFormatter 逻辑。
-- 新增 session 隔离的语音控制器、可注入 gateway/fake、重复 final 与迟到回调防护。
-- 新增运行时 MIC 授权、INTERNET/MICROPHONE 声明、CoreSpeechKit + 16 kHz mono 16-bit AudioCapturer 适配。
-- 普通模式页面新增 44 vp 语音入口、监听/识别/成功/错误、原始识别文本、取消和重试，并在页面退出时释放资源。
-- 成功语音计算通过唯一提交路径更新表达式、结果和一条历史；任何失败保留原输入与历史。
+## 已知限制
 
-## 安全与隐私审计
-
-- 仅用户主动点击后申请前台麦克风权限。
-- 未声明后台麦克风权限；未新增 HistoryItem/Preferences schema。
-- 音频与识别原文均未持久化、未写日志。
-- cancel/error/final/dispose 统一停止 capturer 并 shutdown recognizer，清理幂等。
-
-## 已知限制与 Tester 交接
-
-- Developer 环境未连接具备麦克风和 CoreSpeechKit 在线服务的设备，不能替代 AC-015 真机证据。
-- Tester 应在可重置 MIC 权限的 API 12+ 设备验证：拒绝/重试、`listening → recognizing → success`、说“123加456”得到 `123+456`/`579`、取消与页面离开释放。
-- CodeLinter 的 warning 主要来自项目既有紧凑编码风格；本次门禁以 error 为失败级别，完整 JSON 已保留。
+- 项目未注册 Hvigor lint task，使用 DevEco CodeLinter 作为实际 lint 门禁。
+- 两个 HAP 均为 unsigned，符合仓库无可用 signingConfig 的基线。
+- 271 条 warning 为项目存量/风格/兼容性警告；无 error 级问题。
 
 ## 下一步
 

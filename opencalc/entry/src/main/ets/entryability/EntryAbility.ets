@@ -1,9 +1,11 @@
 import { UIAbility, Want, AbilityConstant } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { VoiceGatewayProvider } from '../voice/VoiceGatewayFactory';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    VoiceGatewayProvider.bindRelease();
     hilog.info(0x0000, 'OpenCalc', 'Ability onCreate');
   }
 

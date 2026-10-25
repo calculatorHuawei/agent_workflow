@@ -1,5 +1,5 @@
 {
-  "files": ["entry/src/main/**/*.ets", "entry/src/test/**/*.ets"],
+  "files": ["entry/src/main/**/*.ets", "entry/src/test/**/*.ets", "entry/src/ohosTest/**/*.ets"],
   "ignore": ["**/oh_modules/**", "**/build/**", "**/.test/**", "**/.preview/**", "**/node_modules/**"],
   "ruleSet": [
     "plugin:@typescript-eslint/recommended",

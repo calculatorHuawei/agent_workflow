@@ -1,0 +1,6 @@
+{
+  "string": [
+    { "name": "voice_test_label", "value": "OpenCalc Voice Test" },
+    { "name": "voice_test_description", "value": "Allowlisted scripted voice UI test assembly" }
+  ]
+}
