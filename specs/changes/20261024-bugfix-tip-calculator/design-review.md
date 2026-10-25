@@ -1,115 +1,94 @@
 # 设计审视报告
 
 ## 1. 审视范围与结论
-
-- **结论**：通过，PLANNING 可完成。
-- **审视输入**：GitHub Issue #50 原文、`proposal.md`、`acceptance-criteria.json`、`delta-spec.md`、`info.md`、`delta-design.md`。
-- **独立复核原则**：重新按 Issue 原文核对入口、输入、比例范围、即时计算、金额精度、异常、兼容性与 Tester 证据，没有依赖 proposal 的二次摘要作为唯一来源。
-- **范围守卫**：仅新增规划目录；未创建 `tasks.md`、未修改 `opencalc/` 产品源码、未构建/测试、未提交/推送/归档。
+- **结论**：通过；Tester 反馈迭代 1 的 PLANNING 可完成。
+- **输入**：Issue #50 原文、Developer handoff、Tester run-100、当前 HEAD 源码、proposal/spec/AC/info/design。
+- **范围守卫**：只修改规划制品和外部 checkpoint candidate；未修改产品源码、测试源码、`tasks.md`、提交、推送或归档。
 
 ## 2. 初始化与意图确认
-
 | 项目 | 结果 | 证据/理由 |
-|------|------|-----------|
-| 初始化标记 | 通过 | `specs/initialized.flag` 存在，PROJECT_ROOT=`opencalc`、CHANGES_ROOT=`specs/changes`、TEST_ROOT=`opencalc/entry/src/test` |
-| 项目路径 | 通过 | `opencalc`、entry HAP、HarmonyOS 构建文件和测试根存在 |
-| Git 分支 | 通过 | 当前为独立分支 `agent/issue-50-task-49`，无需创建分支 |
-| Git 初始状态 | 通过 | 开始 PLANNING 时工作树干净 |
-| 产品意图 | 新增功能 | Issue 标题 `feat` 且当前产品没有小费能力 |
-| 编排意图 | bugfix | 任务载荷 `_orchestrator.change_type=bugfix`；只决定目录/路由元数据 |
-| 人工确认 | 不需要 | 模糊点均为安全、可逆、Issue 内普通产品选择，已按授权自治并记录 assumptions |
+|---|---|---|
+| 初始化 | 通过 | `specs/initialized.flag` 有效；PROJECT_ROOT=`opencalc`、TEST_ROOT=`opencalc/entry/src/test` |
+| Git | 通过 | 独立分支 `agent/pull_request-53-task-58`；开始时工作树干净；HEAD=`84941216afa12ec6fa12c2383a86be2d38976fbb` |
+| 产品意图 | 新增功能 | Issue 标题 `feat` 且目标是新增小费分摊能力 |
+| 编排意图 | bugfix | payload change_type；本轮 reason=`tester_feedback`，只影响工作流元数据 |
+| 人工确认 | 不需要 | 选择均安全、可逆、Issue 内且不需凭据/付费/隐私合规/不可逆动作 |
 
-未重新运行初始化构建：现有初始化标记已记录成功基线；用户明确要求只执行 PLANNING，重新构建不属于本阶段所需写作/审视动作。
+现有初始化已记录成功构建基线；用户明确只执行 PLANNING，因此未重复执行构建或产品测试。
 
-## 3. 完整性评估
+## 3. rq-parse / rq-clarify 结果
+- 原始 Issue 已原子化为 IR-001～IR-013；Tester P0 反馈单列 IR-014，没有把设备缺陷静默吸收到内部实现描述。
+- 普通歧义继续采用既有安全默认：单页覆盖层、默认 15%/1 人、点号十进制最多两位、整数分值舍入、不持久化、不补建程序员模式。
+- 新增纠正默认：页面 `@State` 是唯一 UI 输入源，纯计算器只接收不可变快照。理由是设备 UI 树已证明当前可见输入和 `TipSession` 快照可以脱节。
 
-| 检查项 | 结果 | 说明 |
-|--------|------|------|
-| proposal.md | 通过 | 含 rq-parse、rq-clarify、IR、假设、边界和复杂度 |
-| delta-spec.md | 通过 | 保留模板 §1～§13；4 个场景、9 个用例、STAGE、GWT、SR 和追溯总表 |
-| acceptance-criteria.json | 通过 | 7 条 IR、11 条 feature-level AC、7 维覆盖、8 条假设 |
-| info.md | 通过 | 覆盖架构、契约、构建、影响、复用、风险与测试 |
-| delta-design.md | 通过 | D1～D10、算法、状态、错误、页面、平台集成和 AC 落点齐全 |
-| new-arch.md | 不需要 | 无核心模块边界、外部依赖、部署、路由或主数据流变化；只在既有 entry HAP 内扩展 |
-| design-review.md | 通过 | 本报告 |
-| todo.md | 通过 | PLANNING 子步骤已完成；后续阶段待开始 |
-| tasks.md | 符合约束 | 不存在；用户明确禁止本阶段创建 |
+## 4. 代码仓与 Tester 证据复核
+| 发现 | 证据 | 设计响应 |
+|---|---|---|
+| 纯算法 oracle 成立 | Local Test 64/64 | 保留 `TipCalculator` 分值算法 |
+| 真机可见 `100/15%/2` 但结果 `--` | run-100 `02-ac002-pass.json/png` | AC-002/011 要求同帧输入和结果 exact oracle |
+| 页面与 TipSession 各持有输入/派生状态 | CalculatorPage `@State` + 普通 `TipSession` | 删除生产 UI 的可变镜像回写链 |
+| 日志无可归因产品异常栈 | run-100 hilog | 不虚构平台根因；只处理已证实多源状态风险 |
+| 无 ohosTest target | Tester instrument command 失败 | 不把缺失 target 冒充产品通过；核心门禁为 Local Test + 真机 UI/E2E |
 
-- **需求覆盖度**：100%（IR-001～IR-007 均至少关联一条 feature-level AC）。
-- **AC 覆盖度**：100%（AC-001～AC-011 均出现在 delta-spec 追溯表，并在 delta-design 有落点）。
+## 5. 完整性评估
+| 制品 | 结果 |
+|---|---|
+| proposal.md | 通过：意图、IR、假设、Tester 反馈和范围 |
+| delta-spec.md | 通过：§1～§13、STAGE、GWT、SR、FMEA、追溯 |
+| acceptance-criteria.json | 通过：14 IR、11 feature AC、七维覆盖、假设 |
+| info.md | 通过：代码、证据、根因边界和最小纠正方向 |
+| delta-design.md | 通过：D1～D10、单一源事件事务、算法、UI/E2E 门禁 |
+| new-arch.md | 不需要：entry HAP、路由、外部依赖和部署边界不变 |
+| todo.md | 通过：本轮 PLANNING 子步骤完成，下一步等待独立阶段调度 |
+| tasks.md | 未修改：用户禁止本阶段创建或更新 |
 
-## 4. 一致性评估
+## 6. 一致性与追溯评估
+| Issue/反馈承诺 | IR | SR/UC | AC | 结果 |
+|---|---|---|---|---|
+| 入口、返回、既有模式/历史 | IR-001/012 | SR-00；SC-001/003 | AC-001/009 | 通过 |
+| 输入、四预设、自定义比例 | IR-002/003 | SR-01；SC-001/002 | AC-002～004/006～008 | 通过 |
+| 自动三结果 | IR-004 | SR-02；SC-001/002 | AC-002～005/011 | 通过 |
+| 两个精确示例和 0% | IR-005/006/007 | SR-02/03 | AC-002/003/005 | 通过 |
+| 两位小数和舍入 | IR-008 | SR-03 | AC-002/003/005 | 通过 |
+| 非法账单/人数/比例、防误导 | IR-009/010/011 | SR-04；SC-002 | AC-006～008/011 | 通过 |
+| 独立证据 | IR-013 | SR-05；SC-003 | AC-010 | 通过 |
+| 可见输入与计算快照一致 | IR-014 | SR-02；SC001-UC002/SC002-UC003 | AC-002/004/011 | 通过 |
 
-### 4.1 Issue → proposal → delta-spec
-| Issue 承诺 | IR | SR/UC | AC | 结果 |
-|------------|----|-------|----|------|
-| 小费入口且不影响现有模式 | IR-001/006 | SR-00/04；SC-001/004 | AC-001/010 | 通过 |
-| 金额、人数、四预设和自定义 0～100 | IR-002 | SR-01；SC-002/003 | AC-002～005/009 | 通过 |
-| 自动计算三项结果 | IR-003 | SR-02；SC-002 | AC-002～005 | 通过 |
-| 两位小数与货币舍入 | IR-004 | SR-02；SC-002 | AC-002～006 | 通过 |
-| 空/非数字/负数/非法人数/越界比例 | IR-005 | SR-03；SC-003 | AC-007～009 | 通过 |
-| Tester 独立测试并留证 | IR-007 | SR-05；SC004-UC002 | AC-011 | 通过 |
+JSON 的 AC ID、GWT、oracle 和层级已在 delta-spec §7/§11 镜像，并在 delta-design 的 AC 落点矩阵中覆盖。
 
-非目标支付/扫码/不等额分摊均保留；未静默引入币种、税费、持久化或新权限。
+## 7. AC 独立质量门禁
 
-### 4.2 delta-spec → delta-design
-| 规格模块 | 设计落点 | 结果 |
-|----------|----------|------|
-| SR-00 入口 | CalculatorPage `showTip`、横竖屏入口、TipPanel | 通过 |
-| SR-01 输入/比例 | 原始字符串 @State、basis points、单一选中来源 | 通过 |
-| SR-02 计算/格式 | TipCalculator 整数分值算法和固定两位 format | 通过 |
-| SR-03 校验/恢复 | parse/validate 先于计算；错误时原子清结果 | 通过 |
-| SR-04 兼容性 | 不依赖 CalcEngine/Preferences/History/Plot | 通过 |
-| SR-05 测试证据 | 纯逻辑接口、稳定 UI 标识、AC 证据字段 | 通过 |
+### 7.1 七维和 ArkUI 风险
+| 检查 | 结果 |
+|---|---|
+| normal / boundary / exception | 每条 IR 均 covered 或有具体 N/A 理由 |
+| user_visible | 产品 AC 均精确断言 UI 文本/状态；证据 AC 断言制品语义 |
+| state_sync | AC-004/011 覆盖连续编辑、真实 IME、同帧输入/结果 |
+| integration | 所有 feature AC 均含 integration/ui/e2e，非 unit-only |
+| environment | 横竖屏、HarmonyOS、IME、真机、UI 树均显式 |
+| `@State` | 单一源和原子派生提交被 AC-002/004/011 约束 |
+| 条件渲染/模式切换 | AC-001/009 覆盖入口、返回和兼容性 |
+| 重复按钮 | AC-004 要求四个预设各自映射自身值 |
+| 权限/外设 | 无权限、网络、相机或付费服务；无需扩张环境矩阵 |
 
-### 4.3 JSON ↔ delta-spec AC 语义
-- AC ID 集合一致：`AC-001`～`AC-011`。
-- Issue 两个数值示例、0% 示例、即时更新、非法输入、进出回归和 Tester 证据均保持相同 oracle。
-- JSON 是机器权威；delta-spec 用 GWT 和业务语境镜像，没有内部函数替代 feature 行为。
-
-## 5. AC 独立质量门禁
-
-### 5.1 七维与 ArkUI 风险检查
-| 检查 | 结果 | 说明 |
-|------|------|------|
-| normal / boundary / exception | 通过 | 7 条 IR 均覆盖或给出具体 N/A 理由 |
-| user_visible | 通过 | 所有产品行为以精确 UI 文本/状态为 oracle |
-| state_sync | 通过 | AC-005 验证三输入有序状态；AC-007～009 验证有效↔非法恢复 |
-| integration | 通过 | feature AC 至少含 integration/ui/e2e 之一，无 unit-only AC |
-| environment | 通过 | 横竖屏和 Tester 设备能力显式覆盖；纯本地逻辑给出 N/A 理由 |
-| `@State` 刷新 | 通过 | 设计采用源状态→单次重算→派生状态，AC-005/007～009 验证 |
-| 条件渲染/模式切换 | 通过 | AC-001/010 覆盖入口、返回和现有模式 |
-| 重复按钮命中 | 通过 | AC-009 覆盖比例边界及预设恢复；后续测试应逐个覆盖 0/10/15/20 |
-| 权限/设备能力 | 通过 | 无权限；只需 HarmonyOS UI 与方向变化 |
-
-### 5.2 校验器执行
-最终命令：
+### 7.2 校验器
+命令：
 ```text
 python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skills\migbot-increment-planning\scripts\validate_acceptance_criteria.py specs\changes\20261024-bugfix-tip-calculator\acceptance-criteria.json
 ```
 
-- 最终退出码：`0`
-- 最终输出：`VALID: 7 source requirement(s), 11 acceptance criterion/criteria`
-- 修复记录：首次运行发现 `IR-004.state_sync` 引用的 `AC-005` 未在该 AC 的 `source_requirement_ids` 中；已补齐 IR-004 追溯并同步 delta-spec，随后重跑通过。没有删除 IR、降低 oracle 或滥用 N/A。
+- 首次修订运行：退出 1，发现 3 个 coverage 追溯引用未同时列入 AC 的 source_requirement_ids。
+- 修正：补齐 AC-005→IR-004、AC-006/007→IR-002 追溯；未删除 IR、弱化 oracle 或滥用 N/A。
+- 最终运行：退出 0，`VALID: 14 source requirement(s), 11 acceptance criterion/criteria`。
 
-## 6. 规范性评估
+## 8. 规范性和向后兼容
+- 模板章节完整，无 TODO/TBD/“此处填写”占位。
+- IR/SR/SC/UC/AC 编号稳定；JSON 是机器权威。
+- 无架构、路由、权限、Kit、依赖、持久化或历史契约变化。
+- 设计只收敛状态所有权，保留纯算法和 UI 范围，是修复 Tester P0 的最小常规方案。
 
-| 检查项 | 结果 |
-|--------|------|
-| 章节结构 | 通过：proposal、spec §1～13、design D1～D10、review 均完整 |
-| 命名规范 | 通过：IR/SR/SC/UC/AC 稳定编号，目录遵循编排 bugfix 类型 |
-| 模板占位 | 通过：无“此处填写/TODO/TBD”残留；代码/PlantUML 花括号不是模板占位 |
-| 语言清晰 | 通过：中文产品语义，代码标识符保持英文 |
-| 向后兼容 | 通过：无路由/清单/依赖/权限/持久化契约修改 |
-| 最小权限 | 通过：本地 O(1) 计算，无网络、文件、支付或权限 |
-
-## 7. 假设审视
-
-8 条 assumptions 均满足“安全、可逆、Issue 内、最小范围”：覆盖目录分类冲突、覆盖层形态、初始值、十进制精度、舍入顺序、错误态、表单生命周期和币种符号。任何一项后续若被产品明确覆盖，都可局部调整，不涉及凭据、付费、隐私/合规或不可逆操作。
-
-## 8. 遗留问题与后续门禁
-
+## 9. 遗留风险和后续门禁
 - 无 PLANNING blocker。
-- 当前仓库无程序员模式；本期不补建。若后续基线新增该模式，AC-010 要求一起执行兼容性回归。
-- 实现阶段应先以 TipCalculator 纯逻辑测试验证 RED/GREEN，再接入 UI；但任务分解和代码实现不属于本阶段，本次未创建 tasks.md。
-- Tester 阶段必须独立执行 AC-002～AC-010 并满足 AC-011 证据字段；Developer 的单元测试不能替代独立 UI 证据。
+- 当前规划尚未实现；AC-011 必须在后续 Applying 后由独立 Tester 在真实设备用系统 IME 复测。
+- 直接向原生 TextInput 注入文本而不触发用户事件不能单独作为产品语义证据；必须同时采集可见输入、选中态和结果。
+- `ohosTest` target 缺失是测试基础设施限制，不属于本轮规划授权范围；不得因此把未执行 instrument test 标记通过。

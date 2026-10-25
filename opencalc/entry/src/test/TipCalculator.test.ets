@@ -1,7 +1,7 @@
 // Issue #50 — tip calculator logic contract (AC-002..AC-009)
 import { describe, it, expect } from '@ohos/hypium'
 import { TipCalculator, TipCalculationResult } from '../main/ets/tip/TipCalculator'
-import { TipSession, TIP_UI_IDS, TIP_ENTRY_IDS, TIP_PRESENTATION } from '../main/ets/tip/TipSession'
+import { TIP_UI_IDS, TIP_ENTRY_IDS, TIP_PRESENTATION } from '../main/ets/tip/TipContract'
 
 function expectAmounts(result: TipCalculationResult, tip: string, total: string, perPerson: string): void {
   expect(result.valid).assertTrue()
@@ -25,6 +25,15 @@ export default function tipCalculatorTest(): void {
       expectAmounts(calculator.evaluate('100', 1500, '2'), '15.00', '115.00', '57.50')
     })
 
+    it('AC_011_evaluates_each_visible_input_snapshot_independently', 0, (): void => {
+      const first: TipCalculationResult = calculator.evaluate('100', 1500, '2')
+      const second: TipCalculationResult = calculator.evaluate('101', 1500, '2')
+      expectAmounts(first, '15.00', '115.00', '57.50')
+      expectAmounts(second, '15.15', '116.15', '58.08')
+      expect(first.tip + '|' + first.total + '|' + first.perPerson)
+        .assertEqual('15.00|115.00|57.50')
+    })
+
     it('AC_003_calculates_88_80_at_10_percent_for_three', 0, (): void => {
       expectAmounts(calculator.evaluate('88.80', 1000, '3'), '8.88', '97.68', '32.56')
     })
@@ -35,6 +44,14 @@ export default function tipCalculatorTest(): void {
 
     it('AC_006_rounds_half_up_and_formats_two_decimals', 0, (): void => {
       expectAmounts(calculator.evaluate('10', 1000, '3'), '1.00', '11.00', '3.67')
+    })
+
+    it('AC_005_evaluates_the_ordered_event_snapshots', 0, (): void => {
+      expectAmounts(calculator.evaluate('200', 1000, '2'), '20.00', '220.00', '110.00')
+      expectAmounts(calculator.evaluate('200', 2000, '2'), '40.00', '240.00', '120.00')
+      expectAmounts(calculator.evaluate('200', 2000, '4'), '40.00', '240.00', '60.00')
+      const customBasisPoints: number = calculator.parseCustomPercent('12.5')
+      expectAmounts(calculator.evaluate('200', customBasisPoints, '4'), '25.00', '225.00', '56.25')
     })
 
     it('AC_007_rejects_invalid_bill_values_and_recovers', 0, (): void => {
@@ -77,58 +94,7 @@ export default function tipCalculatorTest(): void {
     })
   })
 
-  describe('TipSession', () => {
-    it('AC_005_recalculates_after_each_source_change', 0, (): void => {
-      const session: TipSession = new TipSession()
-      expect(session.tip).assertEqual('--')
-      expect(session.billError).assertEqual('')
-      session.changeBill('100')
-      session.selectPreset(1000)
-      session.changePeople('2')
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('10.00|110.00|55.00')
-      session.changeBill('200')
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('20.00|220.00|110.00')
-      session.selectPreset(2000)
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('40.00|240.00|120.00')
-      session.changePeople('4')
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('40.00|240.00|60.00')
-      session.changeCustomPercent('12.5')
-      expect(session.usingCustom).assertTrue()
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('25.00|225.00|56.25')
-    })
-
-    it('AC_007_AC_008_clears_stale_results_and_recovers', 0, (): void => {
-      const session: TipSession = new TipSession()
-      session.changeBill('100')
-      session.changePeople('2')
-      expect(session.valid).assertTrue()
-      session.changePeople('0')
-      expect(session.valid).assertFalse()
-      expect(session.peopleError.length > 0).assertTrue()
-      expect(session.tip + session.total + session.perPerson).assertEqual('------')
-      session.changePeople('2')
-      expect(session.valid).assertTrue()
-      session.changeBill('')
-      expect(session.billError.length > 0).assertTrue()
-      expect(session.tip + session.total + session.perPerson).assertEqual('------')
-      session.changeBill('100')
-      expect(session.valid).assertTrue()
-    })
-
-    it('AC_009_preset_clears_custom_error_and_is_unique', 0, (): void => {
-      const session: TipSession = new TipSession()
-      session.changeBill('100')
-      session.changePeople('2')
-      session.changeCustomPercent('100.01')
-      expect(session.usingCustom).assertTrue()
-      expect(session.percentError.length > 0).assertTrue()
-      session.selectPreset(1500)
-      expect(session.usingCustom).assertFalse()
-      expect(session.presetBasisPoints).assertEqual(1500)
-      expect(session.percentError).assertEqual('')
-      expect(session.tip + '|' + session.total + '|' + session.perPerson).assertEqual('15.00|115.00|57.50')
-    })
-
+  describe('Tip UI contract', () => {
     it('AC_011_exposes_stable_UI_identifiers', 0, (): void => {
       const required: string[] = [
         'tip-back', 'tip-bill-input', 'tip-percent-0', 'tip-percent-10',

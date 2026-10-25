@@ -14,7 +14,7 @@ import {
   AxisTick, TickLabelLayout, PLOT_LABEL_FONT_PX,
   xAxisTicks, yTicks, hLabelLayout, vLabelLayout, plotGridColor, plotLabelColor
 } from '../plot/PlotAxis'
-import { TipSession } from '../tip/TipSession'
+import { TipCalculator, TipCalculationResult } from '../tip/TipCalculator'
 
 @Entry
 @Component
@@ -47,6 +47,7 @@ export struct CalculatorPage {
   @State tipPresetBasisPoints: number = 1500
   @State tipUsingCustom: boolean = false
   @State tipCustomText: string = ''
+  @State tipBillTouched: boolean = false
   @State tipBillError: string = ''
   @State tipPercentError: string = ''
   @State tipPeopleError: string = ''
@@ -66,7 +67,7 @@ export struct CalculatorPage {
   private expr: Expression = new Expression()
   private prefs: PreferencesStore | null = null
   private plotter: FunctionPlotter = new FunctionPlotter()
-  private tipSession: TipSession = new TipSession()
+  private tipCalculator: TipCalculator = new TipCalculator()
   private canvasCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true))
 
   aboutToAppear(): void {
@@ -150,39 +151,57 @@ export struct CalculatorPage {
   onOpenTip(): void { this.showTip = true }
 
   onTipBillChange(value: string): void {
-    try { this.tipSession.changeBill(value); this.syncTipState() }
+    try {
+      this.tipBillText = value
+      this.tipBillTouched = true
+      this.evaluateTipSnapshot(value, this.currentTipBasisPoints(), this.tipPeopleText)
+    }
     catch (_e) { this.showTipFailure() }
   }
 
   onTipPeopleChange(value: string): void {
-    try { this.tipSession.changePeople(value); this.syncTipState() }
+    try {
+      this.tipPeopleText = value
+      this.evaluateTipSnapshot(this.tipBillText, this.currentTipBasisPoints(), value)
+    }
     catch (_e) { this.showTipFailure() }
   }
 
   onTipPreset(basisPoints: number): void {
-    try { this.tipSession.selectPreset(basisPoints); this.syncTipState() }
+    try {
+      this.tipPresetBasisPoints = basisPoints
+      this.tipUsingCustom = false
+      this.tipCustomText = ''
+      this.evaluateTipSnapshot(this.tipBillText, basisPoints, this.tipPeopleText)
+    }
     catch (_e) { this.showTipFailure() }
   }
 
   onTipCustomChange(value: string): void {
-    try { this.tipSession.changeCustomPercent(value); this.syncTipState() }
+    try {
+      this.tipCustomText = value
+      this.tipUsingCustom = true
+      const customBasisPoints: number = this.tipCalculator.parseCustomPercent(value)
+      this.evaluateTipSnapshot(this.tipBillText, customBasisPoints, this.tipPeopleText)
+    }
     catch (_e) { this.showTipFailure() }
   }
 
-  private syncTipState(): void {
-    try {
-      this.tipBillText = this.tipSession.billText
-      this.tipPeopleText = this.tipSession.peopleText
-      this.tipPresetBasisPoints = this.tipSession.presetBasisPoints
-      this.tipUsingCustom = this.tipSession.usingCustom
-      this.tipCustomText = this.tipSession.customPercentText
-      this.tipBillError = this.tipSession.billError
-      this.tipPercentError = this.tipSession.percentError
-      this.tipPeopleError = this.tipSession.peopleError
-      this.tipAmountText = this.tipSession.tip
-      this.tipTotalText = this.tipSession.total
-      this.tipPerPersonText = this.tipSession.perPerson
-    } catch (_e) { this.showTipFailure() }
+  private currentTipBasisPoints(): number {
+    return this.tipUsingCustom ?
+      this.tipCalculator.parseCustomPercent(this.tipCustomText) : this.tipPresetBasisPoints
+  }
+
+  private evaluateTipSnapshot(billSnapshot: string, basisPointsSnapshot: number,
+    peopleSnapshot: string): void {
+    const result: TipCalculationResult =
+      this.tipCalculator.evaluate(billSnapshot, basisPointsSnapshot, peopleSnapshot)
+    this.tipBillError = this.tipBillTouched ? result.errors.bill : ''
+    this.tipPercentError = result.errors.percent
+    this.tipPeopleError = result.errors.people
+    this.tipAmountText = result.tip
+    this.tipTotalText = result.total
+    this.tipPerPersonText = result.perPerson
   }
 
   private showTipFailure(): void {
