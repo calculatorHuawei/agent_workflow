@@ -18,5 +18,13 @@ export default function voiceUiMatrixContractTest(): void {
       expect(divide.result).assertEqual('18')
       expect(divide.historyDelta).assertEqual(0)
     })
+    it('Task3_1_all_scenarios_keep_single_start_and_cleanup_invariants', 0, (): void => {
+      const results: VoiceUiMatrixResult[] = VoiceUiMatrix.runAll()
+      for (let i: number = 0; i < results.length; i++) {
+        expect(results[i].gatewayStartCount).assertEqual(1)
+        expect(results[i].activeSessionId).assertEqual(1)
+        expect(results[i].cleanedUp).assertTrue()
+      }
+    })
   })
 }

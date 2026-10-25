@@ -1,30 +1,30 @@
-# 设计审视报告（Tester 反馈迭代 1）
+# 设计审视报告（Tester 反馈迭代 2）
 
 ## 1. 审视范围与结论
 
-- **关联**：Issue #52、PR #55、目标 SHA `4af7209810beb3c5378d4e8a89f0137a58c91802`、Tester run 107。
-- **初始化**：复用 `specs/initialized.flag`；`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 均存在；当前分支 `agent/pull_request-55-task-59`，检查前工作树干净。
+- **关联**：Issue #52、PR #55、目标 SHA `d904e4c3b8dc26c0490eeda5d43805f5a10310aa`、Tester run 114。
+- **初始化**：复用 `specs/initialized.flag`；`PROJECT_ROOT=opencalc`、`CHANGES_ROOT=specs/changes`、`TEST_ROOT=opencalc/entry/src/test` 均存在；当前分支 `agent/pull_request-55-task-64`，检查前工作树干净。
 - **意图分类**：编排类型 `bugfix`；产品原意仍是新增中文语音能力；本轮是对 Tester 失败暴露的验收可达性缺口进行增量规划。
 - **审视结论**：通过，可结束本轮 PLANNING。
-- **需求覆盖度**：100%（10/10 原子 IR 均有 feature-level AC、SR/UC 与设计分配）。
+- **需求覆盖度**：100%（18/18 单一承诺 IR 均有 feature-level AC、SR/UC 与设计分配）。
 - **阻塞项**：无。当前模拟器缺 CoreSpeechKit engine 是明确环境限制，不需要凭据、付费服务、隐私决策或范围扩张即可继续规划。
 
 ## 2. Tester 反馈闭环
 
 | 反馈事实 | 代码仓证据 | 规划决策 | 追溯 |
 |----------|------------|----------|------|
-| MIC 授权后 CoreSpeechKit `CreateEngineError` | `CoreSpeechPlatformDriver.begin()` 首先调用 `createEngine`; run 107 hilog 记录失败 | 维持 AC-010 安全降级；AC-015 只在能力预检通过环境执行，fake 不替代 | IR-006/010；AC-010/015 |
-| 安装应用没有设备可见 fake 注入 | `CalculatorPage.onVoiceStart()` 直接 new 真实 driver；fake 仅 `entry/src/test` | 增加 release-sealed factory 与 test-only scripted gateway/Ability/profile | IR-009；AC-019 |
-| Local Test 64/64 但 UI 成功/失败矩阵未执行 | controller/parser fake 只验证本地对象状态 | AC-014 负责 local；AC-019 单独要求设备 UI 树、截图、页面/Preferences delta | SR-06；SC004 |
-| 取消、重复点击、历史无法在设备验证 | 无活动真实 session 且无设备 harness | scripted scenarios 覆盖 cancel-late、duplicate-start、duplicate-final | AC-012/013/017/019 |
+| exact HEAD 的 local/build/lint/scripted matrix | 73/73、两类 HAP 成功、CodeLinter 0 error、11 类设备场景均有证据 | 已实现能力保留为基线；不重新规划已闭合缺口 | IR-001～017；AC-001～014/017～019 |
+| MIC grant 后 production zh-CN 服务不可用 | run 114 release UI/hilog 显示 unavailable，未出现真实 listening/success | AC-015 仍只在能力预检通过环境执行；不以 fake 或安全降级替代 | IR-018；AC-015 |
+| 旧 AC-016 因要求 capturer/recognizer 成功而被环境阻断 | 页面源码证明 grant 后才 `VoiceGatewayProvider.create/start`；test harness 可记录 `sessionStarted/listening` | AC-016 改为真实权限框 + gateway start 顺序；真实 capturer/recognizer 归 AC-015 | IR-003；AC-016 |
+| release/test 隔离已独立验证 | test Ability allowlist + release 包/manifest/source 审计 | 维持 `releaseInjectionReachable=false`，不得增加生产后门 | IR-017；AC-019 |
 
 ## 3. 完整性评估（Step 9.1）
 
 | 制品 | 状态 | 说明 |
 |------|------|------|
-| `proposal.md` | 通过 | rq-parse/rq-clarify 决策、10 个原子 IR、假设、边界、复杂度 |
+| `proposal.md` | 通过 | rq-parse/rq-clarify 决策、18 个单一承诺 IR、假设、边界、复杂度 |
 | `delta-spec.md` | 通过 | 1～13 章节、SC001～SC005、SR、DFX、追溯总表 |
-| `acceptance-criteria.json` | 通过 | 10 IR、19 feature AC、七维覆盖、假设与非目标 |
+| `acceptance-criteria.json` | 通过 | 18 IR、19 feature AC、七维覆盖、假设与非目标 |
 | `info.md` | 通过 | 当前源码、Tester 证据、装配缺口与环境事实 |
 | `new-arch.md` | 通过 | factory、release/test 装配边界、兼容与回滚 |
 | `delta-design.md` | 通过 | mod-design D1～D10；AR-VOICE-01～07 |
@@ -37,16 +37,16 @@
 
 | 承诺 | IR | AC | 结论 |
 |------|----|----|------|
-| 入口与四态 | IR-001 | AC-001/012/016/017 | 通过 |
-| 权限拒绝、说明、重试 | IR-002 | AC-002/016 | 通过 |
-| 八种运算词/符号 | IR-003 | AC-003 | 通过 |
-| 阿拉伯/中文数字、小数、歧义 | IR-004 | AC-004/005/006/018 | 通过 |
-| 原文、填入、自动计算 | IR-005 | AC-007 | 通过 |
-| 无结果/歧义/除零/服务/中断安全失败 | IR-006 | AC-006/008～011 | 通过 |
-| 可见监听与取消 | IR-007 | AC-012/017 | 通过 |
-| 共用计算链、历史一次 | IR-008 | AC-007/009/013 | 通过 |
-| 可注入解析与设备 UI 自动化 | IR-009 | AC-014/019 | 通过；local 与 device UI 分证 |
-| 真实麦克风端到端证据 | IR-010 | AC-015 | 通过；能力预检，fake 不替代 |
+| 入口与四态 | IR-001,002 | AC-001/012/017 | 通过 |
+| 权限请求、grant-before-start、拒绝/重试 | IR-003,004 | AC-002/016 | 通过；权限顺序与真实服务分证 |
+| 八种运算词/符号 | IR-005 | AC-003 | 通过 |
+| 阿拉伯/中文整数与小数 | IR-006～008 | AC-004/005/018 | 通过 |
+| 原文、填入、自动计算 | IR-009 | AC-007 | 通过 |
+| 五类安全失败 | IR-010～014 | AC-006/008～011 | 通过 |
+| 取消与竞态 | IR-015 | AC-012/017 | 通过 |
+| 共用计算链、历史一次 | IR-016 | AC-007/009/013 | 通过 |
+| 可注入解析与设备 UI 自动化 | IR-017 | AC-014/019 | 通过；local 与 device UI 分证 |
+| 真实麦克风端到端证据 | IR-018 | AC-015 | 通过；能力预检，fake 不替代 |
 
 ### 4.2 Spec → Design
 
@@ -70,7 +70,7 @@ python D:\huawei\Demo\calculatorHuawei\orchestrator\skill-bundles\developer\skil
 结果：
 
 ```text
-VALID: 10 source requirement(s), 19 acceptance criterion/criteria
+VALID: 18 source requirement(s), 19 acceptance criterion/criteria
 exit_code=0
 ```
 
@@ -101,7 +101,7 @@ HarmonyOS/ArkUI 专项：AC-001/002/007/012/017/019 验证响应式状态与条�
 
 1. 设备测试装配只允许枚举 scenarioId，并与源码 SHA 绑定；不接受 release Want 中的任意 transcript。
 2. release `module.json5` 不注册测试 Ability/action/URI，release factory 没有 scripted setter；需以包审计/装配测试证明 `releaseInjectionReachable=false`。
-3. 当前模拟器可继续验证 AC-002、AC-010 与 AC-019；不能用于宣称 AC-015。
+3. 当前模拟器可验证 AC-002、AC-010、AC-016 与 AC-019；不能用于宣称 AC-015。AC-016 必须记录授权前 start=0 及 grant 后 gateway/listening 顺序。
 4. AC-015 仍需具备 MIC、网络、zh-CN CoreSpeechKit 的真机或等价环境。缺环境是后续验收限制，不是本轮 Planning blocker。
 
 ## 8. Phase Gate

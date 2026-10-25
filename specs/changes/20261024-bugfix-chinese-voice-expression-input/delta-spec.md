@@ -6,7 +6,7 @@
 
 | 设计资产 | 描述 |
 |----------|------|
-| IR标识 | IR-001～IR-010 |
+| IR标识 | IR-001～IR-018（按单一产品承诺原子化；权威文本见 `acceptance-criteria.json.source_requirements`） |
 | 名称 | 中文语音输入算式并自动计算 |
 | 描述 | 普通计算模式新增前台单轮中文语音输入，严格规范化后复用既有计算/历史链；失败可见且不破坏旧输入 |
 | Who | 不方便触屏输入的计算器用户；执行自动化和真机验证的 Tester |
@@ -134,13 +134,13 @@
 
 - **Actor**：终端用户（主）、HarmonyOS 权限/语音服务（次）。
 - **前置条件**：普通模式；无活动 session；手动输入可用。
-- **最小保证**：授权前无音频；失败时旧表达式不变。
+- **最小保证**：授权结果返回前 `gatewayStartCount=0`；失败时旧表达式不变。
 - **成功保证**：状态按 listening→recognizing→success 可见。
 - **触发事件**：点击麦克风并允许权限。
-- **主成功路径**：请求权限→允许→启动录音/识别→显示监听→音频结束→显示识别→final。
+- **主成功路径**：请求权限→允许→创建并启动 gateway→显示监听→识别→final。真实 AudioCapturer/recognizer 的成功启动只在 AC-015 能力环境中验收。
 - **验证达成标准**：AC-001、AC-016。
-- **Given/When/Then 摘要**：Given 空闲且能力可用，When 用户开始并允许权限，Then 授权后才录音且状态按序可见。
-- **Oracle/层级**：精确事件顺序；integration/ui/e2e。
+- **Given/When/Then 摘要**：Given 权限未决定且 test-only gateway 可记录 start，When 用户开始并允许真实系统权限框，Then grant 前 start=0，grant 后按 `permissionGranted→gatewayStartInvoked→scriptedListening→uiListening` 可见。
+- **Oracle/层级**：精确事件顺序；integration/ui/e2e；真实 capturer/recognizer 由 AC-015 分证。
 
 #### 用例 SC001-UC002：成功解析、计算和历史一次
 
@@ -158,8 +158,8 @@
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-001/IR-002 | SR-01 | 会话与权限 | 状态、按需授权、生命周期 | F1/F2 |
-| IR-005/IR-008 | SR-04 | 统一计算提交 | 原文/规范式/结果/历史一次 | F4 |
+| IR-001～IR-004 | SR-01/SR-02 | 入口、状态与权限 | 状态、按需授权、生命周期 | F1/F2 |
+| IR-009/IR-016 | SR-04 | 统一计算提交 | 原文/规范式/结果/历史一次 | F4 |
 
 ### ADD 场景 SC-002：规范化与数值边界
 
@@ -199,8 +199,8 @@
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-003/IR-004 | SR-03 | 中文表达式解析 | 词法、数值和严格二元语法 | F3 |
-| IR-006 | SR-05 | 原子恢复 | parse 失败不提交 | F4 |
+| IR-005～IR-008 | SR-03 | 中文表达式解析 | 词法、数值和严格二元语法 | F3 |
+| IR-011 | SR-05 | 原子恢复 | parse 失败不提交 | F4 |
 
 ### ADD 场景 SC-003：失败、取消与恢复
 
@@ -236,8 +236,8 @@
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-002/IR-006 | SR-02 | 平台识别网关 | 权限、音频、识别、错误映射与清理 | F2 |
-| IR-001/IR-006/IR-007 | SR-01/SR-05 | 会话与恢复 | session 隔离、取消、快照 | F1/F4 |
+| IR-003/IR-004/IR-013/IR-014 | SR-02 | 平台识别网关 | 权限、音频、识别、错误映射与清理 | F2 |
+| IR-002/IR-010～IR-015 | SR-01/SR-05 | 会话与恢复 | session 隔离、取消、快照 | F1/F4 |
 
 ### ADD 场景 SC-004：确定性测试与设备 UI 证据
 
@@ -277,7 +277,7 @@
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-009 | SR-06 | 测试注入与设备 UI 证据 | local fake、test-only scripted gateway、设备矩阵 | F5/F6 |
+| IR-017 | SR-06 | 测试注入与设备 UI 证据 | local fake、test-only scripted gateway、设备矩阵 | F5/F6 |
 
 ### ADD 场景 SC-005：真实语音环境证据
 
@@ -306,7 +306,7 @@
 
 | IR | SR | SR 名称 | 描述 | 关联功能 |
 |----|----|---------|------|----------|
-| IR-010 | SR-06 | 真实环境证据 | 能力预检、真实链路、环境限制显式记录 | F5 |
+| IR-018 | SR-06 | 真实环境证据 | 能力预检、真实链路、环境限制显式记录 | F5 |
 
 ## 8. SR 功能模块点
 
@@ -419,38 +419,40 @@
 
 | SR | IR | 名称 | 系统对外能力行为 | 关联用例 | 可验证标准 | 优先级 |
 |----|----|------|------------------|----------|------------|--------|
-| SR-01 | IR-001,007 | 会话交互与状态机 | 可见状态、取消、单会话 | SC001-UC001,SC003-UC003 | AC-001,012,017 | 高 |
-| SR-02 | IR-002,006 | HarmonyOS 识别网关 | 按需权限、识别、错误降级 | SC001-UC001,SC003-UC001/002 | AC-002,010,011,016 | 高 |
-| SR-03 | IR-003,004 | 中文表达式解析 | 规范化或明确拒绝 | SC002-UC001/002/003 | AC-003～006,018 | 高 |
-| SR-04 | IR-005,008 | 统一计算与历史提交 | 显示原文/规范式/结果，历史一次 | SC001-UC002 | AC-007,009,013 | 高 |
-| SR-05 | IR-006,007 | 安全失败与恢复 | 旧状态不变、资源清理、可重试 | SC002-UC003,SC003-* | AC-002,006,008～012 | 高 |
-| SR-06 | IR-009,010 | 可测试性与证据 | local 自动化+设备 UI scripted matrix+真机补证 | SC004-*,SC005-* | AC-014,015,019 | 高 |
+| SR-01 | IR-001,002,015 | 会话交互与状态机 | 入口、可见状态、取消、单会话 | SC001-UC001,SC003-UC003 | AC-001,012,017 | 高 |
+| SR-02 | IR-003,004,013,014 | HarmonyOS 识别网关 | 按需权限、识别、错误降级 | SC001-UC001,SC003-UC001/002 | AC-002,010,011,016 | 高 |
+| SR-03 | IR-005～008,011 | 中文表达式解析 | 规范化或明确拒绝 | SC002-UC001/002/003 | AC-003～006,018 | 高 |
+| SR-04 | IR-009,012,016 | 统一计算与历史提交 | 显示原文/规范式/结果，历史一次 | SC001-UC002,SC003-UC002 | AC-007,009,013 | 高 |
+| SR-05 | IR-010～015 | 安全失败与恢复 | 旧状态不变、资源清理、可重试 | SC002-UC003,SC003-* | AC-002,006,008～012 | 高 |
+| SR-06 | IR-017,018 | 可测试性与证据 | local 自动化+设备 UI scripted matrix+真机补证 | SC004-*,SC005-* | AC-014,015,019 | 高 |
 
 ## 11. 验收总表（IR × UC × SR × AC × Evidence 追溯）
 
 | IR | SR/Tier | 用例 | AC | 类别 | 用户可观察结果/Oracle | 验证层级 | 环境 |
 |----|---------|------|----|------|-----------------------|----------|------|
-| IR-001 | SR-01/T1 | SC001-UC001 | AC-001 | normal | listening→recognizing→success | integration/ui/e2e | 真机/fake |
-| IR-002 | SR-02/T0 | SC003-UC001 | AC-002 | recovery | denied、无录音、旧表达式、retry | integration/ui/e2e | 权限环境 |
-| IR-003 | SR-03/T0 | SC002-UC001 | AC-003 | normal | 八种映射精确表 | unit/integration/ui | fake |
-| IR-004 | SR-03/T0 | SC002-UC001/002 | AC-004,005,018 | normal/boundary | 整数/小数/负数精确表 | unit/integration/ui | fake |
-| IR-004,006 | SR-03/05 | SC002-UC003 | AC-006 | exception | 明确错误；expression/history 不变 | unit/integration/ui | fake |
-| IR-005,008 | SR-04/T1 | SC001-UC002 | AC-007 | normal | 原文、123+456、579 | integration/ui | fake |
-| IR-006 | SR-05/T2 | SC003-UC002 | AC-008 | exception | 空结果错误，旧输入/历史不变 | integration/ui | fake |
-| IR-006,008 | SR-04/05 | SC003-UC002 | AC-009 | exception | 除零错误，旧状态/历史不变 | integration/ui | fake |
-| IR-006 | SR-02/05 | SC003-UC002 | AC-010,011 | recovery | 服务/录音错误、资源停、旧输入 | integration/ui/e2e | fake+真机 |
-| IR-001,007 | SR-01/T1 | SC003-UC003 | AC-012,017 | exception/boundary | 取消忽略迟到；单 session | integration/ui/e2e | fake+真机 |
-| IR-008 | SR-04/T1 | SC001-UC002 | AC-013 | boundary | partial/重复 final 后 historyDelta=1 | integration/ui | fake |
-| IR-009 | SR-06/T0 | SC004-UC001 | AC-014 | compatibility | 无 MIC 的 parser/controller 确定性矩阵 | unit/integration | CI/fake |
-| IR-009 | SR-06/T0 | SC004-UC002 | AC-019 | normal | 设备 UI 11 类场景可执行；release fake 不可达 | integration/ui/e2e | 设备测试构建 |
-| IR-010 | SR-06/T0 | SC005-UC001 | AC-015 | normal | 真实语音 123+456=579 与状态证据 | e2e | 能力预检通过的真机/等价环境 |
-| IR-001,002 | SR-01/02 | SC001-UC001 | AC-016 | normal | grant→capturer→recognizer→UI | integration/ui/e2e | 权限+MIC |
+| IR-001,002 | SR-01/T1 | SC001-UC001 | AC-001 | normal | 入口可用；listening→recognizing→success | integration/ui/e2e | 真机/fake |
+| IR-003,004 | SR-02/T0 | SC003-UC001 | AC-002 | recovery | denied、无录音、旧表达式、retry | integration/ui/e2e | 真实权限框 |
+| IR-005 | SR-03/T0 | SC002-UC001 | AC-003 | normal | 八种映射精确表 | unit/integration/ui | fake |
+| IR-006,007 | SR-03/T0 | SC002-UC001 | AC-004 | normal | 阿拉伯/中文整数精确表 | unit/integration/ui | fake |
+| IR-008 | SR-03/T0 | SC002-UC002 | AC-005 | boundary | `10.5-2.5=8` | unit/integration/ui | fake |
+| IR-011 | SR-03/05 | SC002-UC003 | AC-006 | exception | 明确错误；expression/history 不变 | unit/integration/ui | fake |
+| IR-009,016 | SR-04/T1 | SC001-UC002 | AC-007 | normal | 原文、123+456、579 | integration/ui | fake |
+| IR-010 | SR-05/T2 | SC003-UC002 | AC-008 | exception | 空结果错误，旧输入/历史不变 | integration/ui | fake |
+| IR-012,016 | SR-04/05 | SC003-UC002 | AC-009 | exception | 除零错误，旧状态/历史不变 | integration/ui | fake |
+| IR-013,014 | SR-02/05 | SC003-UC002 | AC-010,011 | recovery | 服务/录音错误、资源停、旧输入 | integration/ui/e2e | fake+设备 |
+| IR-002,015 | SR-01/T1 | SC003-UC003 | AC-012,017 | exception/boundary | 取消忽略迟到；单 session | integration/ui/e2e | fake+设备 |
+| IR-016 | SR-04/T1 | SC001-UC002 | AC-013 | boundary | partial/重复 final 后 historyDelta=1 | integration/ui | fake |
+| IR-017 | SR-06/T0 | SC004-UC001 | AC-014 | compatibility | 无 MIC 的 parser/controller 确定性矩阵 | unit/integration | CI/fake |
+| IR-018 | SR-06/T0 | SC005-UC001 | AC-015 | normal | 真实语音 123+456=579 与状态证据 | e2e | 能力预检通过的真机/等价环境 |
+| IR-003 | SR-02/T0 | SC001-UC001 | AC-016 | normal | grant 前 start=0；grant→gatewayStart→scriptedListening→UI | integration/ui/e2e | 真实权限框+test assembly |
+| IR-007,008 | SR-03/T0 | SC002-UC002 | AC-018 | boundary | 逐位数字、负数、小数精确表 | unit/integration/ui | fake |
+| IR-017 | SR-06/T0 | SC004-UC002 | AC-019 | normal | 设备 UI 11 类场景可执行；release fake 不可达 | integration/ui/e2e | 设备测试构建 |
 
 ## 12. 关键路径与依赖
 
 | 路径/依赖 | 说明 |
 |-----------|------|
-| 权限关键路径 | click→MIC grant→capturer/recognizer；grant 前不得录音 |
+| 权限关键路径 | click→MIC grant→gateway start；grant 前 gatewayStartCount=0（AC-016）；真实 capturer/recognizer 成功由 AC-015 的能力环境证明 |
 | 成功关键路径 | final current session→parse→candidate evaluation→atomic UI/history commit |
 | 失败关键路径 | error/cancel→invalidate session→cleanup→visible error/idle→old state |
 | 平台依赖 | AbilityKit、AudioKit、CoreSpeechKit `SystemCapability.AI.SpeechRecognizer`、INTERNET |

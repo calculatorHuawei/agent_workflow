@@ -7,7 +7,7 @@
 | 变更类型 | 应用内新增分层组件，不改变部署单元 |
 | 变更日期 | 2026-10-25（Tester 反馈后修订） |
 | 变更人 | MigBot Developer |
-| 追溯 | Issue #52；IR-001～IR-010；Tester run 107 |
+| 追溯 | Issue #52；IR-001～IR-018；Tester run 114；目标 SHA `d904e4c3b8dc26c0490eeda5d43805f5a10310aa` |
 
 ## 2. 最新架构【架构前置】
 
@@ -55,7 +55,8 @@ Test Ability/profile → allowlisted VoiceTestScenarioRegistry
 | VoiceInputController | 应用服务 | 单轮状态机、session 隔离、快照、回调编排 | 不依赖 ArkUI；通过接口接收 gateway/parser/commit |
 | VoiceExpressionParser | 纯业务 | 将受限中文算式完整转换或返回结构化错误 | 不访问 SDK、UI、历史 |
 | SpeechRecognitionGateway | 端口 | 定义 start/cancel/dispose 与 outcome callback | 不暴露具体 SDK 类型给控制器 |
-| HarmonySpeechRecognitionGateway | 适配器 | MIC 权限、AudioCapturer、CoreSpeechKit 生命周期 | 仅前台、无音频持久化 |
+| CalculatorPage permission gate | View/平台边界 | 调用真实 HarmonyOS 权限框并在 grant 后创建/启动 gateway | grant 前 `gatewayStartCount=0` |
+| HarmonySpeechRecognitionGateway | 适配器 | AudioCapturer、CoreSpeechKit 生命周期 | 仅前台、无音频持久化；权限由页面先行 gate |
 | VoiceGatewayFactory | 装配边界 | release 固定返回 Harmony gateway；测试装配可替换为 scripted gateway | release 不读取 scenario Want/深链/隐藏 UI |
 | Local FakeSpeechRecognitionGateway | 测试适配器 | parser/controller Local Test 注入最终文本、错误与时序 | 仅测试源码集，不进入 HAP |
 | ScriptedSpeechRecognitionGateway | 设备测试适配器 | 在安装设备上执行 allowlisted 成功/失败/竞态脚本 | 仅测试 Ability/profile；记录 scenarioId 与源码 SHA，不接受任意生产输入 |
@@ -66,7 +67,8 @@ Test Ability/profile → allowlisted VoiceTestScenarioRegistry
 | 交互 | 方向 | 接口 | 说明 |
 |------|------|------|------|
 | UI → Controller | 命令 | `start/cancel/retry` | 每次 start 生成新 session |
-| Controller → Gateway | 异步调用 | `start(sessionId)` | 权限通过后录音识别 |
+| UI permission gate → Factory/Controller | 顺序调用 | `requestPermissionsFromUser` 后 `create/start` | 授权结果返回前不得触发 gateway start |
+| Controller → Gateway | 异步调用 | `start(sessionId)` | 权限通过后开始受控会话 |
 | Gateway → Controller | 事件 | listening/recognizing/final/error | 仅当前 session 生效 |
 | Controller → Parser | 同步调用 | `parse(text)` | 只处理 final 非空文本 |
 | Controller → Coordinator | 同步调用 | `evaluateCandidate(expr)` | 返回成功快照或错误，不直接写 UI |
@@ -75,7 +77,7 @@ Test Ability/profile → allowlisted VoiceTestScenarioRegistry
 
 **数据流**：麦克风 PCM（内存）→ 在线识别文本→纯 parser→规范化候选→既有计算链→可见结果/历史。
 
-**控制流**：用户开始→权限→监听→识别→final→parse→evaluate→一次提交；任意错误/取消→cleanup→保留旧计算状态。
+**控制流**：用户开始→真实权限框→grant→gateway start→监听→识别→final→parse→evaluate→一次提交；任意错误/取消→cleanup→保留旧计算状态。测试装配以 `permissionGranted→gatewayStartInvoked→scriptedListening→uiListening` 证明权限顺序；真实 capturer/recognizer 成功由 AC-015 单独证明。
 
 ## 3. 变更原因
 
@@ -92,7 +94,7 @@ Test Ability/profile → allowlisted VoiceTestScenarioRegistry
 ### 4.1 新增语音端口与平台适配器
 
 - 新增 `SpeechRecognitionGateway` 契约与 Harmony 实现。
-- 只申请 `MICROPHONE`，在线识别声明 `INTERNET`；不申请后台录音权限。
+- 页面只在用户点击后申请 `MICROPHONE`，在线识别声明 `INTERNET`；不申请后台录音权限。
 - 资源清理幂等，错误映射为权限拒绝、服务不可用、录音中断、无结果。
 
 ### 4.2 新增严格表达式解析器
@@ -120,6 +122,13 @@ Test Ability/profile → allowlisted VoiceTestScenarioRegistry
 - 测试 Ability/profile 加载同一 `CalculatorPage`，采集 UI 树、截图、事件与 Preferences delta；不复制页面实现。
 - release HAP 必须通过包内容或装配测试证明 `releaseInjectionReachable=false`，不能通过 Want、深链、环境变量或隐藏控件启用 fake。
 - 真实语音 AC 仍使用 release 默认 gateway；测试 harness 不得作为 AC-015 证据。
+
+### 4.6 Tester 反馈迭代 2：权限顺序与真实服务分证
+
+- 保持 release 生产路径不变：真实权限框 grant 后才 `VoiceGatewayProvider.create()` 并启动 controller。
+- ohosTest 证据链增加权限动作时间点与 gateway `sessionStarted`/`listening` 的顺序关联；不得要求缺少 zh-CN engine 的模拟器产生 `capturerStarted/recognizerStarted`。
+- AC-016 验证“授权前没有启动，授权后 test-only gateway 能驱动同一页面进入 listening”；AC-015 验证“真实 AudioCapturer/CoreSpeechKit 成功并得到 `123+456=579`”。两者均须通过，互不替代。
+- 不增加生产诊断接口、任意 transcript 注入、后台权限、第三方服务或凭据。
 
 ## 5. 兼容性说明
 

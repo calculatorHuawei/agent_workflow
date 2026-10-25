@@ -4,7 +4,7 @@
 
 ### 1.1 应用定位
 
-在 OpenCalc 单 `entry` HAP 内增加前台、单轮、中文四则语音输入。设计重点不是扩展计算能力，而是把不稳定的平台语音结果安全地转换成既有计算链可消费的候选表达式，并确保失败不产生副作用；Tester 反馈后的增量设计进一步让同一页面在设备测试构建中可确定性装配 scripted gateway，同时封死 release fake 激活路径。（IR-001～IR-010）
+在 OpenCalc 单 `entry` HAP 内增加前台、单轮、中文四则语音输入。设计重点不是扩展计算能力，而是把不稳定的平台语音结果安全地转换成既有计算链可消费的候选表达式，并确保失败不产生副作用；Tester 反馈后的增量设计进一步让同一页面在设备测试构建中可确定性装配 scripted gateway，同时封死 release fake 激活路径。（原子需求 IR-001～IR-018）
 
 ### 1.2 核心交互
 
@@ -508,7 +508,16 @@ MIC 首次请求使用系统权限框；应用内不自制替代授权弹窗。�
 | AudioKit | AudioCapturer create/start/read/stop/release | PCM 采集 | 目标 API 12 可用定义 |
 | CoreSpeechKit | createEngine/setListener/startListening/writeAudio/finish/cancel/shutdown | zh-CN 在线识别 | API 11 |
 
-Tester run 107 已确认目标模拟器在 `createEngine({language:'zh-CN', online:0})` 失败；该环境用于 AC-010 和 AC-019，不用于宣称 AC-015。真实 E2E 前必须预检 MIC、网络和 zh-CN engine 可创建。
+Tester run 114 已确认目标模拟器在真实权限 grant 后仍因 zh-CN CoreSpeechKit 不可用而失败；该环境用于 AC-010、AC-016 和 AC-019，不用于宣称 AC-015。真实 E2E 前必须预检 MIC、网络和 zh-CN engine 可创建。
+
+#### 9.3.1 AC-016 / AC-015 分层证据设计
+
+| 关注点 | 证据装配 | 确定 Oracle | 禁止替代 |
+|--------|----------|-------------|----------|
+| AC-016 授权顺序 | 真实 HarmonyOS 权限框 + ohosTest scripted gateway/recorder + 同一 CalculatorPage | 权限结果返回前 `gatewayStartCount=0`；随后 `permissionGranted → gatewayStartInvoked → scriptedListening → uiListening` | 不要求无服务模拟器产生真实 capturer/recognizer 事件 |
+| AC-015 真实链路 | release factory + 能力预检通过的 MIC/网络/zh-CN CoreSpeechKit 环境 | 真实 `listening → recognizing → success`，原文、`123+456`、`579` | scripted gateway 不得关闭该 AC |
+
+实现边界：权限顺序证据优先复用测试 Ability 的启动命令时间、系统权限交互记录、`VoiceTestEventRecorder.sessionStarted` 和 UI tree 时间戳；若后续需要新增事件，只能新增到 ohosTest recorder，不在 release 暴露诊断或注入 API。（IR-003、IR-017、IR-018；AC-015、AC-016、AC-019）
 
 ### 9.4 后台与 Extension
 

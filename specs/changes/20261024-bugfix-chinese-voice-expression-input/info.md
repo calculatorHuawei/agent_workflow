@@ -3,7 +3,7 @@
 ## 1. 基本信息
 
 - **需求类别**：工作流为 bugfix；代码事实表明是新增功能
-- **分析时间**：2026-10-25（基于 PR #55 SHA `4af7209` 与 Tester run 107 复核）
+- **分析时间**：2026-10-25（基于 PR #55 SHA `d904e4c3b8dc26c0490eeda5d43805f5a10310aa` 与 Tester run 114 复核）
 - **项目根**：`opencalc/`
 - **分析范围**：`entry` HAP 的 CalculatorPage、计算引擎、表达式清洗、历史持久化、权限与构建配置、测试入口
 - **重点**：现有统一计算链的复用边界、语音平台隔离、失败时状态原子性、可注入测试
@@ -22,13 +22,15 @@ EntryAbility
 
 | 模块 | 路径 | 现有职责 | 与需求关系 |
 |------|------|----------|------------|
-| 主页面 | `entry/src/main/ets/pages/CalculatorPage.ets` | 输入、展示、计算提交、历史、设置、绘图、语音 UI | `onVoiceStart()` 直接创建真实 CoreSpeech driver，当前没有设备 UI 测试装配点 |
+| 主页面 | `entry/src/main/ets/pages/CalculatorPage.ets` | 输入、展示、计算提交、历史、设置、绘图、语音 UI | `onVoiceStart()` 等待真实系统权限结果后才调用 `VoiceGatewayProvider.create()` 与 controller start |
 | 表达式清洗 | `calculator/Expression.ets` | `×/÷`→`*/`、隐式乘法、括号/百分比等 | 规范化输出可使用 UI 运算符或引擎符号，最终仍走该层 |
 | 计算引擎 | `calculator/Calculator.ets` | 递归下降解析、四则/科学函数、错误旗标 | 语音不得复制计算器；直接复用 |
 | 错误状态 | `model/ErrorFlags.ets` | 除零、语法、定义域等全局旗标 | 语音计算错误映射为明确错误且不落历史 |
 | 历史/偏好 | `preferences/PreferencesStore.ets` | JSON 历史持久化和裁剪 | 复用一次写入，不新增 Schema |
-| 模块声明 | `entry/src/main/module.json5` | EntryAbility 与 VIBRATE 权限 | 需新增 MIC/INTERNET 和 MIC reason/usedScene |
-| 测试入口 | `entry/src/test/List.test.ets` | Hypium 本地单测聚合；现有 `FakeSpeechRecognitionGateway` 只在 Local Test | parser/controller 已可测，但无法驱动安装 HAP 的页面 UI |
+| 模块声明 | `entry/src/main/module.json5` | EntryAbility、VIBRATE/MIC/INTERNET 权限 | release 不注册测试 Ability；权限用途资源已存在 |
+| release 装配 | `voice/VoiceGatewayFactory.ets` | release 默认真实 gateway；EntryAbility 启动时重新封闭 | `releaseInjectionReachable=false`，不接受 Want/URI/transcript |
+| 设备测试入口 | `entry/src/ohosTest/ets/testability/VoiceTestAbility.ets` | allowlisted scenario 装配 scripted gateway 后加载同一 CalculatorPage | 11 类 UI 场景已由 Tester run 114 独立执行 |
+| 本地测试入口 | `entry/src/test/List.test.ets` | Hypium 聚合 parser/controller/factory/release seal/matrix tests | exact HEAD 73/73 通过 |
 
 ## 3. 接口与契约
 
@@ -69,8 +71,9 @@ EntryAbility
 - **依赖**：entry 无运行时 OHPM 依赖；CoreSpeechKit/AudioKit/AbilityKit 来自 SDK Kit，不引入第三方服务包。
 - **构建入口**：`opencalc/hvigorfile.ts`、`build-profile.json5`、`entry/hvigorfile.ts`。
 - **交付**：仍为单 entry HAP；不新增 HAR/HSP/ExtensionAbility。
-- **Tester 实证**：目标模拟器 HarmonyOS 6.1/API 24 在权限通过后由 CoreSpeechKit 记录 `CreateEngineError`；页面正确显示服务不可用并保留输入，但无法进入 listening。该事实证明 SDK 类型存在不等于运行环境提供 zh-CN engine。
-- **装配缺口**：`CalculatorPage.onVoiceStart()` 内部固定 `new HarmonySpeechRecognitionGateway(new CoreSpeechPlatformDriver())`；`EntryAbility` 未读取或注入测试依赖；当前 fake 位于 `entry/src/test`，不会进入设备安装包。
+- **Tester 实证**：目标模拟器 HarmonyOS 6.1/API 24 在权限通过后由 CoreSpeechKit 记录服务不可用；页面正确显示服务错误并保留输入，但无法进入真实 listening。该事实证明 SDK 类型存在不等于运行环境提供 zh-CN engine。
+- **装配现状**：release 由 `ReleaseVoiceGatewayFactory` 创建真实实现；ohosTest 的 `VoiceTestAbility` 仅接受 allowlist scenarioId 并绑定 scripted factory，销毁时恢复 release factory。Tester 已证明 release HAP 无 scripted 激活符号。
+- **AC-016 证据缺口**：当前设备矩阵记录 `sessionStarted`，权限拒绝/重试另有真实系统框证据，但旧 oracle 要求在 production service 可用后看到 `capturerStarted/recognizerStarted`，把权限顺序与 AC-015 的外部服务前置耦合。新设计以真实权限框时间线、授权前 `gatewayStartCount=0`、授权后 `gatewayStartInvoked→scriptedListening→uiListening` 验证权限 gate；真实 capturer/recognizer 成功留给 AC-015。
 
 ## 5. 影响范围
 
@@ -94,8 +97,8 @@ EntryAbility
 | 不持久化音频 | 最小数据原则 | PCM 只在内存流转；停止后释放；日志不包含音频/原文 |
 | 向后兼容 | 用户指令 | 手动输入、科学模式、绘图、历史格式与偏好 Schema 不变 |
 | 严格 ArkTS | 现有仓库/SDK | 明确类型、无动态对象滥用；接口驱动 fake |
-| 测试装配隔离 | IR-009/Tester 反馈 | release 工厂固定真实 gateway；scripted gateway 只由测试源码集/测试 Ability 或编译期 profile 装配 |
-| 真实证据不可替代 | IR-010 | fake 只证明业务/UI；AC-015 必须在麦克风、网络、zh-CN CoreSpeechKit 能力预检通过后执行 |
+| 测试装配隔离 | IR-017/Tester 反馈 | release 工厂固定真实 gateway；scripted gateway 只由测试源码集/测试 Ability 或编译期 profile 装配 |
+| 真实证据不可替代 | IR-018 | fake 只证明业务/UI；AC-015 必须在麦克风、网络、zh-CN CoreSpeechKit 能力预检通过后执行 |
 
 ## 7. 可复用组件
 
@@ -134,6 +137,6 @@ EntryAbility
 1. 仓库没有语音相关既有机制，需新增小型分层，但无需拆分 HAP。
 2. CoreSpeechKit SDK 契约存在且兼容 API 12；在线识别不等于所有测试环境可用，因此注入边界是验收必要条件。
 3. 最大兼容性风险不是 parser，而是当前 `onEquals()` 的非事务式页面副作用；先设计统一候选提交结果，再接 UI，可同时保护手动与语音路径。
-4. Tester run 107 不是 parser 缺陷：64/64 Local Test 通过，权限拒绝与服务不可用设备分支通过；失败集中在“真实服务不可用”和“设备 UI 无 fake 装配”。
-5. 最小修正不是增加第三方服务或降低 AC，而是增加装配边界：产品页面依赖 gateway factory；release 固定真实 gateway；设备测试装配 allowlisted scripted scenarios。
+4. Tester run 114 已确认 parser/controller/UI harness 不是剩余缺陷来源：73/73 Local Test、11 类设备 UI scripted 矩阵、权限拒绝/重试与 release 封闭性均通过。
+5. 剩余两项应分证：AC-016 用真实权限框 + test-only gateway 事件验证 grant-before-start；AC-015 仍须在 MIC、网络、zh-CN CoreSpeechKit 全部可用的环境验证真实音频链。
 6. 本阶段仅修订 Planning 制品，没有修改上述产品文件、测试源码、构建配置或 `tasks.md`。

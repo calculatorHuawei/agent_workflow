@@ -25,11 +25,24 @@ export class ScriptedSpeechRecognitionGateway implements SpeechRecognitionGatewa
   start(sessionId: number): void {
     if (this.running) return
     this.running = true; this.sessionId = sessionId
-    if (this.recorder) this.recorder.record('sessionStarted', sessionId)
+    if (this.recorder) this.recorder.recordGatewayStart(sessionId)
     if (this.autoRun) this.schedule(0)
   }
-  cancel(sessionId: number): void { if (sessionId === this.sessionId && this.running) { this.running = false; this.cancelCount++; if (this.recorder) this.recorder.record('cancelled', sessionId) } }
-  dispose(): void { if (this.running) this.running = false; this.disposeCount++; if (this.recorder) this.recorder.record('disposed', this.sessionId) }
+  cancel(sessionId: number): void {
+    if (sessionId === this.sessionId && this.running) {
+      this.running = false
+      this.cancelCount++
+      if (this.recorder) {
+        this.recorder.record('cancelled', sessionId)
+        this.recorder.markCleanedUp(sessionId)
+      }
+    }
+  }
+  dispose(): void {
+    if (this.running) this.running = false
+    this.disposeCount++
+    if (this.recorder) this.recorder.markCleanedUp(this.sessionId)
+  }
   runToCompletion(): void {
     for (let i: number = 0; i < this.scenario.events.length; i++) this.emit(this.scenario.events[i])
     this.running = false
@@ -54,7 +67,10 @@ export class ScriptedSpeechRecognitionGateway implements SpeechRecognitionGatewa
     if (!this.running || !this.listener) return
     const event: VoiceEvent = new VoiceEvent()
     event.sessionId = this.sessionId; event.type = script.type; event.text = script.text; event.error = script.error
-    if (this.recorder) this.recorder.record(script.type, this.sessionId)
+    if (this.recorder) {
+      if (script.type === 'listening') this.recorder.recordScriptedListening(this.sessionId)
+      else this.recorder.record(script.type, this.sessionId)
+    }
     this.listener.onVoiceEvent(event)
   }
 }

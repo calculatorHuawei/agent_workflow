@@ -1,0 +1,13 @@
+Device: 127.0.0.1:5555
+Scenario: integerTable
+Real permission dialog: visible before grant
+Before grant: gatewayStartCount=0; UI listening absent
+10-25 14:40:02.521 event=permissionGranted sessionId=0 gatewayStartCount=0
+10-25 14:40:02.521 event=gatewayCreated sessionId=0 gatewayStartCount=0
+10-25 14:40:02.521 event=gatewayStartInvoked sessionId=1 gatewayStartCount=1
+10-25 14:40:04.025 event=scriptedListening sessionId=1 gatewayStartCount=1
+UI tree after scriptedListening: 监听中 visible
+10-25 14:40:05.528 event=recognizing sessionId=1 gatewayStartCount=1
+10-25 14:40:07.076 event=final sessionId=1 gatewayStartCount=1
+Final UI: transcript=123加456; expression=123+456; result=579
+Source binding: exact commit SHA is supplied by the delivery handoff and PR head verification.

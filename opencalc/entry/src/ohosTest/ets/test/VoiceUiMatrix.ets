@@ -1,6 +1,7 @@
 import { VoiceInputController } from '../../../main/ets/voice/VoiceInputController'
 import { ScriptedSpeechRecognitionGateway } from '../voice/ScriptedSpeechRecognitionGateway'
 import { VoiceTestScenarioId, VoiceTestScenarioRegistry } from '../voice/VoiceTestScenarioRegistry'
+import { VoiceTestEventRecorder } from '../voice/VoiceTestEventRecorder'
 
 export class VoiceUiMatrixResult {
   scenarioId: string = ''
@@ -10,6 +11,9 @@ export class VoiceUiMatrixResult {
   result: string = ''
   error: string = ''
   historyDelta: number = 0
+  gatewayStartCount: number = 0
+  activeSessionId: number = 0
+  cleanedUp: boolean = false
 }
 
 /** Deterministic application-layer oracle used by the device UI assembly. */
@@ -32,6 +36,8 @@ export class VoiceUiMatrix {
     else if (id === VoiceTestScenarioId.RECORDING_INTERRUPTED) { expression = '6*7'; result = '42' }
     else if (id === VoiceTestScenarioId.CANCEL_LATE_CALLBACK) { expression = '2+2'; result = '4' }
     const gateway: ScriptedSpeechRecognitionGateway = new ScriptedSpeechRecognitionGateway(id as VoiceTestScenarioId)
+    const recorder: VoiceTestEventRecorder = new VoiceTestEventRecorder('external-exact-head-manifest', id, 0)
+    gateway.setRecorder(recorder)
     const controller: VoiceInputController = new VoiceInputController(gateway)
     controller.start(expression, result, false)
     if (id === VoiceTestScenarioId.DUPLICATE_START) controller.start(expression, result, false)
@@ -41,6 +47,14 @@ export class VoiceUiMatrix {
     output.executed = true; output.state = controller.snapshot.state
     output.expression = controller.snapshot.expression; output.result = controller.snapshot.result
     output.error = controller.snapshot.error; output.historyDelta = controller.commitCount
+    controller.dispose()
+    VoiceUiMatrix.attachEvidence(output, recorder)
     return output
+  }
+
+  private static attachEvidence(output: VoiceUiMatrixResult, recorder: VoiceTestEventRecorder): void {
+    output.gatewayStartCount = recorder.evidence.gatewayStartCount
+    output.activeSessionId = recorder.evidence.activeSessionId
+    output.cleanedUp = recorder.evidence.cleanedUp
   }
 }

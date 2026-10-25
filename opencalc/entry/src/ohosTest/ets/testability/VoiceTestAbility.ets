@@ -3,6 +3,7 @@ import { window } from '@kit.ArkUI'
 import { VoiceGatewayProvider } from '../../../main/ets/voice/VoiceGatewayFactory'
 import { ScriptedVoiceGatewayFactory } from '../voice/ScriptedVoiceGatewayFactory'
 import { VoiceTestScenarioId, VoiceTestScenarioRegistry } from '../voice/VoiceTestScenarioRegistry'
+import { VoiceTestEventRecorder } from '../voice/VoiceTestEventRecorder'
 
 export default class VoiceTestAbility extends UIAbility {
   private scenarioId: VoiceTestScenarioId = VoiceTestScenarioId.SERVICE_UNAVAILABLE
@@ -10,7 +11,9 @@ export default class VoiceTestAbility extends UIAbility {
   onCreate(want: Want, _launchParam: AbilityConstant.LaunchParam): void {
     const requested: string = want.parameters && want.parameters['scenarioId'] ? want.parameters['scenarioId'] as string : ''
     if (VoiceTestScenarioRegistry.resolve(requested)) this.scenarioId = requested as VoiceTestScenarioId
-    VoiceGatewayProvider.bind(new ScriptedVoiceGatewayFactory(this.scenarioId))
+    const recorder: VoiceTestEventRecorder = new VoiceTestEventRecorder('external-exact-head-manifest', this.scenarioId, 0)
+    recorder.record('testAbilityReady', 0)
+    VoiceGatewayProvider.bind(new ScriptedVoiceGatewayFactory(this.scenarioId, recorder))
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
