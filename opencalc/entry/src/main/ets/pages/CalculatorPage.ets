@@ -797,8 +797,8 @@ export struct CalculatorPage {
 
       Scroll() {
         Column() {
-          this.MatrixGrid('A', this.matrixAText)
-          this.MatrixGrid('B', this.matrixBText)
+          this.MatrixGrid('A')
+          this.MatrixGrid('B')
         }.width('100%')
       }.width('100%').layoutWeight(1).margin({ top: 12 })
 
@@ -830,14 +830,18 @@ export struct CalculatorPage {
     .width('100%').height('100%').padding(16).backgroundColor(this.getPanelBg())
   }
 
-  @Builder MatrixGrid(name: string, values: string[][]) {
+  @Builder MatrixGrid(name: string) {
     Column() {
       Text('矩阵 ' + name).fontSize(14).fontWeight(FontWeight.Bold).fontColor(this.getT1())
         .width('100%').padding({ top: 8, bottom: 4 })
       ForEach(this.matrixIndices(), (row: number) => {
         Row() {
           ForEach(this.matrixIndices(), (column: number) => {
-            TextInput({ text: values[row][column], placeholder: '0' })
+            TextInput({
+              text: name === 'A' ? this.matrixAText[row][column] : this.matrixBText[row][column],
+              placeholder: '0'
+            })
+              .id('matrix-cell-' + name + '-' + row.toString() + '-' + column.toString())
               .fontSize(14).height(40).layoutWeight(1).margin(2).textAlign(TextAlign.Center)
               .border({ width: this.hasMatrixError(name, row, column) ? 2 : 1,
                 color: this.hasMatrixError(name, row, column) ? this.getErr() : this.getT2(), radius: 6 })

@@ -1,306 +1,218 @@
-# 2×2 / 3×3 矩阵运算开发任务
+# 2×2 / 3×3 矩阵设备输入修复开发任务
 
 ## 任务概述
 
-- 功能名称：2×2 / 3×3 矩阵运算（Issue #51）
-- 变更类型：编排分类为 bugfix；产品语义为新增功能
+- 功能名称：2×2 / 3×3 矩阵运算（Issue #51，PR #54 Tester-feedback iteration 1）
+- 变更类型：编排分类为 bugfix；产品语义为既有矩阵功能的设备输入闭环修复
+- 目标基线：`6e76305e8d3df57378314d78f30f4b53b0dc4690`
 - 关联全局文件：`specs/spec.md` / `specs/arch.md` / `specs/design.md`
-- 设计输入：`proposal.md`、`acceptance-criteria.json`、`delta-spec.md`、`info.md`、`new-arch.md`、`delta-design.md`、`design-review.md`
-- 开发阶段：后续 APPLYING 按 TDD 实现；本文件仅定义任务，不表示任何 AC 已通过
-- 预计任务数：9
-- 任务颗粒度：每项以 1–2 小时为目标；每项均给出可观察 oracle 和 Developer/Tester 验证责任
+- 设计输入：`proposal.md`、`delta-spec.md`、`acceptance-criteria.json`、`info.md`、`new-arch.md`、`delta-design.md`、`design-review.md`
+- 开发阶段：后续 APPLYING 按 TDD 执行；本文件只定义任务，不表示任何 AC 已通过
+- 预计任务数：5
+- 任务颗粒度：每项以 1–2 小时为目标，并明确输入、输出、客观 oracle、依赖和验证责任
 
 ## Planning 输入核验
 
-- 8 项 Planning 制品均存在且非空；`design-review.md` 结论为“通过”。
-- `acceptance-criteria.json` 可解析，包含 11 个唯一 `IR-*`、14 个唯一 `AC-*` 和 11 份 IR 覆盖评估；AC 的 `source_requirement_ids` 均有效。
-- `delta-design.md` 显式追溯 AC-001..AC-014；任务分解不新增、删除或弱化需求级 AC。
-- Planning 记录的 AC 校验器结果为 exit 0；IMPLEMENTING 不改写权威验收契约。
+- Planning checkpoint 指定的 7 项制品及其引用的 `new-arch.md` 均存在、非空并已逐项阅读；`design-review.md` 结论为“通过。PLANNING 可完成”。
+- `acceptance-criteria.json` 可解析，包含 12 个唯一 `IR-*`、15 个唯一 `AC-*` 和 12 份 IR 覆盖评估；不存在无效 `source_requirement_ids` 或缺失覆盖评估。
+- Tester 反馈完整原子化为 `IR-012`，并由 `SC006-UC001`、`SR-05/SR-06`、`AC-015` 和 `delta-design.md` §12 追溯；原 `IR-001..011` / `AC-001..014` 未删除或弱化。
+- `delta-design.md` 显式映射 `AC-001..015`；增量设计只允许在稳定 cell identity、焦点/测试可定位性、顶层文本状态所有权和必要的 MatrixSession 回写收窄范围内选择最小修复。
+- Planning 记录的 AC 校验器已两次以 exit 0 完成，结果为 `VALID: 12 source requirement(s), 15 acceptance criterion/criteria`；IMPLEMENTING 不改写权威验收契约。
+- 精确基线上的既有矩阵算法、本地测试、构建与 lint 已通过；失败集中在设备 TextInput 提交/保持/计算消费链路。旧任务分解已完成并由 APPLYING 实现，本轮任务只覆盖 Tester 失败后的修复增量。
 
 ## 任务列表
 
-### 阶段 1：纯逻辑与输入边界
+### 阶段 1：失败分类与回归保护
 
-#### Task 1.1：以 TDD 实现矩阵领域模型、结构防御和四类算法
+#### Task 1.1：建立精确 head 的设备输入诊断门禁
 
-**描述**：先为 2×2/3×3 方阵结构、加法、减法、乘法和行列式编写失败测试，再实现无状态 `MatrixEngine`，最后消除重复循环并保持 ArkTS 显式类型。算法不得在中间步骤舍入，也不得接入标量 `CalcEngine`/`ErrorFlags`。
+**描述**：在修改产品行为前复用 Tester handoff 59 的失败步骤，并按 `delta-design.md` §12.2 对 A[1,1] 采集输入前、输入后立即、失焦/重绘后和计算后四个时点的节点 identity、bounds、focus、文本、UI tree 与截图。将结果严格分类为：未聚焦/坐标或重布局问题、文本事件后被陈旧状态回写、或 UI 显示与 MatrixSession 计算状态不同步。命令 exit 0 不作为成功 oracle。
 
-**涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`（新增）
-- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`（新增）
+**输入**：
+- 精确基线 `6e76305e8d3df57378314d78f30f4b53b0dc4690`
+- Tester 证据 `D:\huawei\Demo\calculatorHuawei\.agent-runtime\evidence\task-56\run-106`
+- `delta-design.md` §12.2、`delta-spec.md` §14、AC-015
+
+**输出/涉及文件**：
+- 后续 APPLYING 报告中的诊断记录：`specs/changes/20261024-bugfix-matrix-operations/apply-report.md`
+- 设备诊断证据：后续 run evidence 目录，不写入产品源码
 
 **依赖任务**：无
 
 **验收标准**：
-- 2×2 标准算例精确得到加 `[[6,8],[10,12]]`、减 `[[-4,-4],[-4,-4]]`、乘 `[[19,22],[43,50]]`、行列式 `-2`。
-- 3×3 单位阵左乘任意合法矩阵保持原矩阵，单位阵行列式为 `1`；补充奇异阵、负数矩阵和非对称矩阵用例。
-- 仅接受完整、有限数值的 2 阶或 3 阶方阵；双矩阵运算拒绝不同维度、非方阵和非 finite 元素。
-- API 仅暴露本设计所需 add/subtract/multiply/determinant，不提供逆、转置、特征值或 4×4+ 能力。
+- 记录 revision、HAP hash、设备/OS、目标 cell、每个观察时点及实际结果。
+- 至少以 focus + UI tree text + screenshot 三类证据确定一个主要失败类别；证据不足时保持未决并补充定位，不猜测根因。
+- 明确后续最小修复分支：仅 identity/焦点，或 identity + 顶层状态同步；不得引入自定义键盘、测试后门、权限、依赖或持久化。
+- 诊断步骤本身不修改产品源码，不把 `inputText` exit 0 标为成功。
 
-**需求追溯**：IR-003、IR-011 → AC-002、AC-003、AC-004、AC-005、AC-013
+**需求追溯**：IR-002、IR-004、IR-010、IR-012 → AC-015；并为 AC-014 保留失败证据
 
-**Developer 验证**：Hypium unit；以 AC 精确矩阵/标量及非法结构抛错或明确失败为 oracle。执行时记录 RED 失败、GREEN 通过、REFACTOR 后复跑结果。
+**Developer 验证**：对照 AC-015 的 `driver_and_product_failure_classified=true` 检查证据完整性；诊断结论必须能由四时点事实复核。
 
-**Tester 验证请求**：独立生成算法单元测试，不复制 Developer 结论；覆盖标准算例、单位阵、奇异阵、负数和范围边界，并记录 AC ID、命令、环境、预期与实际。
+**Tester 验证请求**：Tester 后续在新 head 上使用同一证据结构复测，以便与失败基线进行一一比较。
 
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
+**TDD**：诊断门禁，不适用代码 RED/GREEN；Tester 现有失败证据作为行为 RED
 
-#### Task 1.2：以 TDD 实现操作感知的文本解析与全量错误定位
+#### Task 1.2：为已分类的文本状态链补充最小失败回归
 
-**描述**：为矩阵输入 adapter 编写失败测试，再实现 trim 后的完整十进制匹配、finite 检查、操作感知必填范围和 `CellError[]`。加减乘校验 A+B；det(A) 只校验 A；单次校验必须收集全部错误而非遇首错返回。
+**描述**：基于 Task 1.1 的分类，先增加能在修复前失败的最小回归。若缺陷涉及文本状态所有权或 Session 回写，则在现有 MatrixSession/状态转换测试中覆盖 A[1,1] 提交、失焦等价重绘后保持以及计算消费；若缺陷仅为 ArkUI 节点 identity/聚焦，则以可重复的设备 UI 用例作为 RED，并补充静态/集成断言保证每个 A/B-row-column identity 唯一。不得添加与实际失败无关、修复前不会失败的占位单测。
 
 **涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`
-- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`
+- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`（仅当状态链存在可确定性单测边界）
+- 测试聚合：`opencalc/entry/src/test/List.test.ets`（仅当新增 suite/入口确有需要）
+- 设备回归资产：后续 run evidence 中的 AC-015 用例/步骤
 
 **依赖任务**：Task 1.1
 
 **验收标准**：
-- 接受 `2`、`-2`、`+2`、`.5`、`-.5`、`1.` 和前后空白包围的 `1.5`，数值分别与 AC-007 oracle 一致。
-- 拒绝空值、内部空白、`1x`、指数、`NaN`、`Infinity`、重复符号及其他非完整十进制文本。
-- AC-008 输入一次返回 `A[0,1]` empty 与 `B[1,0]` invalid 两个稳定坐标错误，且无可供 Engine 调用的成功结果。
-- det(A) 在 B 全空时不产生 B 错误并返回可计算的 A。
+- RED 精确复现被分类的失败：文本未保持、状态被空值覆盖、计算读空，或唯一节点无法可靠聚焦中的至少一种。
+- 回归使用稳定的 A[1,1] 语义标识和精确文本/状态 oracle，不以“组件存在”“无崩溃”或命令退出码代替。
+- 测试覆盖提交值 `1`、派生结果失效、目标 cell 错误清除，以及后续计算读取当前文本快照；不改变数字语法和算法 oracle。
+- RED 命令、失败断言和证据位置记录在后续 APPLYING 报告中。
 
-**需求追溯**：IR-002、IR-004、IR-008、IR-003 → AC-007、AC-008、AC-009
+**需求追溯**：IR-002、IR-004、IR-012 → AC-007、AC-008、AC-015
 
-**Developer 验证**：Hypium unit；以合法值精确数值、非法值完整错误集合和 det(A) 的空 B 错误集 `[]` 为 oracle。
+**Developer 验证**：先观察预期 RED；仅接受与 Task 1.1 根因分类直接对应的失败断言。
 
-**Tester 验证请求**：独立执行合法/非法/空值边界测试；设备 UI 阶段确认错误坐标与摘要可见，且无效输入不产生结果。
+**Tester 验证请求**：设备 UI 仍负责证明真实 IME/uitest、焦点、失焦/重绘和最终计算闭环；Developer 单测不能关闭 AC-015。
 
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
+**TDD**：[x] RED（精确基线设备输入为空） / [x] GREEN（稳定 identity + 顶层状态直接绑定） / [x] REFACTOR（失焦保持、A+B 消费与 18/18 identity 复验）
 
-#### Task 1.3：以 TDD 实现矩阵结果展示格式化
+### 阶段 2：最小产品修复
 
-**描述**：先建立浮点噪声、整数、负零、近零、矩阵/标量结果和非 finite 结果的失败测试，再实现仅在展示边界执行的 12 位有效数字规范化。不得修改 MatrixEngine 中间计算值或现有 `NumberFormatter` 的标量契约。
+#### Task 2.1：修复矩阵 TextInput identity 与单一文本状态所有权
+
+**描述**：按 Task 1.1 的证据选择最小实现。为嵌套 `ForEach` 中每个 TextInput 建立 `{matrix}-{row}-{column}` 稳定唯一 identity，并确保事件闭包与可见 cell 一致。若证据证明存在陈旧回写，则让顶层 `matrixAText` / `matrixBText` 成为唯一跨重绘文本真源：cell edit 以新 row/新矩阵引用原子更新目标 `@State`，只失效派生结果和目标错误；MatrixSession 在计算时读取当前快照，计算后只回写派生状态。若证据只证明定位/焦点问题，则不扩大到状态链重构。
 
 **涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`
-- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`
+- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
+- 条件实现：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`（仅在证明确需收窄 MatrixSession 文本回写职责时）
+- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`（Task 1.2 建立的确定性回归）
 
 **依赖任务**：Task 1.2
 
 **验收标准**：
-- AC-006 的 A+B 精确输出文本矩阵 `[["0.1","0.3"],["0","0"]]`。
-- 不显示 `0.30000000000000004`、`-0` 或整数尾随 `.0`；标量和矩阵共用相同规范化规则。
-- 非 finite 运算结果不能被渲染为普通数值，须返回可由页面转成稳定错误的失败状态。
+- A/B 的 2×2 与 3×3 所有 cell identity 唯一、稳定，matrix/row/column 与事件写入坐标一致。
+- 标准触摸+IME 与标准 uitest 输入 `1` 后，可见文本和 UI tree 文本均为 `1`；失焦、滚动、条件重绘后仍为 `1`。
+- 补齐矩阵执行 A+B 时使用已提交值，A[1,1] 不出现 empty 错误；编辑仍会使旧结果失效并只移除目标 cell 错误。
+- 原数字语法、四类算法、精度、维度切换、清空、矩阵/标量互斥结果和模式隔离契约保持不变。
+- 不新增自定义键盘、测试注入 API、公共业务 API、权限、OHPM 依赖、路由、Preferences key 或持久化。
 
-**需求追溯**：IR-004、IR-005 → AC-006
+**需求追溯**：IR-001、IR-002、IR-004、IR-006、IR-007、IR-008、IR-009、IR-011、IR-012 → AC-001、AC-007、AC-008、AC-010、AC-011、AC-012、AC-013、AC-015
 
-**Developer 验证**：Hypium unit；以 AC-006 exact-text oracle 及非 finite 失败分支为准，REFACTOR 后确认未改标量格式化模块。
+**Developer 验证**：Task 1.2 RED 转 GREEN；代码审查确认新引用更新、单一文本真源、稳定 identity 和最小 diff；REFACTOR 后重跑相关 MatrixSession/adapter tests。
 
-**Tester 验证请求**：在设备结果网格中逐格比对 exact text，特别检查 `0.3`、`0`、整数和负零表现。
+**Tester 验证请求**：在精确新 head HAP 上分别执行手工 IME 与 uitest 输入，采集四时点证据并以最终 A+B 结果证明状态被消费。
 
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
+**TDD**：[x] RED（identity-only 尝试仍失败，证明需收窄状态绑定） / [x] GREEN（标准 uitest 输入显示并保持） / [x] REFACTOR（最小 diff，全量门禁保持绿色）
 
-### 阶段 2：MatrixPanel 与页面编排
+### 阶段 3：Developer 门禁与 Tester 交接
 
-#### Task 2.1：接入矩阵入口、覆盖面板与隔离会话状态
+#### Task 3.1：执行 Developer 全量回归与范围审计
 
-**描述**：在 `CalculatorPage` 增加独立 `matrix*` 状态、ToggleRow 入口、MatrixPanel 条件覆盖层和返回 handler。打开矩阵时关闭 Plot/Settings/About，退出时只隐藏矩阵，不改标量表达式、结果、历史或 Preferences。
-
-**涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
-- 逻辑回归：`opencalc/entry/src/test/MatrixEngine.test.ets`
-- Tester UI 证据：由 Tester 在独立验证任务中创建，不在 Developer 阶段预置结论
-
-**依赖任务**：Task 1.3
-
-**验收标准**：
-- 主页面存在明确“矩阵”入口；进入后矩阵面板激活，返回后原标量表达式/结果未被覆盖。
-- 矩阵、绘图、设置、关于覆盖层互斥，不新增路由、权限、依赖、Preferences key 或历史记录结构。
-- 面板只显示 2×2/3×3 与 A+B、A-B、A×B、det(A) 范围内控制。
-
-**需求追溯**：IR-001、IR-009、IR-011 → AC-001、AC-012、AC-013
-
-**Developer 验证**：ArkTS 编译/静态集成检查；检查矩阵 handler 不写标量 `expression/result/errorMsg`，并执行既有 unit suite 防止纯逻辑回归。
-
-**Tester 验证请求**：设备 UI 验证入口、激活态、返回和 overlay 互斥；运行基础 `1+2`、科学 `sin(30)`、绘图 `sin(x)` 回归并保留截图/日志。
-
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
-
-#### Task 2.2：实现双矩阵网格、单元编辑与维度状态转换
-
-**描述**：实现 A/B 网格 Builder、稳定 cell key、唯一 onChange 坐标映射和固定 3×3 backing state。只投影当前维度；2→3 保留左上 2×2 且新单元为空，3→2 清外围；任何维度变化清结果和全部错误。
-
-**涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
-- 逻辑测试：`opencalc/entry/src/test/MatrixEngine.test.ets`
-
-**依赖任务**：Task 2.1
-
-**验收标准**：
-- 2×2 时 A/B 各 4 个、3×3 时各 9 个独立可编辑单元，选中维度与可见网格同步。
-- 每个 hit target 只更新其 `matrix-row-column` 坐标，并通过新 row/外层数组引用触发 ArkUI 刷新。
-- AC-010 状态转换精确满足：左上重叠输入保留、新增单元为空、结果为空、错误集为空、无旧维度结果残留。
-- 编辑错误单元可只清该坐标错误并使旧结果失效，不误清其他坐标错误。
-
-**需求追溯**：IR-001、IR-002、IR-006、IR-008 → AC-001、AC-007、AC-008、AC-010
-
-**Developer 验证**：编译/静态集成检查 + adapter unit；以 cell key 唯一性和 AC-010 状态 oracle 进行代码级审查。
-
-**Tester 验证请求**：设备 UI 逐格输入并截图 A/B 4/9 单元形状；验证角/中心 hit target、2→3→2 转换和错误独立清除。
-
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
-
-#### Task 2.3：编排校验、四类运算、错误摘要与结果提交
-
-**描述**：连接操作按钮、adapter、MatrixEngine 和 formatter。每次计算先原子清空旧结果/错误；无效时一次提交完整错误 keys/摘要且不调用 Engine；成功时一次提交 matrix/scalar 互斥结果。捕获结构、非 finite 和意外异常并保留可修复输入。
-
-**涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
-- 实现依赖：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`
-- 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`
-
-**依赖任务**：Task 2.2
-
-**验收标准**：
-- UI 操作产生 AC-002..AC-006 的精确矩阵/标量文本及正确结果形状。
-- AC-008 时旧结果立即清空，两个错误 cell 同时标记，摘要区分空值与非法数字，且 Engine 未被调用。
-- det(A) 在 B 全空时显示 `-2` 且 B 无错误；矩阵结果和标量结果不会同时显示。
-- 异常路径提供稳定用户错误，不复用或污染标量 `ErrorFlags`。
-
-**需求追溯**：IR-003、IR-004、IR-005、IR-008 → AC-002、AC-003、AC-004、AC-005、AC-006、AC-008、AC-009
-
-**Developer 验证**：Hypium unit 覆盖 adapter/engine/formatter；编译集成检查操作映射与互斥结果状态。精确 oracle 直接引用 AC JSON，不以“无崩溃”代替。
-
-**Tester 验证请求**：设备 UI 逐项执行 A+B/A-B/A×B/det(A)、负小数消噪、双错误定位与空 B 行列式，保存每个 AC 的预期/实际证据。
-
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
-
-#### Task 2.4：实现清空、可访问错误反馈、结果布局与小屏可达性
-
-**描述**：完成清空 handler、矩阵/标量只读结果、非纯颜色错误文本和可滚动布局。复用现有主题方法；phone portrait 保证 A/B、操作、错误和结果均可达，旋转或主题变化不得重建矩阵业务状态。
-
-**涉及文件**：
-- 实现：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
-- 逻辑回归：`opencalc/entry/src/test/MatrixEngine.test.ets`
-
-**依赖任务**：Task 2.3
-
-**验收标准**：
-- 清空同时清 A/B 全部输入、矩阵/标量结果、错误摘要和错误 keys，维度保持且可立即重输；重复清空幂等。
-- 错误反馈含矩阵名和 1-based 坐标/原因，不以颜色为唯一信息。
-- 2×2/3×3 结果形状清晰，det(A) 仅显示标量；3×3 在目标 phone/tablet 视口中可滚动访问全部主要控制。
-- 主题与横竖屏变化不改变 matrixSize、输入、结果或错误语义。
-
-**需求追溯**：IR-003、IR-005、IR-007、IR-008、IR-011 → AC-004、AC-005、AC-006、AC-008、AC-011、AC-013
-
-**Developer 验证**：编译/静态集成检查；对 clear/invalidate handlers 做状态 oracle 审查，并复跑全部逻辑单测。
-
-**Tester 验证请求**：设备 UI 构造输入+结果+错误后执行清空；验证 2×2/3×3、亮/暗主题、竖/横屏和滚动可达性，保留截图。
-
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
-
-### 阶段 3：聚合门禁与独立验收交接
-
-#### Task 3.1：注册测试套件并执行 Developer 侧回归门禁
-
-**描述**：将矩阵 suite 注册到现有 Hypium 聚合入口，确认新增测试真实执行；按仓库既有脚本执行 unit、lint/编译门禁，并检查构建配置、权限、依赖和 Preferences schema 未改变。失败时回到对应 Task 的 RED-GREEN-REFACTOR 循环，不以跳过测试关闭任务。
+**描述**：在修复完成后运行既有 Hypium 全量测试、CodeLinter 和 HAP 构建，确认 MatrixEngine、解析/格式化、会话状态及普通/绘图既有测试无回归；审计变更范围、配置、权限、依赖和 Preferences schema。设备 UI 结果只记录 Developer 观察，不替代 Tester 独立结论。
 
 **涉及文件**：
 - 测试聚合：`opencalc/entry/src/test/List.test.ets`
 - 测试：`opencalc/entry/src/test/MatrixEngine.test.ets`
-- 实现审查：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`
 - 实现审查：`opencalc/entry/src/main/ets/pages/CalculatorPage.ets`
+- 条件实现审查：`opencalc/entry/src/main/ets/calculator/MatrixEngine.ets`
+- 报告：`specs/changes/20261024-bugfix-matrix-operations/apply-report.md`
 
-**依赖任务**：Task 1.1、Task 1.2、Task 1.3、Task 2.1、Task 2.2、Task 2.3、Task 2.4
+**依赖任务**：Task 2.1
 
 **验收标准**：
-- `List.test.ets` 显式调用矩阵 suite，执行日志显示矩阵用例被发现且运行。
-- Developer unit 全部通过；ArkTS lint/编译通过；失败日志保留且被修复后再运行。
-- 基础标量与绘图既有 unit 回归通过；无 build-profile、OHPM 依赖、module 权限或 Preferences schema 变更。
-- Developer 报告逐项列出 AC 的已验证层级和仍需 Tester 完成的 ui/e2e/device 层级，不提前宣告 feature AC 完成。
+- 新增回归和原 68 个测试全部被发现且通过，Failure/Error 均为 0。
+- CodeLinter 和 `assembleHap` 通过；若出现既有 warning，报告中区分基线与新增问题。
+- AC-002..009 的算法/解析/精度 oracle、AC-010/011 的会话状态 oracle和既有标量/绘图 unit 回归保持通过。
+- 未新增 build-profile/OHPM 依赖/module 权限/Preferences schema/路由；产品源码改动限于 Task 2.1 证明必要的最小文件。
+- 报告逐项区分 Developer 已验证的 unit/integration 层与仍待 Tester 执行的 ui/e2e/device 层，不提前宣告 AC-014/015 通过。
 
-**需求追溯**：IR-003、IR-004、IR-005、IR-009、IR-010 → AC-002、AC-003、AC-004、AC-005、AC-006、AC-007、AC-008、AC-009、AC-012、AC-014
+**需求追溯**：IR-003、IR-004、IR-005、IR-006、IR-007、IR-008、IR-009、IR-010、IR-011、IR-012 → AC-002..AC-015
 
-**Developer 验证**：Hypium unit + 仓库既有 lint/编译命令 + 变更范围审计；预期 exit code 均为 0 且 suite 日志包含矩阵测试。
+**Developer 验证**：Hypium unit + CodeLinter + assembleHap + git diff 范围审计；预期命令 exit code 均为 0，测试日志包含新增回归。
 
-**Tester 验证请求**：不得把 Developer 日志作为独立通过结论；可将其作为实现版本/用例范围输入，另行生成和执行测试。
+**Tester 验证请求**：不得把 Developer 日志作为独立通过结论；仅把它们作为精确构建身份、变更范围和独立用例设计输入。
 
-**TDD**：[x] RED / [x] GREEN / [x] REFACTOR
+**TDD**：[x] RED（首次全量测试因缺失 Hypium 依赖失败，环境原因已分类） / [x] GREEN（ohpm install 后 68/68） / [x] REFACTOR（CodeLinter []、assembleHap 成功、范围审计通过）
 
-#### Task 3.2：提交 Tester 独立验证请求与 AC 证据清单
+#### Task 3.2：提交 AC-015 优先的独立 Tester 复测请求
 
-**描述**：基于权威 `acceptance-criteria.json` 准备不可替代的 Tester handoff，明确算法、边界、关键 UI、兼容回归和设备环境责任。Developer 只提供构建物、AC 映射和已知限制，不代写通过证据；环境不可用时保持 AC 为待验证并记录依赖。
+**描述**：基于权威 JSON 形成 Tester handoff。Tester 必须先在精确新 head 上执行 AC-015；只有输入闭环通过后，才继续执行被该缺陷阻断的 AC-002..012 输入依赖 UI 场景，并完成 AC-014 证据门禁。AC-001/013 的既有通过证据可作历史参考，但新 head 仍需最小冒烟确认入口、网格和控制集合未回归。
 
 **涉及文件**：
 - 验收契约：`specs/changes/20261024-bugfix-matrix-operations/acceptance-criteria.json`
 - 任务映射：`specs/changes/20261024-bugfix-matrix-operations/tasks.md`
-- 后续 Developer 应用报告：由 APPLYING 阶段按其模板创建
-- Tester 报告/日志/截图索引：由 Tester 在独立任务目录创建
+- Developer 报告：`specs/changes/20261024-bugfix-matrix-operations/apply-report.md`
+- Tester 报告、日志、UI trees、截图和证据索引：由 Tester 在独立 run evidence 中创建
 
 **依赖任务**：Task 3.1
 
 **验收标准**：
-- Tester 请求覆盖 AC-001..AC-014；每个 P0 AC 至少要求一条实际执行证据。
-- 证据字段包含 AC ID、测试环境、命令或步骤、预期、实际、时间、结果及失败保留位置。
-- 算法、合法/非法/精度/状态边界、关键 UI 和基础/科学/绘图兼容回归四类请求均非空。
-- UI/E2E AC 只能由设备或模拟器实际执行证据关闭；环境不可用时标为 blocked/pending，不标记通过。
+- handoff 记录精确 commit/head、HAP hash、设备/OS、AC ID、步骤、预期、实际、时间、结果和证据位置。
+- AC-015 同时覆盖手工触摸+系统 IME和标准 uitest；四时点均有 focus/text/UI tree/screenshot，最终 A+B 证明值被消费。
+- AC-015 通过后重跑 AC-002..012 的输入依赖 UI 场景；验证 exact matrix/scalar/text/error/state/regression oracle，不以 unit 代替 UI。
+- 新 head 对 AC-001 与 AC-013 做最小冒烟；所有 P0 AC 的独立证据覆盖达到 100% 后才能满足 AC-014。
+- 环境不可用或任一语义断言失败时保留 failed/blocked 证据，不标记通过。
 
-**需求追溯**：IR-001..IR-011 → AC-001..AC-014（重点 IR-010 → AC-014）
+**需求追溯**：IR-001..IR-012 → AC-001..AC-015（重点 IR-010/012 → AC-014/015）
 
-**Developer 验证**：检查 handoff 的 AC 覆盖率为 100%，并确认每个 AC 的 verification_layers 均被 Developer 或 Tester 接收。
+**Developer 验证**：检查 AC → Task → verification layer 覆盖率为 100%，并确认精确 head/HAP、四时点证据和失败分类字段均进入 handoff。
 
-**Tester 验证请求**：在 HarmonyOS 模拟器或真机独立生成并执行测试，保证 P0 AC evidence coverage=100%，算法/边界/UI 证据均非空，失败证据可追溯。
+**Tester 验证请求**：独立生成并执行测试，先 AC-015，再 AC-002..012，最后汇总 AC-014；保留所有失败与恢复证据。
 
-**TDD**：不适用（验证交接任务）；以 AC 覆盖矩阵和独立执行证据作为完成 oracle
+**TDD**：不适用（独立验证交接任务）；以 15/15 AC 的责任映射和 Tester 实际证据作为 oracle
 
 ## 任务依赖与开发顺序
 
 ```text
-Task 1.1
-  → Task 1.2
-    → Task 1.3
-      → Task 2.1
-        → Task 2.2
-          → Task 2.3
-            → Task 2.4
-              → Task 3.1
-                → Task 3.2
+Task 1.1 失败分类
+  → Task 1.2 建立行为 RED
+    → Task 2.1 最小修复并 GREEN/REFACTOR
+      → Task 3.1 Developer 全量门禁
+        → Task 3.2 Tester 独立复测交接
 ```
 
-- 关键路径：1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 2.3 → 2.4 → 3.1 → 3.2。
-- 排序理由：先稳定纯逻辑和输入/格式边界，再接页面状态与 UI，最后注册聚合测试并交给独立 Tester。
-- 并行约束：为避免 `MatrixEngine.ets`、`MatrixEngine.test.ets` 和 `CalculatorPage.ets` 上的写冲突，默认串行；Tester 可在 Task 3.1 期间依据已冻结 AC 准备独立用例，但不得提前写通过结论。
+- 关键路径：1.1 → 1.2 → 2.1 → 3.1 → 3.2。
+- 排序理由：设计要求先用焦点/文本分时点证据分类失败，再选择 identity-only 或 identity+state 的最小修复；之后才允许执行全量门禁和 Tester 复测。
+- 并行约束：Task 1.1 完成前不并行修改 `CalculatorPage.ets`；Task 2.1 对 `CalculatorPage.ets` 的改动串行完成以避免状态所有权冲突。Tester 可提前准备用例，但不得在新精确 head/HAP 产生前写通过结论。
 
 ## AC → Task → 验证责任覆盖自检
 
 | AC | 实现/门禁任务 | Developer 接收层级与 oracle | Tester 必须接收层级与 oracle |
 |---|---|---|---|
-| AC-001 | 2.1, 2.2, 3.2 | integration：入口、2/3 激活态及网格数量代码/编译检查 | ui：A/B 各 4/9 cell、单一活动维度 |
-| AC-002 | 1.1, 2.3, 3.1, 3.2 | unit/integration：精确 add/sub 矩阵 | ui：结果网格 exact values/shape |
-| AC-003 | 1.1, 2.3, 3.1, 3.2 | unit/integration：精确 multiply 矩阵 | ui：`[[19,22],[43,50]]` |
-| AC-004 | 1.1, 2.3, 2.4, 3.1, 3.2 | unit/integration：det=-2、scalar kind | ui：只显示标量 `-2` |
-| AC-005 | 1.1, 2.3, 2.4, 3.1, 3.2 | unit/integration：单位阵乘法与 det=1 | ui：3×3 结果逐格等于 B、标量 1 |
-| AC-006 | 1.3, 2.3, 2.4, 3.1, 3.2 | unit/integration：exact text matrix，无 -0/尾差 | ui：逐格文本一致 |
-| AC-007 | 1.2, 2.2, 3.1, 3.2 | unit/integration：约定语法映射到精确数值 | ui：输入可编辑且可计算 |
-| AC-008 | 1.2, 2.2, 2.3, 2.4, 3.1, 3.2 | unit/integration：完整错误集、无 Engine 成功结果 | ui：两 cell 标错、摘要准确、旧结果为空 |
-| AC-009 | 1.2, 2.3, 3.1, 3.2 | unit/integration：B errors=[]、det=-2 | ui：B 全空仍可显示 -2 |
-| AC-010 | 2.2, 3.2 | integration：resize 状态转换审查 | ui：保留重叠、新格空、结果/错误空 |
-| AC-011 | 2.4, 3.2 | integration：clear 幂等状态 oracle | ui：输入/结果/错误全空、维度不变 |
-| AC-012 | 2.1, 3.1, 3.2 | integration：状态隔离、无 schema/权限变更、既有 unit 回归 | ui/e2e：1+2、sin(30)、sin(x) 与返回路径 |
-| AC-013 | 1.1, 2.1, 2.4, 3.2 | integration：领域 API/控制集无范围外能力 | ui：exact control set |
-| AC-014 | 3.1, 3.2 | integration：handoff 覆盖率 100%，不冒充独立结果 | e2e：P0 证据 100%，字段齐全且失败留存 |
+| AC-001 | 2.1, 3.2 | integration：稳定 cell identity、2/3 网格映射与无范围扩张审查 | ui：A/B 各 4/9 cell、单一活动维度 |
+| AC-002 | 3.1, 3.2 | unit/integration：精确 add/sub 矩阵保持通过 | ui：结果网格 exact values/shape |
+| AC-003 | 3.1, 3.2 | unit/integration：精确 multiply 矩阵保持通过 | ui：`[[19,22],[43,50]]` |
+| AC-004 | 3.1, 3.2 | unit/integration：det=-2、scalar kind | ui：只显示标量 `-2` |
+| AC-005 | 3.1, 3.2 | unit/integration：单位阵乘法与 det=1 | ui：3×3 结果逐格等于 B、标量 1 |
+| AC-006 | 3.1, 3.2 | unit/integration：exact text matrix，无 -0/尾差 | ui：逐格文本一致 |
+| AC-007 | 1.2, 2.1, 3.1, 3.2 | unit/integration：合法语法与提交文本状态不变 | ui：输入可见、可保持、可计算 |
+| AC-008 | 1.2, 2.1, 3.1, 3.2 | unit/integration：目标错误清除、完整错误集、无陈旧结果 | ui：两 cell 标错、摘要准确、修复独立 |
+| AC-009 | 3.1, 3.2 | unit/integration：B errors=[]、det=-2 | ui：B 全空仍显示 -2 |
+| AC-010 | 2.1, 3.1, 3.2 | integration：输入状态修复不破坏 resize 转换 | ui：保留重叠、新格空、结果/错误空 |
+| AC-011 | 2.1, 3.1, 3.2 | integration：clear 幂等状态 oracle保持通过 | ui：输入/结果/错误全空、维度不变 |
+| AC-012 | 2.1, 3.1, 3.2 | integration：状态隔离、无 schema/权限变化及既有 unit 回归 | ui/e2e：1+2、sin(30)、sin(x) 与返回路径 |
+| AC-013 | 2.1, 3.1, 3.2 | integration：无新公共 API/范围外能力 | ui：exact control set |
+| AC-014 | 1.1, 3.1, 3.2 | integration：保留失败、handoff 覆盖和层级边界 | e2e：P0 证据 100%，字段齐全且失败留存 |
+| AC-015 | 1.1, 1.2, 2.1, 3.1, 3.2 | integration：失败分类、RED→GREEN、当前文本快照被消费 | ui/e2e：手工 IME+uitest、四时点文本/焦点、A+B 消费值 |
 
-自检结论：14/14 AC 均至少关联一个实现或门禁任务；所有 unit/integration/ui/e2e 层级均已分配责任；UI/E2E 未被 unit 替代；设备环境不可用时必须保留 pending/blocked 状态。
+自检结论：15/15 AC 均至少关联一个实现或门禁任务；所有 unit/integration/ui/e2e 层级均已分配责任；UI/E2E 未被 Developer unit 替代；设备环境不可用或语义失败时必须保留 pending/blocked/failed 状态。
 
 ## 验收计划
 
 | 任务 | 验收方式 | 验收时间 |
 |---|---|---|
-| Task 1.1 | TDD unit：算法与结构防御 | APPLYING 对应任务完成时 |
-| Task 1.2 | TDD unit：解析与错误集合 | APPLYING 对应任务完成时 |
-| Task 1.3 | TDD unit：exact display text | APPLYING 对应任务完成时 |
-| Task 2.1 | 编译/集成检查 + Tester overlay/UI | Developer APPLYING；Tester 独立阶段 |
-| Task 2.2 | 状态转换审查 + Tester 网格/UI | Developer APPLYING；Tester 独立阶段 |
-| Task 2.3 | unit/integration + Tester 运算/UI | Developer APPLYING；Tester 独立阶段 |
-| Task 2.4 | 状态 oracle + Tester 清空/布局/UI | Developer APPLYING；Tester 独立阶段 |
-| Task 3.1 | suite 注册、unit、lint/编译、范围审计 | APPLYING 收尾 |
-| Task 3.2 | AC 覆盖检查 + 独立 Tester 证据 | Tester 阶段；不得由 Developer 预判通过 |
+| Task 1.1 | 精确 head 四时点设备诊断与失败分类 | APPLYING 首项，任何产品修改前 |
+| Task 1.2 | 与分类根因对应的 RED 单测或设备回归 | APPLYING，修复前 |
+| Task 2.1 | RED→GREEN→REFACTOR + 最小 diff 审查 | APPLYING 实现阶段 |
+| Task 3.1 | Hypium、CodeLinter、assembleHap、范围审计 | APPLYING 收尾 |
+| Task 3.2 | AC-015 优先的独立设备复测和 AC-014 汇总 | Tester 独立阶段 |
 
 ## APPLYING 阶段约束
 
-- 后续逐任务执行 RED → GREEN → REFACTOR；未看到预期 RED 不进入实现。
-- 不修改 `acceptance-criteria.json` 以迁就实现；发现 Planning 缺口时退回 PLANNING。
-- 不以 Developer unit 关闭 UI/E2E AC，不以“组件存在”或“无崩溃”替代功能 oracle。
-- 本 IMPLEMENTING 阶段未修改产品源码、未运行 APPLYING、未执行构建/产品测试、未提交、未推送、未归档。
+- 后续代码任务逐项执行 RED → GREEN → REFACTOR；Task 1.1 的诊断门禁不得跳过。
+- 不修改 `acceptance-criteria.json` 迁就实现；发现 Planning 缺口时退回 PLANNING。
+- 不以 Developer unit 或命令 exit 0 关闭 UI/E2E AC，不以“组件存在”或“无崩溃”替代功能 oracle。
+- 只实现 Task 1.1 证据证明必要的最小分支；禁止自定义键盘、测试后门、权限、依赖、持久化或范围外矩阵能力。
+- 本 IMPLEMENTING 阶段仅更新 `tasks.md` / `todo.md` 和规定的 checkpoint candidate；不修改产品源码、不运行 APPLYING 或产品测试、不提交、不推送、不归档。

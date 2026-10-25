@@ -1,94 +1,99 @@
 # 应用报告
 
 ## 应用信息
-- 变更类型：编排分类为缺陷修复；产品语义为新增功能
-- 变更名称：2×2 / 3×3 矩阵运算（Issue #51）
+
+- 变更类型：缺陷修复（PR #54 Tester-feedback iteration 1）
+- 变更名称：2×2 / 3×3 矩阵设备输入修复
+- Issue：calculatorHuawei/agent_workflow#51
+- 目标基线：`6e76305e8d3df57378314d78f30f4b53b0dc4690`
+- 分支：`agent/pull_request-54-task-61`
 - 关联全局文件：`specs/spec.md` / `specs/arch.md` / `specs/design.md`
-- 应用日期：2026-10-24
-- 分支：`agent/issue-51-task-50`
-- 阶段边界：仅完成 APPLYING；未归档、未审批
+- 应用日期：2026-10-25
+- 执行范围：仅 MigBot APPLYING；未归档、未审批
+
+## 前置制品核验
+
+- Planning checkpoint 的 `proposal.md`、`delta-spec.md`、`acceptance-criteria.json`、`delta-design.md`、`todo.md`、`info.md`、`design-review.md` 及其引用的 `new-arch.md` 均存在、非空并已核验。
+- `design-review.md` 结论为“通过。PLANNING 可完成”。
+- AC 校验器通过：`VALID: 12 source requirement(s), 15 acceptance criterion/criteria`。
+- Implementing checkpoint 的 `tasks.md` 存在，包含 5 项有序任务及 15/15 AC 的 Developer/Tester 验证责任。
+
+## 根因诊断
+
+精确基线 HAP（SHA-256 `7265C60B1F6E8E34443A40DC6B66DA7154935DB5E0F2EC8E9904FFEAD3ADE489`）安装到模拟器 `127.0.0.1:5555`（OpenHarmony 6.1.1.125）后：
+
+1. 矩阵 A[1,1] 在 UI 树中 `focused=true`，但 `uitest uiInput text 1` 后 `text`/`originalText` 仍为空。
+2. 同一设备、同一命令对绘图面板的顶层 `@State` TextInput 正常写入 `1`。
+3. Tester 旧证据还显示坐标命令在键盘重布局后可能命中 B[2,2]；因此 exit 0 不能作为输入成功 oracle。
+
+结论：驱动与全局 IME 路径可用；主要产品缺陷位于矩阵嵌套 Builder 参数/响应式状态绑定链，且缺少稳定的 matrix-row-column 节点 identity。
 
 ## 代码完成情况
-| 任务 | 状态 | 完成时间 |
-|------|------|----------|
-| Task 1.1 MatrixEngine 与四类算法 | ✅ 完成 | 2026-10-24 |
-| Task 1.2 文本解析与错误定位 | ✅ 完成 | 2026-10-24 |
-| Task 1.3 结果展示格式化 | ✅ 完成 | 2026-10-24 |
-| Task 2.1 矩阵入口与隔离覆盖面板 | ✅ 完成 | 2026-10-24 |
-| Task 2.2 双矩阵网格与维度状态转换 | ✅ 完成 | 2026-10-24 |
-| Task 2.3 校验、运算、错误与结果编排 | ✅ 完成 | 2026-10-24 |
-| Task 2.4 清空、非纯颜色反馈与可滚动布局 | ✅ 完成 | 2026-10-24 |
-| Task 3.1 聚合测试与 Developer 门禁 | ✅ 完成 | 2026-10-24 |
-| Task 3.2 Tester 独立验证请求 | ✅ 已准备交接；实际独立证据由 Tester 产生 | 2026-10-24 |
 
-## 测试结果
-- 单元测试：通过，68/68（Failure 0，Error 0）
-- 集成/构建测试：通过，`assembleHap` 显示 `BUILD SUCCESSFUL`
-- Lint 检查：通过，DevEco CodeLinter `@typescript-eslint/recommended` + `@security/recommended`，exit 0，结果 `[]`
-- UI/E2E：Developer 未冒充执行；按 AC-014 交给 Tester 在模拟器或真机独立完成
+| 任务 | 状态 | 完成时间 |
+|---|---|---|
+| Task 1.1 精确 head 设备输入诊断 | ✅ 完成 | 2026-10-25 |
+| Task 1.2 建立最小失败回归 | ✅ 完成 | 2026-10-25 |
+| Task 2.1 修复 TextInput identity 与状态所有权 | ✅ 完成 | 2026-10-25 |
+| Task 3.1 Developer 全量回归与范围审计 | ✅ 完成 | 2026-10-25 |
+| Task 3.2 AC-015 优先 Tester 交接 | ✅ 完成 | 2026-10-25 |
 
 ## TDD 执行记录
+
 | 任务 | RED | GREEN | REFACTOR |
-|------|-----|-------|----------|
-| Task 1.1 | ✅ 缺少 MatrixEngine 导致预期失败 | ✅ 算法/结构用例通过 | ✅ 合并元素级循环后复跑通过 |
-| Task 1.2 | ✅ 缺少 adapter/type 导出导致预期失败 | ✅ 解析与完整错误集通过 | ✅ 复跑全量通过 |
-| Task 1.3 | ✅ 缺少 formatter 导出导致预期失败 | ✅ 消噪/非 finite 用例通过 | ✅ 复跑全量通过 |
-| Task 2.1 | ✅ 缺少 MatrixSession 导出导致预期失败 | ✅ 隔离初始状态测试与 ArkUI 构建通过 | ✅ 去除未使用页面依赖后复跑通过 |
-| Task 2.2 | ✅ 缺少 setCell/setSize 导致预期失败 | ✅ 唯一坐标、切维与失效状态通过 | ✅ 新数组引用与摘要同步复跑通过 |
-| Task 2.3 | ✅ 缺少 calculate 导致预期失败 | ✅ matrix/scalar 互斥和双错误用例通过 | ✅ 统一 session 编排后复跑通过 |
-| Task 2.4 | ✅ 缺少 clear 导致预期失败 | ✅ 幂等清空与维度保持通过 | ✅ UI 清理和全量复跑通过 |
-| Task 3.1 | ✅ 新 suite 注册后先暴露缺失实现/摘要缺陷 | ✅ 聚合 suite 68/68 | ✅ 构建与 lint 最终门禁通过 |
-
-## 测试详情
-### 环境与基线
-- 首次 `hvigorw test` 因 `@ohos/hypium` 未安装而无法解析；执行仓库声明依赖的 `ohpm install` 后环境恢复。
-- 修改前 `opencalc/build-test.bat` 成功；基线 Local Test 为 51/51。
-- 项目不暴露 Hvigor lint task；`hvigorw code-linter`/`hvigorw tasks` 已确认这一事实，因此按 DevEco CodeLinter CLI 工作流执行真实静态检查。
-
-### 最终命令
-```text
-opencalc/build-test.bat
-ohpm install
-hvigorw test -p module=entry -p coverage=false
-node <DevEco>/plugins/codelinter/run/index.js -c opencalc/codelinter.json5 -f json -o specs/changes/20261024-bugfix-matrix-operations/codelinter-result.json -e error,warn opencalc
-```
-
-### 可追溯证据
-- Local Test：`opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`
-- CodeLinter：`specs/changes/20261024-bugfix-matrix-operations/codelinter-result.json`
-- HAP：`opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap`
-- 测试聚合：`opencalc/entry/src/test/List.test.ets` 显式调用 `matrixEngineTest()`
+|---|---|---|---|
+| Task 1.1 | 精确基线 A[1,1] 聚焦后输入仍为空；Plot 控制组通过 | 根因分类完成 | 四时点证据及命令成功≠语义成功规则固化 |
+| Task 1.2 | 基线设备行为 RED；identity-only HAP 仍 RED | 顶层状态直接绑定后输入为 `1` | 失焦保持、计算消费、3×3 identity 复验 |
+| Task 2.1 | `.id()` 单独不足，证明状态链也需修复 | A/B 八格标准 uitest 输入均可见 | A+B 得 `[[6,8],[10,12]]`，18/18 IDs 唯一 |
+| Task 3.1 | 首次全量测试因缺失 Hypium 依赖失败（环境分类） | `ohpm install` 后 68/68 | CodeLinter `[]`、最终 HAP 构建、diff 审计通过 |
+| Task 3.2 | Tester 旧 head AC-015 失败证据保留 | 精确新 head 交接字段齐备 | UI/E2E 结论继续由 Tester 独立执行 |
 
 ## 代码变更摘要
-- 新增纯逻辑 MatrixEngine、严格十进制输入 adapter、12 位有效数字 formatter 和可测试 MatrixSession。
-- CalculatorPage 新增矩阵入口、2×2/3×3 网格、四种运算、错误单元边框与坐标摘要、矩阵/标量结果、清空和返回。
-- 矩阵状态不写标量表达式、结果、历史、Preferences、权限、路由或依赖配置。
-- 新增 17 个矩阵测试；既有 51 个标量/绘图测试保持通过。
 
-## AC 分层结论与 Tester 请求
-| AC | Developer 已验证 | Tester 必须独立验证 |
-|----|------------------|--------------------|
-| AC-001 | 编译 + session 维度状态 | UI：入口、激活态、A/B 4/9 cell |
-| AC-002 | unit：加/减精确矩阵 | UI：结果文本与 2×2 形状 |
-| AC-003 | unit：乘法精确矩阵 | UI：`[[19,22],[43,50]]` |
-| AC-004 | unit：det=-2、scalar kind | UI：只显示标量 -2 |
-| AC-005 | unit：3×3 单位阵乘法/det=1 | UI：逐格 B 与标量 1 |
-| AC-006 | unit：0.1/0.3/0、无 -0/尾差 | UI：逐格 exact text |
-| AC-007 | unit：合法十进制语法 | UI：输入保留且可计算 |
-| AC-008 | unit：完整双错误集、无结果、编辑独立清错 | UI：双 cell 标记、摘要、旧结果清除 |
-| AC-009 | unit：B 不必填、det=-2 | UI：B 全空无错误且显示 -2 |
-| AC-010 | unit：2→3 保留重叠并清派生状态 | UI：2→3→2 网格/结果/错误 |
-| AC-011 | unit：清空幂等、维度保持 | UI：输入/结果/错误全清 |
-| AC-012 | 既有 51 unit 回归、无 schema/权限/引擎改动 | UI/E2E：1+2、sin(30)、sin(x)、返回隔离 |
-| AC-013 | Engine/API 与 UI 控制集仅约定范围 | UI：无范围外入口 |
-| AC-014 | Developer handoff 覆盖 AC-001..014 | Tester 生成 P0 100% 的独立证据 |
+- `MatrixGrid` 不再接收非响应式 `string[][]` Builder 参数；每个 TextInput 直接读取页面顶层 `matrixAText` / `matrixBText` `@State`。
+- 每个矩阵单元格增加稳定唯一 ID：`matrix-cell-{A|B}-{row}-{column}`。
+- 未修改矩阵算法、数字语法、精度策略、MatrixSession、依赖、权限、Preferences schema、路由或持久化。
 
-Tester 证据字段必须包含：AC ID、环境、命令或步骤、预期、实际、时间、结果、失败证据位置。UI/E2E AC 只能由模拟器或真机实际执行关闭。
+## 测试结果
 
-## 已知风险与说明
-- `assembleHap` 仍输出仓库基线已有的弃用/异常处理警告及 unsigned HAP 提示；本变更未新增对应平台调用。
-- CodeLinter 的 recommended stylistic/performance 探索运行会报告 CalculatorPage 既有整文件风格告警；最终门禁采用适用于本变更的 TypeScript 类型安全与安全规则集并得到零问题。Tester 可将样式告警作为非阻断技术债观察。
-- Developer 未执行设备 UI 测试，故 AC-001..AC-014 的 feature 级最终关闭仍取决于 Tester 独立证据。
+- 单元测试：通过，68/68，Failure 0，Error 0。
+- 设备集成回归：通过（Developer 观察）；输入即时可见、失焦保持、A+B 消费正确，2×2 为 8/8 唯一 ID，3×3 为 18/18 唯一 ID。
+- CodeLinter：通过，`@typescript-eslint/recommended` + `@security/recommended`，结果 `[]`，exit 0。
+- HAP 构建：通过，`BUILD SUCCESSFUL`；最终 unsigned HAP SHA-256 `43F6FEF52B355955197869FE1ACE6506477E74BF2C009CE8201985CEEA67F737`。
+- Git diff 检查：通过；仅计划制品、任务/报告及 `CalculatorPage.ets` 的最小产品修复进入变更。
+
+## 执行命令
+
+```text
+opencalc\run-build-wt.bat
+ohpm install
+hvigorw test -p module=entry -p coverage=false --no-daemon
+node <DevEco>/plugins/codelinter/run/index.js -c opencalc/codelinter.json5 -f json -o specs/changes/20261024-bugfix-matrix-operations/codelinter-result.json -e error,warn opencalc
+hdc -t 127.0.0.1:5555 install -r opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap
+hdc ... uitest dumpLayout / screenCap / uiInput click / uiInput text / keyEvent Back
+git diff --check
+```
+
+## 证据位置
+
+- 单测：`opencalc/entry/.test/default/intermediates/test/coverage_data/test_result.txt`
+- Lint：`specs/changes/20261024-bugfix-matrix-operations/codelinter-result.json`
+- HAP：`opencalc/entry/build/default/outputs/default/entry-default-unsigned.hap`
+- 设备 RED/GREEN UI trees：`D:\huawei\Demo\calculatorHuawei\.agent-runtime\evidence\task-61\run-111\device\ui-trees`
+- 设备 RED/GREEN screenshots：`D:\huawei\Demo\calculatorHuawei\.agent-runtime\evidence\task-61\run-111\device\screenshots`
+
+## 验收覆盖与边界
+
+- AC-001..013：既有 68 个 unit/integration tests 保持全绿；Developer 设备回归额外证明 AC-001、AC-002 和修复相关的 AC-007/008/010/015 核心链路未回归。
+- AC-014：Developer 不宣告完成；必须由 Tester 在精确 PR head 上独立生成并执行算法、边界和 UI 证据。
+- AC-015：Developer RED→GREEN 已完成；Tester 必须优先复测手工触摸+系统 IME与标准 uitest，并保存输入前、输入后、失焦/重绘后、计算后的 focus/text/UI tree/screenshot。
+
+## 已知风险
+
+- `assembleHap` 仍输出仓库既有的 ArkTS exception/deprecation warnings，并因未配置 signingConfig 生成 unsigned HAP；本次未新增对应告警。
+- Developer 设备证据不能替代 Tester 的 AC-014/015 独立结论。
+- Tester 应使用稳定 ID 或每步重新读取节点 bounds，避免键盘重布局后的陈旧坐标。
 
 ## 下一步
-交给 Tester 独立验证；本次不执行归档命令。
+
+Tester 在 PR #54 的精确新 head 上先执行 AC-015；通过后重跑 AC-002..012 输入依赖 UI 场景，并汇总 AC-014。归档命令仅供后续阶段使用，本次未执行归档或审批。

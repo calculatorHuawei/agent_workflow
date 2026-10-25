@@ -1,5 +1,7 @@
 # 2×2 / 3×3 矩阵运算 - 代码仓理解
 
+> 2026-10-25 Tester-feedback 增量分析：基于 PR #54 精确 head `6e76305e8d3df57378314d78f30f4b53b0dc4690` 重新核查，重点由“从零新增矩阵功能”调整为“修复设备 TextInput 提交/状态同步闭环”。原有全量代码仓信息继续有效。
+
 ## 1. 基本信息
 - **需求类别**：工作流路由=缺陷修复；代码语义=新增功能
 - **需求名称**：2×2 / 3×3 矩阵运算
@@ -174,3 +176,48 @@ PlotPanel 的全屏 overlay 模式、主题函数、Hypium 聚合和纯逻辑 Fu
 - 新增单一纯逻辑 `MatrixEngine.ets`，将 Matrix 类型、校验结果和格式化 helper 内聚，避免立即扩大公共 Models/NumberFormatter。
 - 页面只负责编排字符串状态和可见反馈；引擎只接收完整 number 矩阵。
 - Tester 建立 cell 坐标级 UI 证据，不以“面板存在”替代运算语义。
+
+## 11. Tester 反馈专项代码仓分析（Task 61）
+
+### 11.1 可复现事实
+
+| 项目 | 事实 |
+|---|---|
+| 精确 revision | `6e76305e8d3df57378314d78f30f4b53b0dc4690`；任务开始时 tracked worktree clean |
+| 本地门禁 | 独立测试 68/68、`assembleHap`、CodeLinter 均通过（Tester handoff） |
+| 设备 | OpenHarmony 6.1.1.125 模拟器 `127.0.0.1:5555` |
+| 成功部分 | 矩阵入口、2×2/3×3 网格形状与范围外控件约束通过 |
+| 失败步骤 | `uitest uiInput inputText 963 1784 1` exit 0；输入后/失焦后 UI 树与截图仍为空；A+B 标记全部八格为空 |
+| 证据 | `.agent-runtime/evidence/task-56/run-106/device/logs/MX-UI-002_commands.json`、对应 UI tree/screenshots、`ui-assertions.json` |
+
+### 11.2 当前调用链与风险点
+
+```text
+TextInput(text = values[row][column])
+  └─ onChange(value)
+      └─ CalculatorPage.onMatrixCell(name,row,column,value)
+          ├─ loadMatrixSession()       @State arrays → mutable session
+          ├─ MatrixSession.setCell()   clone matrix, invalidate derived state
+          └─ storeMatrixSession()      session arrays → @State arrays → ArkUI redraw
+```
+
+| 风险点 | 代码位置 | 规划判断 |
+|---|---|---|
+| 重复 TextInput 身份 | `CalculatorPage.ets` `MatrixGrid` 的嵌套 `ForEach` 未提供显式稳定 key/test identifier | 保证 A/B + row + column 唯一 identity，避免重绘或自动化命中歧义 |
+| 受控文本与 Builder 参数 | `TextInput({ text: values[row][column] })` 读取 Builder 参数，同时 onChange 经 Session 往返写顶层状态 | 验证 onChange 是否触发以及重绘是否用旧空值覆盖内部编辑值；保持单一状态所有权 |
+| 焦点/自动化判定 | 当前单元格无可定位的语义标识，Tester 以坐标输入 | 记录焦点节点并优先使用稳定节点身份；exit 0 不作为文本提交 oracle |
+| Scroll/IME 重布局 | 输入网格位于 `Scroll`，IME 显示会改变可见区域 | 覆盖输入后、IME 收起/失焦、滚动/重绘三阶段，区分坐标偏移与产品缺陷 |
+| 算法层 | `MatrixSession`/`MatrixEngine` 单测通过 | 不修改算法语义；仅增加必要的 UI→state 集成覆盖 |
+
+### 11.3 影响范围与兼容边界
+
+| 文件/资产 | 计划影响 | 禁止扩张 |
+|---|---|---|
+| `opencalc/entry/src/main/ets/pages/CalculatorPage.ets` | 诊断并修正单元格 identity、焦点、文本绑定/状态同步 | 不改其他模式/标量状态，不新增权限、路由、自定义键盘 |
+| `opencalc/entry/src/main/ets/calculator/MatrixEngine.ets` | 原则上不变；若 UI 状态适配需要，仅保持既有公开语义 | 不改数字语法、算法、精度或会话规则 |
+| `opencalc/entry/src/test/` | 后续阶段可增加 UI-state adapter/会话回归；本 PLANNING 不改 | 不以单元测试替代设备 AC-015 |
+| Tester UI case/evidence | 稳定节点、焦点、分时点 UI tree/screenshot 与最终计算 oracle | 不增加产品测试后门 |
+
+### 11.4 构建与环境结论
+
+继续使用现有 `entry` HAP、ArkUI V1 `@State`、API 12、Hvigor/Hypium 配置；不新增 OHPM 依赖、系统 Kit 或权限。该缺陷属于表现层输入事件到页面会话状态的跨层集成问题，复杂度为中等、影响模块为 UI + 测试证据两类，不需要新的 HAP/HAR/HSP 或外部架构。

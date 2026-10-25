@@ -500,3 +500,130 @@ PlotPanel --> CalculatorPage : 返回
 > 本文档由 mod-design skill 工作流生成。
 > 标记 [推断] 的内容为基于设计推断，非确定性事实。
 > 生成时间：2026-10-24（Asia/Shanghai）
+
+## 12. Tester-feedback 增量设计（2026-10-25）
+
+### 12.1 设计目标与边界
+
+本修订对应 IR-012、SR-05/SR-06、SC006-UC001、AC-015。目标是在不改变矩阵算法、数字语法、精度、状态规则和其他计算器模式的前提下，修复设备 TextInput 从焦点/输入事件到页面 `@State`、可见文本和 MatrixSession 的提交闭环。
+
+- 保留同页 MatrixPanel、ArkUI V1 `@State` 与现有 MatrixSession。
+- 不新增自定义数字键盘、测试专用注入接口、权限、网络、存储、OHPM 依赖或路由。
+- 不将 `inputText` 命令 exit 0 当作成功；成功必须由焦点、文本、失焦保持和最终计算共同证明。
+
+### 12.2 根因诊断门禁
+
+在后续实现阶段修改行为前，先对精确失败构建执行最小诊断：
+
+| 观察时点 | 必须记录 | 判定 |
+|---|---|---|
+| 输入前 | A[1,1] 唯一节点 identity、bounds、focus=false、text empty | 定位基线 |
+| 输入命令后立即 | 命令参数/exit、focus、UI tree text、截图 | 未 focus=驱动/坐标；focus 且 text empty=事件/组件问题 |
+| IME 收起/失焦后 | 同一 identity 的 text 与页面错误状态 | 先有值后为空=陈旧状态回写 |
+| 补齐并计算后 | A[1,1] error、结果单元格 | UI 有值但判空=UI/Session 不同步 |
+
+诊断只用于选择最小修复，不向产品加入永久调试后门。
+
+### 12.3 组件与状态设计
+
+```plantuml
+@startuml
+actor User
+actor Tester
+component "Matrix TextInput\n(cellId=A-r-c)" as Cell
+component "CalculatorPage\n@State matrixAText/BText" as Page
+component "MatrixSession" as Session
+component "MatrixEngine" as Engine
+User --> Cell : touch + IME
+Tester --> Cell : stable node + uitest inputText
+Cell --> Page : onChange(cellId, text)
+Page --> Cell : render same committed text
+Page --> Session : calculate(current text arrays)
+Session --> Engine : validated number[][]
+Engine --> Page : result
+@enduml
+```
+
+设计约束：
+
+1. 每个输入节点的逻辑 identity 为 `{matrix}-{row}-{column}`，A/B 与所有 2×2/3×3 位置均唯一且切换后稳定。
+2. 顶层 `matrixAText`/`matrixBText` 是唯一持久到重绘的文本真源；输入事件按 cell identity 创建新行/新矩阵引用并原子替换对应 `@State`。
+3. MatrixSession 不持有与 UI 竞争的长期文本所有权；计算时从当前页面快照加载，计算完成只回写派生状态。若保留现有 load/store 往返，必须证明它不会把输入前空快照写回。
+4. 嵌套 `ForEach` 必须具有稳定 key/identity；事件闭包的 matrix/row/column 与可见单元格一致。
+5. 焦点、键盘类型或测试标识仅增强标准 TextInput 可达性，不改变输入语法；最终合法性仍由 MatrixInputAdapter 统一决定。
+
+### 12.4 状态机与时序
+
+```plantuml
+@startuml
+[*] --> Empty
+Empty --> Focused : target cell focused
+Focused --> Editing : IME/uitest emits text
+Editing --> Committed : page state contains text
+Committed --> Committed : blur/scroll/re-render [same text]
+Committed --> Calculated : all required cells valid / operation
+Committed --> Error : invalid required cell / operation
+Focused --> Empty : no text event
+Editing --> Empty : stale state overwrite [defect]
+@enduml
+```
+
+```plantuml
+@startuml
+participant Driver
+participant TextInput
+participant PageState
+participant Session
+Driver -> TextInput : focus unique cell + input "1"
+TextInput -> PageState : onChange("1", A-0-0)
+PageState -> TextInput : render text="1"
+Driver -> TextInput : blur / scroll / re-query
+TextInput --> Driver : focus=false, text="1"
+Driver -> Session : complete inputs + A+B
+Session -> PageState : result, no A-0-0 empty error
+PageState --> Driver : semantic result evidence
+@enduml
+```
+
+### 12.5 接口与文件规划
+
+不新增公共业务 API。后续实现只允许在以下最小边界内选择：
+
+| 位置 | 允许调整 | 保持不变 |
+|---|---|---|
+| `CalculatorPage.ets` MatrixGrid/handler | stable cell identity、焦点/测试可定位性、直接且原子的顶层文本状态更新、派生状态失效 | 四个运算入口、布局范围、其他模式状态 |
+| `MatrixEngine.ets` MatrixSession | 仅在证明确有空快照回写时收窄 UI 文本同步职责 | 运算、解析、格式化、维度/清空契约 |
+| 测试资产 | 增加 AC-015 的焦点/文本/失焦/计算断言 | 既有算法向量和 AC-001..014 |
+
+[推断] 优先方案是在页面输入 handler 中直接更新唯一顶层 `@State` 文本矩阵并单独失效派生状态，避免为一次 cell edit 执行完整 Session load/store；若诊断证明问题仅是自动化坐标/焦点，则只增强稳定节点 identity 与测试定位，不改业务状态链。
+
+### 12.6 错误处理与恢复
+
+- 自动化未聚焦目标节点：测试步骤失败并重新定位；应用不得伪造成功值。
+- 文本事件到达但渲染回空：保留输入事件与 UI tree 证据，修正状态所有权后重测。
+- UI/Session 不一致：阻止通过并以最终运算 oracle 定位；不得只增加等待时间掩盖竞争。
+- 修复后执行 AC-015，再完整重跑 AC-002..012 的输入依赖设备 UI 场景；算法/构建/lint 门禁仍保留。
+
+### 12.7 平台、权限与兼容设计
+
+沿用 API 12 ArkUI TextInput 和系统 IME，无新增 Kit/权限/配置。MatrixPanel 的外部契约不变，普通/科学/绘图/分数/程序员模式无修改。输入状态仍为会话内数据，不持久化。此修订不需要更新 HAP/HAR/HSP 架构或 `new-arch.md`。
+
+### 12.8 AC → 设计追溯补充
+
+| AC | 设计落点 |
+|---|---|
+| AC-015 | §12.2 分时点诊断；§12.3 唯一 identity/单一状态所有权；§12.4 状态机/时序；§12.6 恢复与设备回归 |
+
+### 12.9 mod-design 自验证补充
+
+| 校验项 | 结论 |
+|---|---|
+| 功能一致性 | IR-012/SR-05/06/AC-015 全部有设计落点，原 AC 不降级 |
+| 页面一致性 | 仍为 CalculatorPage 同页 MatrixPanel，无新页面/路由 |
+| 数据一致性 | 只调整会话文本状态所有权，不新增持久化 schema |
+| 权限/Kit 一致性 | 无新增权限或 Kit |
+| 兼容性 | 不改 MatrixEngine 运算语义和其他模式状态 |
+
+---
+> 本节由 mod-design 工作流基于 Tester handoff 59 生成；标记 [推断] 的内容须由后续诊断验证。
+> 修订时间：2026-10-25（Asia/Shanghai）
